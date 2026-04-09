@@ -1,0 +1,318 @@
+.my-team-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.my-team-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(126, 170, 255, 0.35);
+  border-radius: 18px;
+  padding: 1rem;
+  background:
+    linear-gradient(125deg, rgba(23, 60, 109, 0.95), rgba(42, 102, 173, 0.9), rgba(109, 64, 194, 0.88)),
+    radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.2), transparent 45%);
+  color: #e9f3ff;
+  box-shadow: 0 16px 34px rgba(41, 93, 171, 0.3);
+}
+
+.my-team-hero-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.my-team-hero-glow-1 {
+  width: 180px;
+  height: 180px;
+  background: rgba(128, 255, 236, 0.28);
+  top: -40px;
+  right: 8%;
+}
+
+.my-team-hero-glow-2 {
+  width: 220px;
+  height: 220px;
+  background: rgba(255, 172, 205, 0.25);
+  bottom: -100px;
+  left: -30px;
+}
+
+.my-team-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.my-team-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(219, 236, 255, 0.92);
+}
+
+.my-team-hero h1 {
+  margin: 0.35rem 0;
+  font-size: clamp(1.34rem, 3vw, 2rem);
+}
+
+.my-team-hero p {
+  margin: 0;
+  max-width: 760px;
+  color: rgba(235, 245, 255, 0.92);
+  font-size: 0.85rem;
+}
+
+.my-team-hero-badges {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.my-team-hero-badges span {
+  border: 1px solid rgba(201, 223, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  color: #f2f8ff;
+  border-radius: 999px;
+  padding: 0.23rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.my-team-toolbar {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-group {
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  background: var(--dash-surface-solid);
+  padding: 0.5rem 0.6rem;
+  display: grid;
+  gap: 0.32rem;
+  min-width: 220px;
+}
+
+.toolbar-group label {
+  font-size: 0.7rem;
+  color: var(--dash-text-soft);
+  font-weight: 700;
+}
+
+.toolbar-group select {
+  border: 1px solid rgba(148, 192, 255, 0.4);
+  border-radius: 8px;
+  padding: 0.42rem 0.5rem;
+  font-size: 0.78rem;
+  color: var(--dash-text);
+  background: #fff;
+  outline: none;
+}
+
+.toolbar-group select:focus {
+  border-color: rgba(59, 130, 246, 0.8);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+
+.my-team-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.summary-item {
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  padding: 0.76rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(236, 246, 255, 0.92)),
+    radial-gradient(circle at 90% 0%, rgba(143, 211, 255, 0.26), transparent 46%);
+}
+
+.summary-item p {
+  margin: 0;
+  color: var(--dash-text-soft);
+  font-size: 0.74rem;
+}
+
+.summary-item strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--dash-title);
+  font-size: 1.2rem;
+}
+
+.team-list-panel {
+  border: 1px solid var(--dash-border);
+  border-radius: 14px;
+  background: var(--dash-surface-solid);
+  padding: 0.85rem;
+}
+
+.team-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.team-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.team-card {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  min-height: 245px;
+  transform: translateY(0);
+  transition: transform 0.24s ease, box-shadow 0.28s ease;
+  box-shadow: 0 12px 24px rgba(41, 81, 152, 0.22);
+}
+
+.team-card-link:hover .team-card {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 34px rgba(22, 62, 128, 0.3);
+}
+
+.team-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.team-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(170deg, rgba(15, 30, 54, 0.18), rgba(8, 18, 35, 0.82));
+}
+
+.team-card-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.55rem;
+  height: 100%;
+  padding: 0.72rem;
+  color: #ecf4ff;
+}
+
+.team-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.team-brand-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.team-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  object-fit: cover;
+  border: 2px solid rgba(240, 248, 255, 0.75);
+  box-shadow: 0 6px 12px rgba(9, 27, 56, 0.4);
+}
+
+.team-card-head h3 {
+  margin: 0;
+  font-size: 0.89rem;
+  color: #f4f8ff;
+}
+
+.team-sport {
+  margin: 0.14rem 0 0;
+  color: rgba(216, 234, 255, 0.93);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.team-card ul {
+  margin: 0;
+  padding-left: 1rem;
+  color: rgba(232, 243, 255, 0.95);
+  font-size: 0.74rem;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.team-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.68rem;
+  color: rgba(224, 238, 255, 0.94);
+}
+
+.team-status-pill {
+  border-radius: 999px;
+  padding: 0.14rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  backdrop-filter: blur(2px);
+}
+
+.status-full {
+  color: #d5ffe5;
+  background: rgba(20, 163, 95, 0.34);
+  border-color: rgba(130, 255, 198, 0.42);
+}
+
+.status-recruiting {
+  color: #ddebff;
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(180, 214, 255, 0.5);
+}
+
+.status-inactive {
+  color: #fff3e2;
+  background: rgba(217, 119, 6, 0.37);
+  border-color: rgba(255, 219, 176, 0.56);
+}
+
+.team-card-hint {
+  font-weight: 700;
+}
+
+.empty-state {
+  margin-top: 0.7rem;
+  margin-bottom: 0;
+  color: var(--dash-text-soft);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1200px) {
+  .my-team-summary-grid,
+  .team-list-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .my-team-summary-grid,
+  .team-list-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-card {
+    min-height: 230px;
+  }
+}

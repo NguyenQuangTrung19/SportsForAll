@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "node .cursor/hooks/before-shell-execution.js",
+        "event": "beforeShellExecution",
+        "description": "Block risky shell flow (dev server outside tmux, git push reminder)"
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "node .cursor/hooks/after-file-edit.js",
+        "event": "afterFileEdit",
+        "description": "Track edited files, warn console.log, run design-quality check"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "node .cursor/hooks/before-submit-prompt.js",
+        "event": "beforeSubmitPrompt",
+        "description": "Detect secrets in prompts"
+      }
+    ],
+    "beforeTabFileRead": [
+      {
+        "command": "node .cursor/hooks/before-tab-file-read.js",
+        "event": "beforeTabFileRead",
+        "description": "Block reading sensitive secret files"
+      }
+    ],
+    "stop": [
+      {
+        "command": "node .cursor/hooks/stop.js",
+        "event": "stop",
+        "description": "Run session-end checks and quality reminders"
+      }
+    ]
+  }
+}
