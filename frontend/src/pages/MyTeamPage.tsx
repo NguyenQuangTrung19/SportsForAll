@@ -1,45 +1,46 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import AppShell from '../components/layout/AppShell'
 import { appMenuItems } from '../config/appMenu'
-import { teamStatusMeta, teams } from '../data/teams'
+import {
+  defaultSportCoverImage,
+  sportCoverImages,
+  teamStatusMeta,
+  teams,
+  type TeamStatus,
+} from '../data/teams'
 import './MyTeamPage.css'
 
 type SortOption = 'last-active-desc' | 'created-desc' | 'created-asc'
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 14, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      duration: 0.35,
-      ease: 'easeOut',
-    },
-  },
-  exit: { opacity: 0, y: -10, scale: 0.98, transition: { duration: 0.2 } },
-}
+type LayoutMode = 'grid' | 'compact'
+type TeamStatusFilter = TeamStatus | 'all'
 
 function MyTeamPage() {
   const [selectedSport, setSelectedSport] = useState<string>('all')
   const [sortBy, setSortBy] = useState<SortOption>('last-active-desc')
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsLoading(false), 700)
-    return () => window.clearTimeout(timer)
-  }, [selectedSport, sortBy])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState<TeamStatusFilter>('all')
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('grid')
 
   const sports = useMemo(
     () => ['all', ...Array.from(new Set(teams.map((team) => team.sport)))],
     [],
   )
 
+  const statuses = useMemo<TeamStatusFilter[]>(() => ['all', 'recruiting', 'full', 'inactive'], [])
+
   const filteredAndSortedTeams = useMemo(() => {
-    const filteredTeams =
-      selectedSport === 'all' ? teams : teams.filter((team) => team.sport === selectedSport)
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+
+    const filteredTeams = teams.filter((team) => {
+      const sportMatch = selectedSport === 'all' || team.sport === selectedSport
+      const statusMatch = selectedStatus === 'all' || team.status === selectedStatus
+      const searchMatch =
+        normalizedSearchTerm.length === 0 || team.name.toLowerCase().includes(normalizedSearchTerm)
+
+      return sportMatch && statusMatch && searchMatch
+    })
 
     return [...filteredTeams].sort((a, b) => {
       if (sortBy === 'last-active-desc') {
@@ -52,7 +53,7 @@ function MyTeamPage() {
 
       return new Date(a.createdAtISO).getTime() - new Date(b.createdAtISO).getTime()
     })
-  }, [selectedSport, sortBy])
+  }, [selectedSport, selectedStatus, sortBy, searchTerm])
 
   const summary = useMemo(() => {
     const totalTeams = filteredAndSortedTeams.length
@@ -99,6 +100,17 @@ function MyTeamPage() {
         </motion.header>
 
         <section className="my-team-toolbar" aria-label="Bộ lọc và sắp xếp team">
+          <div className="toolbar-group toolbar-group-wide">
+            <label htmlFor="team-search">Tìm kiếm team</label>
+            <input
+              id="team-search"
+              type="text"
+              placeholder="Nhập tên team..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
+
           <div className="toolbar-group">
             <label htmlFor="sport-filter">Lọc theo môn</label>
             <select
@@ -115,6 +127,21 @@ function MyTeamPage() {
           </div>
 
           <div className="toolbar-group">
+            <label htmlFor="status-filter">Lọc theo trạng thái</label>
+            <select
+              id="status-filter"
+              value={selectedStatus}
+              onChange={(event) => setSelectedStatus(event.target.value as TeamStatusFilter)}
+            >
+              {statuses.map((status) => (
+                <option key={status} value={status}>
+                  {status === 'all' ? 'Tất cả trạng thái' : teamStatusMeta[status].label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="toolbar-group">
             <label htmlFor="team-sort">Sắp xếp theo</label>
             <select
               id="team-sort"
@@ -125,6 +152,39 @@ function MyTeamPage() {
               <option value="created-desc">Ngày lập mới nhất</option>
               <option value="created-asc">Ngày lập cũ nhất</option>
             </select>
+          </div>
+
+          <div className="toolbar-group">
+            <label>Layout</label>
+            <div className="layout-toggle" role="group" aria-label="Chuyển kiểu hiển thị team">
+              <button
+                type="button"
+                className={layoutMode === 'grid' ? 'layout-btn active' : 'layout-btn'}
+                onClick={() => setLayoutMode('grid')}
+                title="Hiển thị dạng lưới"
+                aria-label="Hiển thị dạng lưới"
+              >
+                <span className="layout-icon layout-icon-grid" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </button>
+              <button
+                type="button"
+                className={layoutMode === 'compact' ? 'layout-btn active' : 'layout-btn'}
+                onClick={() => setLayoutMode('compact')}
+                title="Hiển thị dạng danh sách gọn"
+                aria-label="Hiển thị dạng danh sách gọn"
+              >
+                <span className="layout-icon layout-icon-compact" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -148,95 +208,67 @@ function MyTeamPage() {
         </div>
 
         <section className="team-list-panel" aria-label="Danh sách team đã tham gia">
-          <div className="section-head">
+          <div className="section-head section-head-with-action">
             <h2>Các team bạn tham gia</h2>
+            <Link to="/my-team/create" className="create-team-link-btn">
+              Tạo team mới
+            </Link>
           </div>
 
-          <div className="team-list-grid">
-            {isLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <article key={`skeleton-${index}`} className="team-card-skeleton" aria-hidden="true">
-                    <div className="skeleton-shimmer" />
-                    <div className="skeleton-content">
-                      <div className="skeleton-line skeleton-title" />
-                      <div className="skeleton-line skeleton-text" />
-                      <div className="skeleton-line skeleton-text" />
-                      <div className="skeleton-line skeleton-text short" />
+          <div className={layoutMode === 'compact' ? 'team-list-grid compact' : 'team-list-grid'}>
+            {filteredAndSortedTeams.map((team) => {
+              const statusMeta = teamStatusMeta[team.status]
+              const coverImageUrl = sportCoverImages[team.sport] ?? defaultSportCoverImage
+
+              return (
+                <Link
+                  key={team.id}
+                  to={`/my-team/${team.id}`}
+                  className="team-card-link"
+                  aria-label={`Xem chi tiết team ${team.name}`}
+                >
+                  <article className="team-card">
+                    <img src={coverImageUrl} alt={team.sport} className="team-cover" loading="lazy" />
+
+                    <div className="team-card-overlay" aria-hidden="true" />
+
+                    <div className="team-card-content">
+                      <div className="team-card-head">
+                        <div className="team-brand-row">
+                          <img src={team.logoUrl} alt={`${team.name} logo`} className="team-logo" />
+                          <div>
+                            <h3>{team.name}</h3>
+                            <p className="team-sport">{team.sport}</p>
+                          </div>
+                        </div>
+                        <span className={`team-status-pill ${statusMeta.className}`}>{statusMeta.label}</span>
+                      </div>
+
+                      <ul>
+                        <li>Ngày lập: {team.createdAt}</li>
+                        <li>Trưởng nhóm: {team.leader}</li>
+                        <li>Thành viên: {team.membersCount}</li>
+                        <li>Uy tín: {team.reputation.toFixed(1)}/5</li>
+                      </ul>
+
+                      <div className="team-card-footer">
+                        <span>
+                          Hoạt động gần nhất:{' '}
+                          {new Date(team.lastActiveAt).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </div>
                     </div>
                   </article>
-                ))
-              : null}
-
-            <AnimatePresence>
-              {!isLoading
-                ? filteredAndSortedTeams.map((team, index) => {
-                    const statusMeta = teamStatusMeta[team.status]
-
-                    return (
-                      <motion.div
-                        key={team.id}
-                        layout
-                        variants={cardVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        transition={{ delay: index * 0.04 }}
-                      >
-                        <Link
-                          to={`/my-team/${team.id}`}
-                          className="team-card-link"
-                          aria-label={`Xem chi tiết team ${team.name}`}
-                        >
-                          <article className="team-card">
-                            <img src={team.coverImageUrl} alt={team.name} className="team-cover" loading="lazy" />
-
-                            <div className="team-card-overlay" aria-hidden="true" />
-
-                            <div className="team-card-content">
-                              <div className="team-card-head">
-                                <div className="team-brand-row">
-                                  <img src={team.logoUrl} alt={`${team.name} logo`} className="team-logo" />
-                                  <div>
-                                    <h3>{team.name}</h3>
-                                    <p className="team-sport">{team.sport}</p>
-                                  </div>
-                                </div>
-                                <span className={`team-status-pill ${statusMeta.className}`}>
-                                  {statusMeta.label}
-                                </span>
-                              </div>
-
-                              <ul>
-                                <li>Ngày lập: {team.createdAt}</li>
-                                <li>Trưởng nhóm: {team.leader}</li>
-                                <li>
-                                  Thành viên: {team.membersCount}/{team.maxMembers}
-                                </li>
-                                <li>Uy tín: {team.reputation.toFixed(1)}/5</li>
-                              </ul>
-
-                              <div className="team-card-footer">
-                                <span>
-                                  Hoạt động gần nhất:{' '}
-                                  {new Date(team.lastActiveAt).toLocaleDateString('vi-VN', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                  })}
-                                </span>
-                                <span className="team-card-hint">Xem chi tiết →</span>
-                              </div>
-                            </div>
-                          </article>
-                        </Link>
-                      </motion.div>
-                    )
-                  })
-                : null}
-            </AnimatePresence>
+                </Link>
+              )
+            })}
           </div>
 
-          {!isLoading && filteredAndSortedTeams.length === 0 ? (
+          {filteredAndSortedTeams.length === 0 ? (
             <p className="empty-state">Không tìm thấy team phù hợp với bộ lọc hiện tại.</p>
           ) : null}
         </section>

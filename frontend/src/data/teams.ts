@@ -29,9 +29,20 @@ export type Team = {
   status: TeamStatus
   description: string
   logoUrl: string
-  coverImageUrl: string
   members: TeamMember[]
 }
+
+export const sportCoverImages: Record<string, string> = {
+  'Bóng đá 7':
+    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1400&q=80',
+  'Cầu lông':
+    'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1400&q=80',
+  'Chạy bộ cộng đồng':
+    'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1400&q=80',
+}
+
+export const defaultSportCoverImage =
+  'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1400&q=80'
 
 export const teams: Team[] = [
   {
@@ -48,8 +59,6 @@ export const teams: Team[] = [
     status: 'full',
     description: 'Team bóng đá giao hữu cuối tuần, ưu tiên tinh thần fair-play và kỷ luật đúng giờ.',
     logoUrl: thunderFcLogo,
-    coverImageUrl:
-      'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1200&q=80',
     members: [
       {
         id: 'm-1',
@@ -99,8 +108,6 @@ export const teams: Team[] = [
     status: 'recruiting',
     description: 'Team cầu lông luyện tập buổi tối, trình độ từ trung bình đến khá.',
     logoUrl: riversideSmashersLogo,
-    coverImageUrl:
-      'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1200&q=80',
     members: [
       {
         id: 'm-5',
@@ -142,8 +149,6 @@ export const teams: Team[] = [
     status: 'inactive',
     description: 'Nhóm chạy sáng sớm theo pace, hiện tạm dừng để sắp xếp lại lịch tập.',
     logoUrl: sunriseRunnersLogo,
-    coverImageUrl:
-      'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1200&q=80',
     members: [
       {
         id: 'm-8',

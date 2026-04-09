@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import brandLogo from '../../assets/branding/Logo.png'
 import type { AppMenuItem } from '../../config/appMenu'
@@ -10,8 +10,18 @@ type AppShellProps = {
 }
 
 function AppShell({ menuItems, children }: AppShellProps) {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.localStorage.getItem('app-shell-sidebar-collapsed') === 'true'
+  })
   const location = useLocation()
+
+  useEffect(() => {
+    window.localStorage.setItem('app-shell-sidebar-collapsed', String(isSidebarCollapsed))
+  }, [isSidebarCollapsed])
 
   return (
     <div className={`app-shell-layout ${isSidebarCollapsed ? 'app-shell-layout-collapsed' : ''}`}>

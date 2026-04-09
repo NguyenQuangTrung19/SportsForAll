@@ -1,8 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import AppShell from '../components/layout/AppShell'
 import { appMenuItems } from '../config/appMenu'
-import { memberStatusMeta, teamStatusMeta, teams } from '../data/teams'
+import {
+  defaultSportCoverImage,
+  memberStatusMeta,
+  sportCoverImages,
+  teamStatusMeta,
+  teams,
+} from '../data/teams'
 import './TeamDetailPage.css'
 
 type TeamDetailTab = 'members' | 'match-history' | 'announcements'
@@ -128,20 +135,42 @@ function TeamDetailPage() {
   }
 
   const teamStatus = teamStatusMeta[team.status]
+  const teamCoverImage = sportCoverImages[team.sport] ?? defaultSportCoverImage
 
   return (
     <AppShell menuItems={appMenuItems}>
       <section className="team-detail-page panel">
-        <div className="team-detail-header">
-          <div>
+        <motion.header
+          className="team-detail-hero"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <img src={teamCoverImage} alt={team.sport} className="team-detail-hero-cover" />
+          <div className="team-detail-hero-overlay" aria-hidden="true" />
+          <div className="team-detail-hero-glow team-detail-hero-glow-1" aria-hidden="true" />
+
+          <div className="team-detail-hero-content">
             <p className="team-detail-eyebrow">Chi tiết team</p>
-            <h1>{team.name}</h1>
-            <p>{team.description}</p>
+            <div className="team-title-row">
+              <img src={team.logoUrl} alt={`${team.name} logo`} className="team-detail-logo" />
+              <div>
+                <h1>{team.name}</h1>
+                <p>{team.description}</p>
+              </div>
+            </div>
+
+            <div className="team-detail-hero-badges">
+              <span>{team.sport}</span>
+              <span>Uy tín {team.reputation.toFixed(1)}/5</span>
+              <span>{team.membersCount}/{team.maxMembers} thành viên</span>
+            </div>
           </div>
+
           <Link to="/my-team" className="back-to-teams-link">
             ← Quay lại My Team
           </Link>
-        </div>
+        </motion.header>
 
         <div className="team-info-grid" aria-label="Thông tin tổng quan team">
           <article className="team-info-card">
@@ -157,14 +186,20 @@ function TeamDetailPage() {
             <strong>{team.leader}</strong>
           </article>
           <article className="team-info-card">
+            <p>Hoạt động gần nhất</p>
+            <strong>
+              {new Date(team.lastActiveAt).toLocaleDateString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              })}
+            </strong>
+          </article>
+          <article className="team-info-card">
             <p>Số lượng thành viên</p>
             <strong>
               {team.membersCount}/{team.maxMembers}
             </strong>
-          </article>
-          <article className="team-info-card">
-            <p>Uy tín</p>
-            <strong>{team.reputation.toFixed(1)}/5</strong>
           </article>
           <article className="team-info-card">
             <p>Trạng thái</p>
@@ -205,78 +240,105 @@ function TeamDetailPage() {
             </button>
           </div>
 
-          {activeTab === 'members' ? (
-            <div className="member-table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Thành viên</th>
-                    <th>Vai trò</th>
-                    <th>Ngày tham gia</th>
-                    <th>Uy tín</th>
-                    <th>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {team.members.map((member) => {
-                    const memberStatus = memberStatusMeta[member.status]
+          <AnimatePresence mode="wait">
+            {activeTab === 'members' ? (
+              <motion.div
+                key="members"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="member-table-wrap"
+              >
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Thành viên</th>
+                      <th>Vai trò</th>
+                      <th>Ngày tham gia</th>
+                      <th>Uy tín</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {team.members.map((member) => {
+                      const memberStatus = memberStatusMeta[member.status]
 
-                    return (
-                      <tr key={member.id}>
-                        <td>{member.name}</td>
-                        <td>{member.role}</td>
-                        <td>{member.joinedAt}</td>
-                        <td>{member.reputation.toFixed(1)}/5</td>
-                        <td>
-                          <span className={`member-status-pill ${memberStatus.className}`}>
-                            {memberStatus.label}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
+                      return (
+                        <tr key={member.id}>
+                          <td>{member.name}</td>
+                          <td>{member.role}</td>
+                          <td>{member.joinedAt}</td>
+                          <td>{member.reputation.toFixed(1)}/5</td>
+                          <td>
+                            <span className={`member-status-pill ${memberStatus.className}`}>
+                              {memberStatus.label}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </motion.div>
+            ) : null}
 
-          {activeTab === 'match-history' ? (
-            <div className="timeline-list" role="tabpanel" aria-label="Lịch sử trận đấu">
-              {matchHistory.length === 0 ? (
-                <p className="empty-tab-content">Chưa có dữ liệu lịch sử trận cho team này.</p>
-              ) : (
-                matchHistory.map((match) => (
-                  <article key={match.id} className="timeline-card">
-                    <h3>{match.title}</h3>
-                    <p>{match.playedAt}</p>
-                    <ul>
-                      <li>Kết quả: {match.result}</li>
-                      <li>Tỉ số/Kết quả: {match.score}</li>
-                      <li>Địa điểm: {match.location}</li>
-                    </ul>
-                  </article>
-                ))
-              )}
-            </div>
-          ) : null}
+            {activeTab === 'match-history' ? (
+              <motion.div
+                key="match-history"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="timeline-list"
+                role="tabpanel"
+                aria-label="Lịch sử trận đấu"
+              >
+                {matchHistory.length === 0 ? (
+                  <p className="empty-tab-content">Chưa có dữ liệu lịch sử trận cho team này.</p>
+                ) : (
+                  matchHistory.map((match) => (
+                    <article key={match.id} className="timeline-card">
+                      <h3>{match.title}</h3>
+                      <p>{match.playedAt}</p>
+                      <ul>
+                        <li>Kết quả: {match.result}</li>
+                        <li>Tỉ số/Kết quả: {match.score}</li>
+                        <li>Địa điểm: {match.location}</li>
+                      </ul>
+                    </article>
+                  ))
+                )}
+              </motion.div>
+            ) : null}
 
-          {activeTab === 'announcements' ? (
-            <div className="timeline-list" role="tabpanel" aria-label="Thông báo team">
-              {announcements.length === 0 ? (
-                <p className="empty-tab-content">Hiện chưa có thông báo nào.</p>
-              ) : (
-                announcements.map((announcement) => (
-                  <article key={announcement.id} className="timeline-card">
-                    <h3>{announcement.title}</h3>
-                    <p>
-                      {announcement.postedAt} • {announcement.author}
-                    </p>
-                    <p>{announcement.content}</p>
-                  </article>
-                ))
-              )}
-            </div>
-          ) : null}
+            {activeTab === 'announcements' ? (
+              <motion.div
+                key="announcements"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="timeline-list"
+                role="tabpanel"
+                aria-label="Thông báo team"
+              >
+                {announcements.length === 0 ? (
+                  <p className="empty-tab-content">Hiện chưa có thông báo nào.</p>
+                ) : (
+                  announcements.map((announcement) => (
+                    <article key={announcement.id} className="timeline-card">
+                      <h3>{announcement.title}</h3>
+                      <p>
+                        {announcement.postedAt} • {announcement.author}
+                      </p>
+                      <p>{announcement.content}</p>
+                    </article>
+                  ))
+                )}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </section>
       </section>
     </AppShell>
