@@ -8,19 +8,17 @@ import {
   sportCoverImages,
   teamStatusMeta,
   teams,
-  type TeamStatus,
 } from '../data/teams'
 import './MyTeamPage.css'
 
 type SortOption = 'last-active-desc' | 'created-desc' | 'created-asc'
 type LayoutMode = 'grid' | 'compact'
-type TeamStatusFilter = TeamStatus | 'all'
+type SportFilterOption = 'all' | `sport:${string}`
 
 function MyTeamPage() {
-  const [selectedSport, setSelectedSport] = useState<string>('all')
+  const [selectedSportFilter, setSelectedSportFilter] = useState<SportFilterOption>('all')
   const [sortBy, setSortBy] = useState<SortOption>('last-active-desc')
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState<TeamStatusFilter>('all')
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('grid')
 
   const sports = useMemo(
@@ -28,18 +26,27 @@ function MyTeamPage() {
     [],
   )
 
-  const statuses = useMemo<TeamStatusFilter[]>(() => ['all', 'recruiting', 'full', 'inactive'], [])
+  const sportFilters = useMemo<SportFilterOption[]>(() => {
+    const sportOptions = sports
+      .filter((sport) => sport !== 'all')
+      .map((sport) => `sport:${sport}` as SportFilterOption)
+
+    return ['all', ...sportOptions]
+  }, [sports])
 
   const filteredAndSortedTeams = useMemo(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase()
 
     const filteredTeams = teams.filter((team) => {
-      const sportMatch = selectedSport === 'all' || team.sport === selectedSport
-      const statusMatch = selectedStatus === 'all' || team.status === selectedStatus
+      const filterMatch =
+        selectedSportFilter === 'all'
+          ? true
+          : team.sport === selectedSportFilter.slice('sport:'.length)
+
       const searchMatch =
         normalizedSearchTerm.length === 0 || team.name.toLowerCase().includes(normalizedSearchTerm)
 
-      return sportMatch && statusMatch && searchMatch
+      return filterMatch && searchMatch
     })
 
     return [...filteredTeams].sort((a, b) => {
@@ -53,7 +60,7 @@ function MyTeamPage() {
 
       return new Date(a.createdAtISO).getTime() - new Date(b.createdAtISO).getTime()
     })
-  }, [selectedSport, selectedStatus, sortBy, searchTerm])
+  }, [selectedSportFilter, sortBy, searchTerm])
 
   const summary = useMemo(() => {
     const totalTeams = filteredAndSortedTeams.length
@@ -100,7 +107,7 @@ function MyTeamPage() {
         </motion.header>
 
         <section className="my-team-toolbar" aria-label="Bộ lọc và sắp xếp team">
-          <div className="toolbar-group toolbar-group-wide">
+          <div className="toolbar-group toolbar-group-search">
             <label htmlFor="team-search">Tìm kiếm team</label>
             <input
               id="team-search"
@@ -115,29 +122,26 @@ function MyTeamPage() {
             <label htmlFor="sport-filter">Lọc theo môn</label>
             <select
               id="sport-filter"
-              value={selectedSport}
-              onChange={(event) => setSelectedSport(event.target.value)}
+              value={selectedSportFilter}
+              onChange={(event) => setSelectedSportFilter(event.target.value as SportFilterOption)}
             >
-              {sports.map((sport) => (
-                <option key={sport} value={sport}>
-                  {sport === 'all' ? 'Tất cả môn' : sport}
-                </option>
-              ))}
-            </select>
-          </div>
+              {sportFilters.map((filterOption) => {
+                if (filterOption === 'all') {
+                  return (
+                    <option key="all" value="all">
+                      Tất cả môn
+                    </option>
+                  )
+                }
 
-          <div className="toolbar-group">
-            <label htmlFor="status-filter">Lọc theo trạng thái</label>
-            <select
-              id="status-filter"
-              value={selectedStatus}
-              onChange={(event) => setSelectedStatus(event.target.value as TeamStatusFilter)}
-            >
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status === 'all' ? 'Tất cả trạng thái' : teamStatusMeta[status].label}
-                </option>
-              ))}
+                const sport = filterOption.slice('sport:'.length)
+
+                return (
+                  <option key={filterOption} value={filterOption}>
+                    {sport}
+                  </option>
+                )
+              })}
             </select>
           </div>
 
@@ -154,7 +158,7 @@ function MyTeamPage() {
             </select>
           </div>
 
-          <div className="toolbar-group">
+          <div className="toolbar-group toolbar-group-layout">
             <label>Layout</label>
             <div className="layout-toggle" role="group" aria-label="Chuyển kiểu hiển thị team">
               <button
@@ -164,12 +168,12 @@ function MyTeamPage() {
                 title="Hiển thị dạng lưới"
                 aria-label="Hiển thị dạng lưới"
               >
-                <span className="layout-icon layout-icon-grid" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </span>
+                <svg viewBox="0 0 20 20" className="layout-btn-icon" aria-hidden="true" fill="currentColor">
+                  <rect x="3" y="3" width="5" height="5" rx="1.25" />
+                  <rect x="12" y="3" width="5" height="5" rx="1.25" />
+                  <rect x="3" y="12" width="5" height="5" rx="1.25" />
+                  <rect x="12" y="12" width="5" height="5" rx="1.25" />
+                </svg>
               </button>
               <button
                 type="button"
@@ -178,11 +182,11 @@ function MyTeamPage() {
                 title="Hiển thị dạng danh sách gọn"
                 aria-label="Hiển thị dạng danh sách gọn"
               >
-                <span className="layout-icon layout-icon-compact" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
+                <svg viewBox="0 0 20 20" className="layout-btn-icon" aria-hidden="true" fill="none">
+                  <rect x="3" y="4" width="14" height="2" rx="1" fill="currentColor" />
+                  <rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor" />
+                  <rect x="3" y="14" width="14" height="2" rx="1" fill="currentColor" />
+                </svg>
               </button>
             </div>
           </div>

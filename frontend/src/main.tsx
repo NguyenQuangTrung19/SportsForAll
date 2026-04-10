@@ -10,6 +10,8 @@ import DashboardPage from './pages/DashboardPage.tsx'
 import MyTeamPage from './pages/MyTeamPage.tsx'
 import MyTeamCreatePage from './pages/MyTeamCreatePage.tsx'
 import TeamDetailPage from './pages/TeamDetailPage.tsx'
+import VenuesPage from './pages/VenuesPage.tsx'
+import VenueDetailPage from './pages/VenueDetailPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -23,6 +25,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/my-team" element={<MyTeamPage />} />
         <Route path="/my-team/create" element={<MyTeamCreatePage />} />
         <Route path="/my-team/:teamId" element={<TeamDetailPage />} />
+        <Route path="/venues" element={<VenuesPage />} />
+        <Route path="/venues/:venueId" element={<VenueDetailPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

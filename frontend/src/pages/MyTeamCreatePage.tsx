@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Cropper, { type Area, type Point } from 'react-easy-crop'
@@ -16,7 +16,9 @@ type CreateTeamForm = {
   memberCount: number
   addMemberMode: AddMemberMode
   selectedFriendIds: string[]
+  addedContactPlayerIds: string[]
   contactInput: string
+  leader: string
   manager: string
   status: TeamStatus
 }
@@ -33,12 +35,60 @@ const sportOptions = [
   'Cờ vua',
 ]
 
-const friendOptions = [
-  { id: 'f-1', name: 'Nguyễn Thanh Bình' },
-  { id: 'f-2', name: 'Trần Minh Khôi' },
-  { id: 'f-3', name: 'Lê Thuỳ Dương' },
-  { id: 'f-4', name: 'Phạm Tuấn Anh' },
+type FriendOption = {
+  id: string
+  name: string
+  idNumber: string
+  phone: string
+  avatarUrl: string
+  bgImageUrl: string
+  role: string
+}
+
+const friendOptions: FriendOption[] = [
+  {
+    id: 'f-1',
+    name: 'Lê Thuỳ Dương',
+    idNumber: '20010217',
+    phone: '0987654321',
+    avatarUrl: 'https://i.pravatar.cc/120?img=32',
+    bgImageUrl:
+      'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?auto=format&fit=crop&w=1200&q=80',
+    role: 'Tiền đạo',
+  },
+  {
+    id: 'f-2',
+    name: 'Nguyễn Thanh Bình',
+    idNumber: '20000909',
+    phone: '0911223344',
+    avatarUrl: 'https://i.pravatar.cc/120?img=12',
+    bgImageUrl:
+      'https://images.unsplash.com/photo-1571019613576-2b22c76fd955?auto=format&fit=crop&w=1200&q=80',
+    role: 'Thủ môn',
+  },
+  {
+    id: 'f-3',
+    name: 'Phạm Tuấn Anh',
+    idNumber: '19991230',
+    phone: '0904567890',
+    avatarUrl: 'https://i.pravatar.cc/120?img=15',
+    bgImageUrl:
+      'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=80',
+    role: 'Hậu vệ',
+  },
+  {
+    id: 'f-4',
+    name: 'Trần Minh Khôi',
+    idNumber: '20031122',
+    phone: '0933555777',
+    avatarUrl: 'https://i.pravatar.cc/120?img=20',
+    bgImageUrl:
+      'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=80',
+    role: 'Tiền vệ',
+  },
 ]
+
+const normalizeDigits = (value: string) => value.replace(/\D/g, '')
 
 const createTeamCoverImages: Record<string, string> = {
   'Bóng đá':
@@ -67,12 +117,15 @@ const defaultForm: CreateTeamForm = {
   memberCount: 1,
   addMemberMode: 'friends',
   selectedFriendIds: [],
+  addedContactPlayerIds: [],
   contactInput: '',
+  leader: 'Bạn',
   manager: '',
   status: 'recruiting',
 }
 
 const defaultTeamLogoUrl = 'https://ui-avatars.com/api/?name=Team&background=2563eb&color=ffffff&size=256'
+const createTeamDraftStorageKey = 'sports-for-all:create-team-draft'
 
 async function createImage(url: string): Promise<HTMLImageElement> {
   const image = new Image()
@@ -114,8 +167,51 @@ async function buildCroppedLogo(imageSource: string, cropPixels: Area): Promise<
 }
 
 function MyTeamCreatePage() {
-  const [form, setForm] = useState<CreateTeamForm>(defaultForm)
-  const [currentStep, setCurrentStep] = useState<CreateStep>(1)
+  const [form, setForm] = useState<CreateTeamForm>(() => {
+    if (typeof window === 'undefined') {
+      return defaultForm
+    }
+
+    const rawDraft = window.localStorage.getItem(createTeamDraftStorageKey)
+    if (!rawDraft) {
+      return defaultForm
+    }
+
+    try {
+      const parsedDraft = JSON.parse(rawDraft) as Partial<CreateTeamForm>
+      return {
+        ...defaultForm,
+        ...parsedDraft,
+      }
+    } catch {
+      return defaultForm
+    }
+  })
+
+  const [currentStep, setCurrentStep] = useState<CreateStep>(() => {
+    if (typeof window === 'undefined') {
+      return 1
+    }
+
+    const rawDraft = window.localStorage.getItem(createTeamDraftStorageKey)
+    if (!rawDraft) {
+      return 1
+    }
+
+    try {
+      const parsedDraft = JSON.parse(rawDraft) as { currentStep?: number }
+      if (parsedDraft.currentStep === 2 || parsedDraft.currentStep === 3) {
+        return parsedDraft.currentStep
+      }
+    } catch {
+      return 1
+    }
+
+    return 1
+  })
+  const [isFriendPickerOpen, setIsFriendPickerOpen] = useState(false)
+  const [friendSearchTerm, setFriendSearchTerm] = useState('')
+  const [draftSelectedFriendIds, setDraftSelectedFriendIds] = useState<string[]>([])
 
   const [logoOriginal, setLogoOriginal] = useState('')
   const [logoPreview, setLogoPreview] = useState('')
@@ -127,16 +223,104 @@ function MyTeamCreatePage() {
   const [createError, setCreateError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const draft = {
+      ...form,
+      currentStep,
+    }
+
+    window.localStorage.setItem(createTeamDraftStorageKey, JSON.stringify(draft))
+  }, [form, currentStep])
+
   const selectedFriends = useMemo(
     () => friendOptions.filter((friend) => form.selectedFriendIds.includes(friend.id)).map((friend) => friend.name),
     [form.selectedFriendIds],
   )
+
+  const sortedFriendOptions = useMemo(
+    () => [...friendOptions].sort((a, b) => a.name.localeCompare(b.name, 'vi')),
+    [],
+  )
+
+  const filteredFriendOptions = useMemo(() => {
+    const normalizedSearch = friendSearchTerm.trim().toLowerCase()
+
+    if (!normalizedSearch) {
+      return sortedFriendOptions
+    }
+
+    return sortedFriendOptions.filter((friend) => {
+      return (
+        friend.name.toLowerCase().includes(normalizedSearch) ||
+        friend.idNumber.includes(normalizedSearch) ||
+        friend.phone.includes(normalizedSearch)
+      )
+    })
+  }, [friendSearchTerm, sortedFriendOptions])
+
+  const matchedContactPlayer = useMemo(() => {
+    if (form.addMemberMode !== 'contact') {
+      return null
+    }
+
+    const normalizedContactInput = normalizeDigits(form.contactInput)
+    if (!normalizedContactInput) {
+      return null
+    }
+
+    return (
+      friendOptions.find(
+        (friend) =>
+          normalizeDigits(friend.idNumber) === normalizedContactInput ||
+          normalizeDigits(friend.phone) === normalizedContactInput,
+      ) ?? null
+    )
+  }, [form.addMemberMode, form.contactInput])
+
+  const addedContactPlayers = useMemo(
+    () => friendOptions.filter((friend) => form.addedContactPlayerIds.includes(friend.id)),
+    [form.addedContactPlayerIds],
+  )
+
+  const selectedMemberOptions = useMemo(() => {
+    const selectedIds = new Set([...form.selectedFriendIds, ...form.addedContactPlayerIds])
+    const selectedPlayers = friendOptions.filter((friend) => selectedIds.has(friend.id))
+
+    return ['Bạn', ...selectedPlayers.map((player) => player.name)]
+  }, [form.selectedFriendIds, form.addedContactPlayerIds])
+
+  const totalAddedMemberCount = useMemo(() => {
+    return new Set([...form.selectedFriendIds, ...form.addedContactPlayerIds]).size
+  }, [form.selectedFriendIds, form.addedContactPlayerIds])
+
+  const remainingMemberSlots = Math.max(form.memberCount - (1 + totalAddedMemberCount), 0)
 
   const previewSport =
     lastSelectedSport && form.sports.includes(lastSelectedSport)
       ? lastSelectedSport
       : (form.sports[form.sports.length - 1] ?? 'Bóng đá')
   const coverImage = createTeamCoverImages[previewSport] ?? defaultSportCoverImage
+
+  useEffect(() => {
+    setForm((prev) => {
+      const nextLeader = selectedMemberOptions.includes(prev.leader) ? prev.leader : 'Bạn'
+      const nextManager = prev.manager && !selectedMemberOptions.includes(prev.manager) ? '' : prev.manager
+
+      if (nextLeader === prev.leader && nextManager === prev.manager) {
+        return prev
+      }
+
+      return {
+        ...prev,
+        leader: nextLeader,
+        manager: nextManager,
+      }
+    })
+  }, [selectedMemberOptions])
 
   function onTeamFieldChange<K extends keyof CreateTeamForm>(field: K, value: CreateTeamForm[K]) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -163,18 +347,44 @@ function MyTeamCreatePage() {
     })
   }
 
-  function onFriendToggle(friendId: string) {
+  function onDraftFriendToggle(friendId: string) {
+    setDraftSelectedFriendIds((prev) => {
+      const hasFriend = prev.includes(friendId)
+      return hasFriend ? prev.filter((id) => id !== friendId) : [...prev, friendId]
+    })
+  }
+
+  function openFriendPicker() {
+    setFriendSearchTerm('')
+    setDraftSelectedFriendIds(form.selectedFriendIds)
+    setIsFriendPickerOpen(true)
+  }
+
+  function applySelectedFriends() {
+    setForm((prev) => ({
+      ...prev,
+      selectedFriendIds: draftSelectedFriendIds,
+    }))
+    setIsFriendPickerOpen(false)
+  }
+
+  function addMatchedContactPlayer() {
+    if (!matchedContactPlayer) {
+      return
+    }
+
     setForm((prev) => {
-      const hasFriend = prev.selectedFriendIds.includes(friendId)
-      const selectedFriendIds = hasFriend
-        ? prev.selectedFriendIds.filter((id) => id !== friendId)
-        : [...prev.selectedFriendIds, friendId]
+      if (prev.addedContactPlayerIds.includes(matchedContactPlayer.id)) {
+        return prev
+      }
 
       return {
         ...prev,
-        selectedFriendIds,
+        addedContactPlayerIds: [...prev.addedContactPlayerIds, matchedContactPlayer.id],
       }
     })
+
+    onTeamFieldChange('contactInput', '')
   }
 
   function onLogoUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -234,9 +444,16 @@ function MyTeamCreatePage() {
       }
     }
 
-    if (step === 2 && form.addMemberMode === 'contact' && form.contactInput.trim().length === 0) {
-      setCreateError('Vui lòng nhập ID hoặc số điện thoại thành viên cần thêm.')
-      return false
+    if (step === 2) {
+      if (isFriendPickerOpen) {
+        setCreateError('Bạn đang mở danh sách bạn bè. Hãy nhấn "Thêm" để lưu hoặc đóng trước khi tiếp tục.')
+        return false
+      }
+
+      if (totalAddedMemberCount === 0) {
+        setCreateError('Vui lòng thêm ít nhất 1 thành viên bằng danh sách bạn bè hoặc ID/SĐT.')
+        return false
+      }
     }
 
     setCreateError('')
@@ -257,9 +474,7 @@ function MyTeamCreatePage() {
     setCurrentStep((prev) => (prev > 1 ? ((prev - 1) as CreateStep) : prev))
   }
 
-  async function onCreateTeam(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
+  function onCreateTeam() {
     if (!validateStep(1) || !validateStep(2)) {
       return
     }
@@ -270,6 +485,20 @@ function MyTeamCreatePage() {
     setCurrentStep(1)
     setLastSelectedSport('')
     clearUploadedLogo()
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(createTeamDraftStorageKey)
+    }
+  }
+
+  function onFormSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (currentStep !== 3) {
+      return
+    }
+
+    onCreateTeam()
   }
 
   const stepItems = [
@@ -439,72 +668,206 @@ function MyTeamCreatePage() {
 
             {currentStep === 2 ? (
               <section className="step-panel" aria-label="Thiết lập thành viên">
-                <div className="create-team-grid">
-                  <div className="toolbar-group">
-                    <label>Thêm thành viên</label>
-                    <div className="inline-choice">
+                <div className="member-setup-grid">
+                  <div className="toolbar-group member-card member-card-main">
+                    <div className="member-card-header">
+                      <div>
+                        <label>Thêm thành viên</label>
+                        <p className="logo-helper-text">Chọn nguồn thêm thành viên và quản lý danh sách ngay tại đây.</p>
+                      </div>
+                      <div className="member-summary-pills" aria-label="Tổng quan thành viên">
+                        <span>Tổng thêm mới: {totalAddedMemberCount}</span>
+                        <span>Còn thiếu: {remainingMemberSlots}</span>
+                      </div>
+                    </div>
+
+                    <div className="inline-choice member-mode-tabs" role="tablist" aria-label="Chọn cách thêm thành viên">
                       <button
                         type="button"
                         className={form.addMemberMode === 'friends' ? 'choice-btn active' : 'choice-btn'}
-                        onClick={() => onTeamFieldChange('addMemberMode', 'friends')}
+                        onClick={() => {
+                          onTeamFieldChange('addMemberMode', 'friends')
+                          openFriendPicker()
+                        }}
                       >
-                        Chọn từ bạn bè
+                        Danh sách bạn bè
                       </button>
                       <button
                         type="button"
                         className={form.addMemberMode === 'contact' ? 'choice-btn active' : 'choice-btn'}
-                        onClick={() => onTeamFieldChange('addMemberMode', 'contact')}
+                        onClick={() => {
+                          onTeamFieldChange('addMemberMode', 'contact')
+                          setIsFriendPickerOpen(false)
+                        }}
                       >
-                        Nhập ID / số điện thoại
+                        Nhập ID / SĐT
                       </button>
                     </div>
 
                     {form.addMemberMode === 'friends' ? (
-                      <div className="friend-check-list">
-                        {friendOptions.map((friend) => {
-                          const checked = form.selectedFriendIds.includes(friend.id)
-
-                          return (
-                            <label key={friend.id} className="friend-check-item">
-                              <input type="checkbox" checked={checked} onChange={() => onFriendToggle(friend.id)} />
-                              <span>{friend.name}</span>
-                            </label>
-                          )
-                        })}
+                      <div className="friend-picker-control">
+                        <div className="member-panel member-panel-soft">
+                          <p className="logo-helper-text">
+                            Đã thêm từ bạn bè: <strong>{form.selectedFriendIds.length}</strong> thành viên
+                            {selectedFriends.length ? ` (${selectedFriends.join(', ')})` : ''}
+                          </p>
+                          <button type="button" className="action-btn" onClick={openFriendPicker}>
+                            Chọn thành viên từ bạn bè
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <input
-                        type="text"
-                        placeholder="Ví dụ: member_001 hoặc 09xxxxxxxx"
-                        value={form.contactInput}
-                        onChange={(event) => onTeamFieldChange('contactInput', event.target.value)}
-                      />
+                      <div className="member-panel">
+                        <div className="contact-input-wrap">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="Nhập chính xác ID hoặc SĐT (chỉ số)"
+                            value={form.contactInput}
+                            onChange={(event) =>
+                              onTeamFieldChange('contactInput', event.target.value.replace(/\D/g, ''))
+                            }
+                          />
+                        </div>
+
+                        {matchedContactPlayer ? (
+                          <>
+                            <article className="contact-player-card">
+                              <img
+                                src={matchedContactPlayer.bgImageUrl}
+                                alt={matchedContactPlayer.name}
+                                className="contact-player-bg"
+                                loading="lazy"
+                              />
+                              <div className="contact-player-overlay" aria-hidden="true" />
+                              <div className="contact-player-content">
+                                <img
+                                  src={matchedContactPlayer.avatarUrl}
+                                  alt={`${matchedContactPlayer.name} avatar`}
+                                  className="contact-player-avatar"
+                                />
+                                <div>
+                                  <h4>{matchedContactPlayer.name}</h4>
+                                  <p>Vai trò: {matchedContactPlayer.role}</p>
+                                  <p>ID: {matchedContactPlayer.idNumber}</p>
+                                  <p>SĐT: {matchedContactPlayer.phone}</p>
+                                </div>
+                              </div>
+                            </article>
+                            <button type="button" className="action-btn" onClick={addMatchedContactPlayer}>
+                              Thêm thành viên này
+                            </button>
+                          </>
+                        ) : form.contactInput.trim().length ? (
+                          <p className="logo-helper-text">Không tìm thấy người chơi khớp ID/SĐT đã nhập.</p>
+                        ) : (
+                          <p className="logo-helper-text">Nhập ID hoặc SĐT để tra cứu và thêm nhanh thành viên.</p>
+                        )}
+
+                        {addedContactPlayers.length ? (
+                          <div className="added-member-list">
+                            {addedContactPlayers.map((player) => (
+                              <article key={player.id} className="added-member-chip">
+                                <img src={player.avatarUrl} alt={`${player.name} avatar`} loading="lazy" />
+                                <div>
+                                  <strong>{player.name}</strong>
+                                  <p>{player.role}</p>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                     )}
                   </div>
 
-                  <div className="toolbar-group">
-                    <label>Trưởng nhóm</label>
-                    <input value="Bạn" readOnly />
-                  </div>
+                  <div className="member-meta-grid">
+                    <div className="toolbar-group member-card member-card-side">
+                      <label htmlFor="new-team-leader">Trưởng nhóm</label>
+                      <select
+                        id="new-team-leader"
+                        value={form.leader}
+                        onChange={(event) => onTeamFieldChange('leader', event.target.value)}
+                      >
+                        {selectedMemberOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="logo-helper-text">
+                        Mặc định là bạn. Sau khi thêm thành viên, bạn có thể chọn 1 người trong danh sách này.
+                      </p>
+                    </div>
 
-                  <div className="toolbar-group">
-                    <label htmlFor="new-team-manager">Quản lý (không bắt buộc)</label>
-                    <select
-                      id="new-team-manager"
-                      value={form.manager}
-                      onChange={(event) => onTeamFieldChange('manager', event.target.value)}
-                    >
-                      <option value="">Để trống, chỉnh sau</option>
-                      <option value="Bạn">Bạn</option>
-                      {friendOptions.map((friend) => (
-                        <option key={friend.id} value={friend.name}>
-                          {friend.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="toolbar-group member-card member-card-side">
+                      <label htmlFor="new-team-manager">Quản lý (không bắt buộc)</label>
+                      <select
+                        id="new-team-manager"
+                        value={form.manager}
+                        onChange={(event) => onTeamFieldChange('manager', event.target.value)}
+                      >
+                        <option value="">Để trống, chỉnh sau</option>
+                        {selectedMemberOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="logo-helper-text">Có thể chọn bạn hoặc người đã có trong danh sách thành viên đã thêm.</p>
+                    </div>
                   </div>
                 </div>
               </section>
+            ) : null}
+
+            {currentStep === 2 && form.addMemberMode === 'friends' && isFriendPickerOpen ? (
+              <div className="friend-picker-modal">
+                <div className="friend-picker-draft" role="dialog" aria-modal="true" aria-label="Danh sách bạn bè">
+                  <div className="friend-picker-draft-head">
+                    <h3>Danh sách bạn bè</h3>
+                    <p className="logo-helper-text">Đã chọn tạm: {draftSelectedFriendIds.length} thành viên</p>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên / ID / SĐT..."
+                    value={friendSearchTerm}
+                    onChange={(event) => setFriendSearchTerm(event.target.value)}
+                  />
+
+                  <div className="friend-check-list compact">
+                    {filteredFriendOptions.map((friend) => {
+                      const checked = draftSelectedFriendIds.includes(friend.id)
+
+                      return (
+                        <label key={friend.id} className={checked ? 'friend-check-item selected' : 'friend-check-item'}>
+                          <input type="checkbox" checked={checked} onChange={() => onDraftFriendToggle(friend.id)} />
+                          <article className="friend-mini-card compact">
+                            <img src={friend.avatarUrl} alt={`${friend.name} avatar`} className="friend-mini-card-avatar" />
+                            <div className="friend-mini-card-meta">
+                              <h4>{friend.name}</h4>
+                              <p>
+                                {friend.role} · ID: {friend.idNumber} · SĐT: {friend.phone}
+                              </p>
+                            </div>
+                          </article>
+                        </label>
+                      )
+                    })}
+
+                    {filteredFriendOptions.length === 0 ? (
+                      <p className="logo-helper-text">Không có bạn bè phù hợp từ khóa tìm kiếm.</p>
+                    ) : null}
+                  </div>
+
+                  <div className="friend-picker-actions">
+                    <button type="button" className="action-btn" onClick={applySelectedFriends}>
+                      Thêm
+                    </button>
+                  </div>
+                </div>
+              </div>
             ) : null}
 
             {currentStep === 3 ? (
@@ -527,17 +890,19 @@ function MyTeamCreatePage() {
                     <strong>{teamStatusMeta[form.status].label}</strong>
                   </article>
                   <article className="confirm-item">
+                    <p>Trưởng nhóm</p>
+                    <strong>{form.leader}</strong>
+                  </article>
+                  <article className="confirm-item">
                     <p>Quản lý</p>
                     <strong>{form.manager || 'Để trống'}</strong>
                   </article>
                   <article className="confirm-item">
                     <p>Thành viên thêm mới</p>
                     <strong>
-                      {form.addMemberMode === 'friends'
-                        ? selectedFriends.length
-                          ? selectedFriends.join(', ')
-                          : 'Chưa chọn'
-                        : form.contactInput || 'Chưa nhập'}
+                      {totalAddedMemberCount
+                        ? `Bạn bè: ${selectedFriends.length}, ID/SĐT: ${addedContactPlayers.length}`
+                        : 'Chưa chọn'}
                     </strong>
                   </article>
                 </div>
@@ -588,19 +953,10 @@ function MyTeamCreatePage() {
                 </div>
 
                 <ul>
-                  <li>Trưởng nhóm: Bạn</li>
+                  <li>Trưởng nhóm: {form.leader}</li>
                   <li>Quản lý: {form.manager || 'Để trống'}</li>
                   <li>Thành viên: {form.memberCount}</li>
-                  <li>
-                    Thêm mới:{' '}
-                    {form.addMemberMode === 'friends'
-                      ? selectedFriends.length
-                        ? selectedFriends.length
-                        : 0
-                      : form.contactInput.trim().length
-                        ? 1
-                        : 0}
-                  </li>
+                  <li>Thêm mới: {totalAddedMemberCount}</li>
                 </ul>
 
                 <div className="team-preview-footer">
