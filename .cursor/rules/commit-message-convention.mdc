@@ -1,0 +1,29 @@
+---
+description: Enforce conventional commit prefixes for generated commit messages
+alwaysApply: true
+---
+
+# Commit Message Convention
+
+When generating commit messages, always follow this prefix mapping:
+
+- `feat:` when adding a new user-facing feature.
+- `fix:` when fixing an existing bug.
+- `docs:` when only documentation files change (README, guides, docs) and no code logic changes.
+- `style:` when only formatting/styling changes are made (whitespace, commas, formatting) with no logic changes.
+- `refactor:` when restructuring or optimizing existing code without adding features or fixing bugs.
+
+## Requirements
+
+- Output format must be: `<type>: <short summary>`
+- Keep summary concise and specific.
+- Choose exactly one type based on the primary intent of the changes.
+- Do not use other prefixes unless explicitly requested by the user.
+
+## Examples
+
+- `feat: add venue search by coordinates`
+- `fix: handle null response in team creation flow`
+- `docs: update setup steps for backend environment variables`
+- `style: format venues page styles and align spacing`
+- `refactor: extract venue scoring logic into helper function`
