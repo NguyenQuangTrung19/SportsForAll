@@ -30,6 +30,85 @@
   color: rgba(245, 248, 255, 0.92);
 }
 
+.venues-source-panel {
+  border: 1px solid #dbe4f5;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: #fff;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #1f3355;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.mode-toggle button,
+.source-actions button {
+  border: 1px solid #cfdcf3;
+  background: #f6f9ff;
+  color: #163f84;
+  border-radius: 0.7rem;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.mode-toggle button.active {
+  background: #1e5fc4;
+  border-color: #1e5fc4;
+  color: #fff;
+}
+
+.manual-input {
+  display: grid;
+  gap: 0.4rem;
+  color: #21345a;
+  font-size: 0.92rem;
+}
+
+.manual-input input {
+  border: 1px solid #d5deef;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.coords-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 260px));
+  gap: 0.8rem;
+}
+
+.source-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.source-actions button.secondary {
+  background: #fff;
+}
+
+.source-actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.source-error {
+  margin: 0;
+  color: #b42318;
+  font-weight: 600;
+}
+
 .venues-filters {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 260px));
@@ -186,7 +265,14 @@
 }
 
 @media (max-width: 768px) {
-  .venues-filters {
+  .venues-filters,
+  .coords-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mode-toggle,
+  .source-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

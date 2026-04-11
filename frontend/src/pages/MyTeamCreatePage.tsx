@@ -5,6 +5,7 @@ import Cropper, { type Area, type Point } from 'react-easy-crop'
 import AppShell from '../components/layout/AppShell'
 import { appMenuItems } from '../config/appMenu'
 import { defaultSportCoverImage, teamStatusMeta, type TeamStatus } from '../data/teams'
+import { useToast } from '../components/feedback/ToastSystem'
 import './MyTeamCreatePage.css'
 
 type AddMemberMode = 'friends' | 'contact'
@@ -220,8 +221,8 @@ function MyTeamCreatePage() {
   const [croppedPixels, setCroppedPixels] = useState<Area | null>(null)
 
   const [lastSelectedSport, setLastSelectedSport] = useState('')
-  const [createError, setCreateError] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+
+  const toast = useToast()
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -400,8 +401,6 @@ function MyTeamCreatePage() {
     setCrop({ x: 0, y: 0 })
     setZoom(1)
     setCroppedPixels(null)
-    setCreateError('')
-    setSuccessMessage('')
   }
 
   function clearUploadedLogo() {
@@ -420,43 +419,43 @@ function MyTeamCreatePage() {
     try {
       const cropped = await buildCroppedLogo(logoOriginal, croppedPixels)
       setLogoPreview(cropped)
-      setCreateError('')
+      toast.success('Ảnh logo đã được cắt và áp dụng.')
     } catch {
-      setCreateError('Không thể áp dụng crop. Vui lòng thử lại.')
+      toast.error('Không thể áp dụng crop. Vui lòng thử lại.')
     }
   }
 
   function validateStep(step: CreateStep) {
     if (step === 1) {
       if (form.name.trim().length < 3) {
-        setCreateError('Tên team cần ít nhất 3 ký tự.')
+        toast.error('Tên team cần ít nhất 3 ký tự.')
         return false
       }
 
       if (form.sports.length === 0) {
-        setCreateError('Bạn cần chọn ít nhất 1 môn thể thao cho team.')
+        toast.error('Bạn cần chọn ít nhất 1 môn thể thao cho team.')
         return false
       }
 
       if (form.memberCount < 1) {
-        setCreateError('Số lượng thành viên phải lớn hơn hoặc bằng 1.')
+        toast.error('Số lượng thành viên phải lớn hơn hoặc bằng 1.')
         return false
       }
     }
 
     if (step === 2) {
-      if (isFriendPickerOpen) {
-        setCreateError('Bạn đang mở danh sách bạn bè. Hãy nhấn "Thêm" để lưu hoặc đóng trước khi tiếp tục.')
-        return false
-      }
+      const effectiveSelectedFriendIds = isFriendPickerOpen ? draftSelectedFriendIds : form.selectedFriendIds
+      const effectiveTotalAddedMembers = new Set([...effectiveSelectedFriendIds, ...form.addedContactPlayerIds]).size
+      const minimumRequiredAddedMembers = Math.max(form.memberCount - 1, 0)
 
-      if (totalAddedMemberCount === 0) {
-        setCreateError('Vui lòng thêm ít nhất 1 thành viên bằng danh sách bạn bè hoặc ID/SĐT.')
+      if (effectiveTotalAddedMembers < minimumRequiredAddedMembers) {
+        toast.error(
+          `Bạn cần thêm ít nhất ${minimumRequiredAddedMembers} thành viên (hiện có ${effectiveTotalAddedMembers}) để khớp số lượng thành viên đã khai báo.`,
+        )
         return false
       }
     }
 
-    setCreateError('')
     return true
   }
 
@@ -465,22 +464,24 @@ function MyTeamCreatePage() {
       return
     }
 
-    setSuccessMessage('')
     setCurrentStep((prev) => (prev < 3 ? ((prev + 1) as CreateStep) : prev))
   }
 
   function previousStep() {
-    setCreateError('')
     setCurrentStep((prev) => (prev > 1 ? ((prev - 1) as CreateStep) : prev))
   }
 
   function onCreateTeam() {
+    if (currentStep !== 3) {
+      toast.error('Vui lòng hoàn tất bước 3 (Xác nhận) trước khi tạo team.')
+      return
+    }
+
     if (!validateStep(1) || !validateStep(2)) {
       return
     }
 
-    setCreateError('')
-    setSuccessMessage('Tạo team thành công. Bạn có thể quay lại My Team để xem danh sách.')
+    toast.success('Tạo team thành công. Bạn có thể quay lại My Team để xem danh sách.')
     setForm(defaultForm)
     setCurrentStep(1)
     setLastSelectedSport('')
@@ -491,14 +492,8 @@ function MyTeamCreatePage() {
     }
   }
 
-  function onFormSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
-    if (currentStep !== 3) {
-      return
-    }
-
-    onCreateTeam()
   }
 
   const stepItems = [
@@ -537,7 +532,7 @@ function MyTeamCreatePage() {
         </motion.header>
 
         <div className="create-team-content-grid">
-          <form className="create-team-form" onSubmit={onCreateTeam}>
+          <form className="create-team-form" onSubmit={onFormSubmit}>
             <ol className="create-team-stepper" aria-label="Tiến trình tạo team">
               {stepItems.map((step) => {
                 const isActive = currentStep === step.id
@@ -862,6 +857,9 @@ function MyTeamCreatePage() {
                   </div>
 
                   <div className="friend-picker-actions">
+                    <button type="button" className="action-btn ghost" onClick={() => setIsFriendPickerOpen(false)}>
+                      Đóng
+                    </button>
                     <button type="button" className="action-btn" onClick={applySelectedFriends}>
                       Thêm
                     </button>
@@ -908,9 +906,6 @@ function MyTeamCreatePage() {
                 </div>
               </section>
             ) : null}
-
-            {createError ? <p className="form-error">{createError}</p> : null}
-            {successMessage ? <p className="form-success">{successMessage}</p> : null}
 
             <div className="create-team-actions">
               <button type="button" className="action-btn ghost" onClick={previousStep} disabled={currentStep === 1}>

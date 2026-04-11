@@ -12,23 +12,26 @@ import MyTeamCreatePage from './pages/MyTeamCreatePage.tsx'
 import TeamDetailPage from './pages/TeamDetailPage.tsx'
 import VenuesPage from './pages/VenuesPage.tsx'
 import VenueDetailPage from './pages/VenueDetailPage.tsx'
+import { ToastProvider } from './components/feedback/ToastSystem.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/my-team" element={<MyTeamPage />} />
-        <Route path="/my-team/create" element={<MyTeamCreatePage />} />
-        <Route path="/my-team/:teamId" element={<TeamDetailPage />} />
-        <Route path="/venues" element={<VenuesPage />} />
-        <Route path="/venues/:venueId" element={<VenueDetailPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/my-team" element={<MyTeamPage />} />
+          <Route path="/my-team/create" element={<MyTeamCreatePage />} />
+          <Route path="/my-team/:teamId" element={<TeamDetailPage />} />
+          <Route path="/venues" element={<VenuesPage />} />
+          <Route path="/venues/:venueId" element={<VenueDetailPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   </StrictMode>,
 )
