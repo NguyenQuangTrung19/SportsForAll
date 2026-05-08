@@ -20,37 +20,31 @@ type NavItem = {
 
 const introPoints: IntroPoint[] = [
   {
-    title: 'Đúng người để chơi vui và tiến bộ',
-    description:
-      'Bạn có thể tìm đồng đội hoặc đối thủ theo khu vực, môn thể thao, trình độ và khung giờ rảnh để mỗi trận đều cân bằng và chất lượng.',
+    title: 'Đúng người',
+    description: 'Ghép đồng đội/đối thủ theo khu vực, trình độ và lịch rảnh.',
   },
   {
-    title: 'Đúng kèo để vận hành dễ dàng',
-    description:
-      'SportsForAll giúp bạn bắt đầu ngay, tạo và tham đội bóng của riêng bạn chỉ vài thao tác, đồng thời theo dõi lịch thi đấu minh bạch.',
+    title: 'Đúng kèo',
+    description: 'Tạo trận, quản lý đội hình và theo dõi lịch thi đấu trong một luồng đơn giản.',
   },
   {
-    title: 'Đúng tinh thần để cộng đồng bền vững',
-    description:
-      'Hệ thống đánh giá sau trận, lịch sử hoạt động và nguyên tắc fair-play giúp xây dựng một môi trường thể thao văn minh, tôn trọng và an toàn.',
+    title: 'Đúng tinh thần',
+    description: 'Đánh giá sau trận minh bạch để cộng đồng luôn tích cực và công bằng.',
   },
 ]
 
 const faqs: Faq[] = [
   {
     question: 'SportsForAll dành cho ai?',
-    answer:
-      'Dành cho người chơi thể thao cá nhân, đội nhóm và cả chủ sân muốn kết nối với cộng đồng năng động.',
+    answer: 'Dành cho người chơi cá nhân, đội nhóm và chủ sân muốn kết nối cộng đồng thể thao.',
   },
   {
     question: 'Mình có thể tìm trận gần khu vực của mình không?',
-    answer:
-      'Có. Bạn có thể lọc theo quận/huyện, khoảng cách và khung giờ để tìm trận phù hợp nhanh chóng.',
+    answer: 'Có. Bạn có thể lọc theo khu vực và khung giờ để tìm trận phù hợp nhanh chóng.',
   },
   {
     question: 'Có mất phí khi bắt đầu sử dụng không?',
-    answer:
-      'Phiên bản khởi đầu tập trung vào trải nghiệm cốt lõi và sẽ có gói miễn phí cho người dùng mới.',
+    answer: 'Có gói miễn phí để bắt đầu, phù hợp cho người dùng mới.',
   },
 ]
 
@@ -228,13 +222,13 @@ function App() {
           <div className="hero-content">
             <p className="badge">Nền tảng kết nối cộng đồng thể thao thế hệ mới</p>
             <h1>
-              Nâng cấp mỗi trận đấu với
+              Kết nối nhanh,
               <br />
-              trải nghiệm <span className="highlight">hiện đại & bùng nổ</span>.
+              chơi chất cùng <span className="highlight">SportsForAll</span>.
             </h1>
             <p className="subtitle">
-              SportsForAll giúp bạn kết nối đúng người, lên kèo nhanh và theo dõi toàn bộ hành
-              trình thi đấu trong một không gian trực quan, mượt mà và đáng tin cậy.
+              Tìm người chơi phù hợp, tạo kèo dễ dàng và theo dõi hành trình thi đấu trên một nền
+              tảng gọn gàng, trực quan.
             </p>
 
             <div className="hero-trust" aria-label="Điểm nổi bật nhanh">
@@ -244,9 +238,9 @@ function App() {
             </div>
 
             <ul className="hero-points" aria-label="Giá trị cốt lõi">
-              <li>Tìm đồng đội/đối thủ theo vị trí, trình độ và lịch rảnh chỉ trong vài giây.</li>
-              <li>Tạo kèo, quản lý đội hình và xác nhận thành viên bằng luồng thao tác tối giản.</li>
-              <li>Đánh giá sau trận minh bạch để giữ cộng đồng tích cực và chất lượng dài hạn.</li>
+              <li>Ghép kèo theo vị trí, trình độ và thời gian rảnh.</li>
+              <li>Tạo trận và quản lý đội hình chỉ với vài thao tác.</li>
+              <li>Duy trì cộng đồng tích cực bằng đánh giá sau trận.</li>
             </ul>
 
             <div className="cta-group">
@@ -286,21 +280,17 @@ function App() {
         <section className="section" id="intro">
           <h2>Giới thiệu</h2>
           <p className="section-lead">
-            SportsForAll có nghĩa là “Thể thao cho tất cả mọi người”. Nền tảng được xây dựng để
-            kết nối người chơi, đội nhóm và cộng đồng thể thao theo cách rõ ràng, đáng tin cậy và
-            dễ tham gia cho mọi cấp độ.
+            SportsForAll là nền tảng kết nối người chơi, đội nhóm và sân thể thao theo cách nhanh,
+            rõ ràng và dễ tham gia.
           </p>
 
           <div className="intro-content reveal">
             <p>
-              Thay vì tìm kèo qua nhiều kênh rời rạc, SportsForAll tập trung toàn bộ nhu cầu vào
-              một trải nghiệm thống nhất: từ khám phá đối tượng phù hợp, tham gia hoạt động đúng
-              thời gian, đến duy trì chất lượng cộng đồng sau mỗi trận.
+              Thay vì tìm kèo qua nhiều kênh rời rạc, bạn có thể khám phá trận phù hợp, tham gia
+              đúng thời gian và theo dõi hoạt động trên một trải nghiệm thống nhất.
             </p>
             <p>
-              Giá trị cốt lõi của SportsForAll xoay quanh ba nguyên tắc: đúng người, đúng kèo và
-              đúng tinh thần. Đây là nền tảng để mọi buổi chơi không chỉ thuận tiện hơn mà còn công
-              bằng và bền vững hơn cho cả cộng đồng.
+              Ba giá trị cốt lõi của SportsForAll là đúng người, đúng kèo và đúng tinh thần.
             </p>
           </div>
 
@@ -450,6 +440,27 @@ function App() {
                   rel="noreferrer"
                 >
                   github.com/NguyenQuangTrung19
+                </a>
+              </div>
+            </article>
+
+            <article className="contact-card reveal">
+              <div className="contact-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="M8.1 10.1V16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="8.1" cy="8" r="1.1" fill="currentColor" />
+                  <path d="M11.8 16v-3.1c0-1.3.8-2.2 2-2.2s1.9.8 1.9 2.2V16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div>
+                <p className="contact-label">Portfolio</p>
+                <a
+                  href="https://portfolio-tau-taupe-24.vercel.app/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  linkedin.com/in/nguyen-quang-trung-dev
                 </a>
               </div>
             </article>
