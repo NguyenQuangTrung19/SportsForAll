@@ -12,6 +12,7 @@ import {
 import type { JoinRequest, Prisma, RecruitmentPost, Team, TeamMember, User } from '@prisma/client';
 import { Router } from 'express';
 import { prisma } from '../lib/db.js';
+import { notify } from '../lib/notify.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
 
@@ -253,8 +254,12 @@ recruitmentRouter.post('/posts/:id/requests', requireAuth, async (req, res, next
       throw new HttpError(409, 'Bạn đã gửi đơn cho bài này', 'ALREADY_APPLIED');
     }
 
+    const applicant = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true },
+    });
+
     if (existing) {
-      // Re-apply after a previous decision — reset to pending
       await prisma.joinRequest.update({
         where: { id: existing.id },
         data: {
@@ -269,6 +274,17 @@ recruitmentRouter.post('/posts/:id/requests', requireAuth, async (req, res, next
         data: { postId: post.id, userId, message: input.message ?? null },
       });
     }
+
+    const managers = post.team.members
+      .filter((m) => m.role === 'captain' || m.role === 'co_captain')
+      .map((m) => m.userId);
+    await notify(prisma, {
+      userIds: managers,
+      type: 'join_request_received',
+      title: `${applicant?.displayName ?? 'Một người chơi'} muốn vào ${post.team.name}`,
+      message: input.message ?? null,
+      link: `/posts/${post.id}`,
+    });
 
     const refreshed = await loadPostOrFail(post.id);
     res.status(201).json(toDetail(refreshed, userId));
@@ -294,7 +310,6 @@ recruitmentRouter.post('/requests/:requestId/accept', requireAuth, async (req, r
         where: { id: request.id },
         data: { status: 'accepted', decidedAt: new Date() },
       });
-      // Add to team if not already a member
       const existing = await tx.teamMember.findUnique({
         where: { teamId_userId: { teamId: request.post.teamId, userId: request.userId } },
       });
@@ -303,6 +318,12 @@ recruitmentRouter.post('/requests/:requestId/accept', requireAuth, async (req, r
           data: { teamId: request.post.teamId, userId: request.userId, role: 'member' },
         });
       }
+      await notify(tx, {
+        userIds: [request.userId],
+        type: 'join_request_accepted',
+        title: `Bạn đã được nhận vào ${request.post.team.name}`,
+        link: `/teams/${request.post.teamId}`,
+      });
     });
 
     const refreshed = await loadPostOrFail(request.postId);
@@ -327,6 +348,12 @@ recruitmentRouter.post('/requests/:requestId/reject', requireAuth, async (req, r
     await prisma.joinRequest.update({
       where: { id: request.id },
       data: { status: 'rejected', decidedAt: new Date() },
+    });
+    await notify(prisma, {
+      userIds: [request.userId],
+      type: 'join_request_rejected',
+      title: `Đơn xin gia nhập ${request.post.team.name} đã bị từ chối`,
+      link: `/posts/${request.postId}`,
     });
 
     const refreshed = await loadPostOrFail(request.postId);

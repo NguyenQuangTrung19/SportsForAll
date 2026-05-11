@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KineticText } from '@/components/KineticText';
+import { NotificationBell } from '@/components/NotificationBell';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
@@ -223,12 +224,14 @@ export function HomePage() {
           <div className="flex items-center gap-3">
             {user && (
               <>
-                <div
-                  className="flex size-10 items-center justify-center rounded-full border border-cream/15 bg-cream/[0.04] font-display text-sm font-black uppercase text-primary backdrop-blur-md"
-                  aria-hidden
+                <NotificationBell />
+                <Link
+                  to="/profile"
+                  aria-label="Hồ sơ"
+                  className="flex size-10 items-center justify-center rounded-full border border-cream/15 bg-cream/[0.04] font-display text-sm font-black uppercase text-primary backdrop-blur-md transition hover:border-cream/45"
                 >
                   {initial}
-                </div>
+                </Link>
                 <button
                   type="button"
                   onClick={() => void logout()}

@@ -70,6 +70,16 @@ enum MatchStatus {
   cancelled
 }
 
+enum NotificationType {
+  join_request_received
+  join_request_accepted
+  join_request_rejected
+  challenge_received
+  challenge_accepted
+  challenge_rejected
+  match_scheduled
+}
+
 model User {
   id            String     @id @default(cuid())
   email         String     @unique
@@ -90,6 +100,7 @@ model User {
   sportPreferences  SportPreference[]
   teamMemberships   TeamMember[]
   joinRequests      JoinRequest[]
+  notifications     Notification[]
 
   @@index([region])
 }
@@ -206,6 +217,22 @@ model Challenge {
 
   @@unique([matchRequestId, challengerTeamId])
   @@index([challengerTeamId, status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 model Match {

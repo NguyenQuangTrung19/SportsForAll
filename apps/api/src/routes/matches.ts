@@ -13,6 +13,7 @@ import {
 import type { Challenge, Match, MatchRequest, Prisma, Team, TeamMember } from '@prisma/client';
 import { Router } from 'express';
 import { prisma } from '../lib/db.js';
+import { notify } from '../lib/notify.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
 
@@ -325,6 +326,17 @@ matchesRouter.post('/requests/:id/challenges', requireAuth, async (req, res, nex
       });
     }
 
+    const ownerManagers = r.team.members
+      .filter((m) => m.role === 'captain' || m.role === 'co_captain')
+      .map((m) => m.userId);
+    await notify(prisma, {
+      userIds: ownerManagers,
+      type: 'challenge_received',
+      title: `${challenger.name} muốn thách đấu`,
+      message: input.message ?? null,
+      link: `/match-requests/${r.id}`,
+    });
+
     const refreshed = await loadRequest(r.id);
     res.status(201).json(toDetail(refreshed, userId));
   } catch (err) {
@@ -347,8 +359,23 @@ matchesRouter.post('/challenges/:id/accept', requireAuth, async (req, res, next)
     const matchReq = challenge.matchRequest;
     const now = new Date();
 
+    // Snapshot of participants for notifications
+    const acceptedChallenger = matchReq.challenges.find((c) => c.id === challenge.id);
+    const acceptedTeamManagers = (acceptedChallenger?.challengerTeam.members ?? [])
+      .filter((m) => m.role === 'captain' || m.role === 'co_captain')
+      .map((m) => m.userId);
+    const rejectedChallengeTeamManagers = matchReq.challenges
+      .filter((c) => c.id !== challenge.id && c.status === 'pending')
+      .flatMap((c) =>
+        c.challengerTeam.members
+          .filter((m) => m.role === 'captain' || m.role === 'co_captain')
+          .map((m) => m.userId),
+      );
+    const homeManagers = matchReq.team.members
+      .filter((m) => m.role === 'captain' || m.role === 'co_captain')
+      .map((m) => m.userId);
+
     await prisma.$transaction(async (tx) => {
-      // Accept this challenge, reject the rest, mark request matched
       await tx.challenge.update({
         where: { id: challenge.id },
         data: { status: 'accepted', decidedAt: now },
@@ -376,6 +403,30 @@ matchesRouter.post('/challenges/:id/accept', requireAuth, async (req, res, next)
           status: 'scheduled',
         },
       });
+      await notify(tx, {
+        userIds: acceptedTeamManagers,
+        type: 'challenge_accepted',
+        title: `Thách đấu của bạn được chấp nhận`,
+        message: `${matchReq.team.name} đã đồng ý giao hữu.`,
+        link: `/match-requests/${matchReq.id}`,
+      });
+      if (rejectedChallengeTeamManagers.length > 0) {
+        await notify(tx, {
+          userIds: rejectedChallengeTeamManagers,
+          type: 'challenge_rejected',
+          title: `${matchReq.team.name} đã chọn đối thủ khác`,
+          link: `/match-requests/${matchReq.id}`,
+        });
+      }
+      await notify(tx, {
+        userIds: homeManagers,
+        type: 'match_scheduled',
+        title: `Trận đấu mới đã được lên lịch`,
+        message: matchReq.preferredTime
+          ? new Date(matchReq.preferredTime).toLocaleString('vi-VN')
+          : null,
+        link: `/match-requests/${matchReq.id}`,
+      });
     });
 
     const refreshed = await loadRequest(matchReq.id);
@@ -396,10 +447,25 @@ matchesRouter.post('/challenges/:id/reject', requireAuth, async (req, res, next)
     if (challenge.status !== 'pending') {
       throw new HttpError(400, 'Thách đấu không còn ở trạng thái chờ', 'CHALLENGE_NOT_PENDING');
     }
+    const challengerTeam = await prisma.team.findUnique({
+      where: { id: challenge.challengerTeamId },
+      include: { members: { select: { userId: true, role: true } } },
+    });
     await prisma.challenge.update({
       where: { id: challenge.id },
       data: { status: 'rejected', decidedAt: new Date() },
     });
+    if (challengerTeam) {
+      const challengerManagers = challengerTeam.members
+        .filter((m) => m.role === 'captain' || m.role === 'co_captain')
+        .map((m) => m.userId);
+      await notify(prisma, {
+        userIds: challengerManagers,
+        type: 'challenge_rejected',
+        title: `${challenge.matchRequest.team.name} đã từ chối thách đấu`,
+        link: `/match-requests/${challenge.matchRequestId}`,
+      });
+    }
     const refreshed = await loadRequest(challenge.matchRequestId);
     res.json(toDetail(refreshed, req.user!.sub));
   } catch (err) {
