@@ -20,27 +20,27 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Hero — compact, single-viewport */}
       <section className="border-b border-ink/10">
-        <div className="mx-auto max-w-6xl px-6 py-16 md:py-28">
-          <div className="grid items-end gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="mx-auto max-w-6xl px-6 py-8 md:py-12">
+          <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-8">
               <p className="fade-up text-xs font-bold uppercase tracking-wide text-ink-soft">
                 Cộng đồng thể thao Việt Nam · 2026
               </p>
-              <h1 className="mt-4 font-display text-[clamp(64px,12vw,176px)] leading-[0.95] tracking-tight">
+              <h1 className="mt-3 font-display text-[clamp(44px,8vw,108px)] leading-[1] tracking-tight">
                 <span className="fade-up stagger-1 block">Tìm trận.</span>
                 <span className="fade-up stagger-2 block text-primary">Tìm bạn.</span>
                 <span className="fade-up stagger-3 block">Ra sân.</span>
               </h1>
               <div
-                className="mt-8 h-1 origin-left bg-ink animate-draw-line stagger-4"
+                className="mt-5 h-1 origin-left bg-ink animate-draw-line stagger-4"
                 aria-hidden
               />
-              <p className="fade-up stagger-4 mt-6 max-w-xl text-lg leading-relaxed text-ink-soft md:text-xl">
+              <p className="fade-up stagger-4 mt-4 max-w-xl text-base leading-relaxed text-ink-soft md:text-lg">
                 Một tài khoản — năm môn thể thao — ba vai trò. Đăng tin tuyển thành viên, gửi lời thách đấu, đặt sân, tất cả ở một nơi.
               </p>
-              <div className="fade-up stagger-5 mt-10 flex flex-wrap items-center gap-4">
+              <div className="fade-up stagger-5 mt-6 flex flex-wrap items-center gap-3">
                 <Link to="/register" className="btn-primary">
                   Tham gia miễn phí <span aria-hidden>→</span>
                 </Link>
@@ -51,11 +51,11 @@ export function LandingPage() {
             </div>
 
             <aside className="lg:col-span-4">
-              <div className="border border-ink/15 bg-white p-6 shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
-                <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+              <div className="border border-ink/15 bg-white p-5 shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">
                   Có gì trên SFA
                 </p>
-                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4">
                   <Stat n="05" label="Môn thể thao" />
                   <Stat n="03" label="Vai trò" />
                   <Stat n="0₫" label="Phí player" />
@@ -179,8 +179,8 @@ export function LandingPage() {
 function Stat({ n, label }: { n: string; label: string }) {
   return (
     <div>
-      <p className="poster-num text-5xl text-primary">{n}</p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+      <p className="poster-num text-4xl text-primary">{n}</p>
+      <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
         {label}
       </p>
     </div>
