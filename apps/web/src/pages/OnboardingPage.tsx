@@ -149,7 +149,7 @@ export function OnboardingPage() {
           <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
             Thiết lập hồ sơ
           </p>
-          <h1 className="mt-3 font-display text-[clamp(40px,7vw,84px)] font-black uppercase leading-[0.88] tracking-tight">
+          <h1 className="mt-3 font-display text-[clamp(40px,7vw,84px)] leading-[1] tracking-tight">
             Chào, {firstName} —<br />
             <span className="text-primary">kể chúng tôi nghe</span>
             <br />

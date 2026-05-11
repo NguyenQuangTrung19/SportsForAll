@@ -233,10 +233,10 @@
     animation: fade-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   }
 
-  /* Display number — big poster digit (Alfa Slab One vintage scoreboard) */
+  /* Display number — big poster digit (Viaoda Libre, single weight) */
   .poster-num {
-    font-family: 'Alfa Slab One', 'Be Vietnam Pro', Georgia, serif;
-    font-weight: 400; /* Alfa Slab One is single-weight, already heavy */
+    font-family: 'Viaoda Libre', 'Be Vietnam Pro', Georgia, serif;
+    font-weight: 400; /* Viaoda Libre is single weight */
     letter-spacing: -0.02em;
     line-height: 0.92;
     font-variant-numeric: tabular-nums lining-nums;

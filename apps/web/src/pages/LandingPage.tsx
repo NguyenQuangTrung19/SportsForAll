@@ -28,7 +28,7 @@ export function LandingPage() {
               <p className="fade-up text-xs font-bold uppercase tracking-wide text-ink-soft">
                 Cộng đồng thể thao Việt Nam · 2026
               </p>
-              <h1 className="mt-4 font-display text-[clamp(64px,12vw,180px)] font-black uppercase leading-[0.84] tracking-tight">
+              <h1 className="mt-4 font-display text-[clamp(64px,12vw,176px)] leading-[0.95] tracking-tight">
                 <span className="fade-up stagger-1 block">Tìm trận.</span>
                 <span className="fade-up stagger-2 block text-primary">Tìm bạn.</span>
                 <span className="fade-up stagger-3 block">Ra sân.</span>
@@ -75,7 +75,7 @@ export function LandingPage() {
               <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                 Năm môn — một cộng đồng
               </p>
-              <h2 className="mt-2 font-display text-4xl font-black uppercase leading-tight tracking-tight md:text-5xl">
+              <h2 className="mt-2 font-display text-5xl leading-[1] tracking-tight md:text-6xl">
                 Chọn môn của bạn.
               </h2>
             </div>
@@ -119,7 +119,7 @@ export function LandingPage() {
           <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
             Cách hoạt động
           </p>
-          <h2 className="mt-2 font-display text-4xl font-black uppercase leading-tight tracking-tight md:text-5xl">
+          <h2 className="mt-2 font-display text-5xl leading-[1] tracking-tight md:text-6xl">
             Bốn bước,
             <br />
             ra sân.
@@ -141,7 +141,7 @@ export function LandingPage() {
             <p className="text-xs font-bold uppercase tracking-wide text-paper/60">
               Sẵn sàng?
             </p>
-            <h2 className="mt-3 font-display text-[clamp(40px,7vw,80px)] font-black uppercase leading-[0.9] tracking-tight">
+            <h2 className="mt-3 font-display text-[clamp(40px,7vw,80px)] leading-[1] tracking-tight">
               Một trận đấu
               <br />
               <span className="text-primary">đang chờ bạn.</span>

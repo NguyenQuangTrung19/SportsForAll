@@ -137,7 +137,7 @@ export function HomePage() {
         {/* Hero strip — poster-style */}
         <section className="fade-up">
           <p className="font-mono text-[11px] font-medium text-ink-soft">{todayLabel}</p>
-          <h1 className="mt-4 font-display text-[clamp(48px,9vw,108px)] font-black uppercase leading-[0.88] tracking-tight">
+          <h1 className="mt-4 font-display text-[clamp(48px,9vw,108px)] leading-[0.98] tracking-tight">
             Chào,
             <br />
             <span className="text-primary">{givenName}.</span>

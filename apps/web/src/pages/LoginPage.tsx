@@ -54,7 +54,7 @@ export function LoginPage() {
           <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
             Đăng nhập
           </p>
-          <h1 className="mt-3 font-display text-[clamp(56px,9vw,112px)] font-black uppercase leading-[0.88] tracking-tight">
+          <h1 className="mt-3 font-display text-[clamp(56px,9vw,112px)] leading-[1] tracking-tight">
             Chào
             <br />
             <span className="text-primary">trở lại.</span>

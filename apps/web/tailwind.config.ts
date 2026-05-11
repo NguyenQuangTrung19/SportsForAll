@@ -22,7 +22,7 @@ export default {
       },
       fontFamily: {
         sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
-        display: ['"Alfa Slab One"', '"Be Vietnam Pro"', 'Georgia', 'serif'],
+        display: ['"Viaoda Libre"', '"Be Vietnam Pro"', 'Georgia', 'serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       keyframes: {
