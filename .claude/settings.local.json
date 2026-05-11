@@ -23,7 +23,18 @@
       "Bash(pnpm --filter @sfa/web exec tailwindcss -i src/index.css -o /tmp/sfa-tw.css)",
       "Bash(pnpm --filter @sfa/web exec tsc --noEmit --pretty)",
       "Bash(pnpm --filter @sfa/web exec tsc --noEmit -p tsconfig.app.json)",
-      "Bash(awk 'NR<97 || NR>119' \"C:/Users/ACER/Documents/Workspace/Projects/SportsForAll/apps/web/src/pages/LandingPage.tsx\")"
+      "Bash(awk 'NR<97 || NR>119' \"C:/Users/ACER/Documents/Workspace/Projects/SportsForAll/apps/web/src/pages/LandingPage.tsx\")",
+      "Bash(pnpm prisma *)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm --filter @sfa/shared build)",
+      "Bash(pnpm --filter @sfa/shared typecheck)",
+      "Bash(pnpm --filter @sfa/api typecheck)",
+      "Bash(pnpm -r typecheck)",
+      "Bash(pnpm --filter @sfa/web build)",
+      "Bash(pnpm --filter @sfa/api build)",
+      "Bash(pnpm --filter @sfa/api exec prisma generate)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-CimInstance *)"
     ]
   }
 }

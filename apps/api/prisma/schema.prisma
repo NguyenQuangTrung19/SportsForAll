@@ -38,6 +38,18 @@ enum TeamRole {
   member
 }
 
+enum RecruitmentStatus {
+  open
+  closed
+}
+
+enum JoinRequestStatus {
+  pending
+  accepted
+  rejected
+  cancelled
+}
+
 model User {
   id            String     @id @default(cuid())
   email         String     @unique
@@ -57,6 +69,7 @@ model User {
   refreshTokens     RefreshToken[]
   sportPreferences  SportPreference[]
   teamMemberships   TeamMember[]
+  joinRequests      JoinRequest[]
 
   @@index([region])
 }
@@ -88,10 +101,48 @@ model Team {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  members TeamMember[]
+  members          TeamMember[]
+  recruitmentPosts RecruitmentPost[]
 
   @@index([sport, region])
   @@index([sport, skillLevel])
+}
+
+model RecruitmentPost {
+  id             String            @id @default(cuid())
+  teamId         String
+  sport          Sport
+  region         String?
+  positionNeeded String?
+  skillLevelMin  SkillLevel?
+  description    String
+  status         RecruitmentStatus @default(open)
+  expiresAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  team     Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  requests JoinRequest[]
+
+  @@index([sport, region, status])
+  @@index([teamId, status])
+  @@index([status, createdAt])
+}
+
+model JoinRequest {
+  id         String            @id @default(cuid())
+  postId     String
+  userId     String
+  status     JoinRequestStatus @default(pending)
+  message    String?
+  createdAt  DateTime          @default(now())
+  decidedAt  DateTime?
+
+  post RecruitmentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, status])
 }
 
 model TeamMember {

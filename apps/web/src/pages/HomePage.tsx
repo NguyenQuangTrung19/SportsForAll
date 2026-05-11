@@ -446,7 +446,12 @@ export function HomePage() {
             </span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ActionTile num="01" title="Tìm đồng đội" sub="Đăng tin tìm bạn" />
+            <ActionTile
+              num="01"
+              title="Tìm đồng đội"
+              sub="Bài tuyển từ các đội"
+              to="/find-teammates"
+            />
             <ActionTile num="02" title="Tìm đối thủ" sub="Gửi lời thách đấu" />
             <ActionTile num="03" title="Đặt sân" sub="Mở lịch sân trống" />
             <ActionTile num="04" title="Quản lý đội" sub="Thành viên & lịch sử" to="/teams" />

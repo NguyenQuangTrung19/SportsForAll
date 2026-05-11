@@ -9,6 +9,9 @@ import { LoginPage } from '@/pages/LoginPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { FindTeammatesPage } from '@/pages/FindTeammatesPage';
+import { PostCreatePage } from '@/pages/PostCreatePage';
+import { PostDetailPage } from '@/pages/PostDetailPage';
 import { TeamCreatePage } from '@/pages/TeamCreatePage';
 import { TeamDetailPage } from '@/pages/TeamDetailPage';
 import { TeamsPage } from '@/pages/TeamsPage';
@@ -76,6 +79,30 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <TeamDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teams/:id/posts/new"
+              element={
+                <ProtectedRoute>
+                  <PostCreatePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/find-teammates"
+              element={
+                <ProtectedRoute>
+                  <FindTeammatesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/posts/:id"
+              element={
+                <ProtectedRoute>
+                  <PostDetailPage />
                 </ProtectedRoute>
               }
             />

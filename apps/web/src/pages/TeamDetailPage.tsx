@@ -234,6 +234,26 @@ export function TeamDetailPage() {
 
               <aside className="space-y-6 lg:col-span-5">
                 {canManage && (
+                  <article className="rounded-3xl border border-primary/30 bg-primary/[0.05] p-6 backdrop-blur-2xl">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
+                      Tuyển thành viên
+                    </p>
+                    <h3 className="mt-2 font-display text-lg font-black uppercase tracking-tight text-cream">
+                      Đăng bài tìm người mới
+                    </h3>
+                    <p className="mt-2 text-sm text-cream/70">
+                      Bài đăng sẽ xuất hiện cho cộng đồng tại trang Tìm đồng đội.
+                    </p>
+                    <Link
+                      to={`/teams/${team.id}/posts/new`}
+                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-night shadow-[0_18px_50px_-12px_rgb(var(--color-primary))] transition hover:scale-[1.02]"
+                    >
+                      Tạo bài tuyển <span aria-hidden>→</span>
+                    </Link>
+                  </article>
+                )}
+
+                {canManage && (
                   <AddMemberCard
                     onSubmit={(input) => {
                       setActionError(null);
