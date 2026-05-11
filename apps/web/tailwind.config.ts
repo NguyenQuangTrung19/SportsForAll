@@ -22,7 +22,7 @@ export default {
       },
       fontFamily: {
         sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
-        display: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
+        display: ['"Hanken Grotesk"', '"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       keyframes: {
