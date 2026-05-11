@@ -175,15 +175,6 @@
 }
 
 @layer utilities {
-  /* Vintage display modifier: applies Fraunces vintage axes (SOFT, WONK)
-     to give headlines extra character. Browsers without variation-axis
-     support fall back to default Fraunces, still beautiful. */
-  .font-display,
-  .display-vintage {
-    font-optical-sizing: auto;
-    font-variation-settings: 'SOFT' 30, 'WONK' 1;
-  }
-
   /* Layout helpers */
   .stagger-1 {
     animation-delay: 0.05s;
@@ -242,14 +233,12 @@
     animation: fade-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   }
 
-  /* Display number — big poster digit (Fraunces vintage serif) */
+  /* Display number — big poster digit (Alfa Slab One vintage scoreboard) */
   .poster-num {
-    font-family: 'Fraunces', 'Be Vietnam Pro', Georgia, serif;
-    font-weight: 900;
-    font-optical-sizing: auto;
-    font-variation-settings: 'SOFT' 40, 'WONK' 1;
-    letter-spacing: -0.04em;
-    line-height: 0.88;
+    font-family: 'Alfa Slab One', 'Be Vietnam Pro', Georgia, serif;
+    font-weight: 400; /* Alfa Slab One is single-weight, already heavy */
+    letter-spacing: -0.02em;
+    line-height: 0.92;
     font-variant-numeric: tabular-nums lining-nums;
   }
 }
