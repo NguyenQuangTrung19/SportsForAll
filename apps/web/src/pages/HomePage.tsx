@@ -452,7 +452,12 @@ export function HomePage() {
               sub="Bài tuyển từ các đội"
               to="/find-teammates"
             />
-            <ActionTile num="02" title="Tìm đối thủ" sub="Gửi lời thách đấu" />
+            <ActionTile
+              num="02"
+              title="Tìm đối thủ"
+              sub="Gửi lời thách đấu"
+              to="/find-opponents"
+            />
             <ActionTile num="03" title="Đặt sân" sub="Mở lịch sân trống" />
             <ActionTile num="04" title="Quản lý đội" sub="Thành viên & lịch sử" to="/teams" />
           </div>

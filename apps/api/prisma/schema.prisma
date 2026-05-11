@@ -50,6 +50,26 @@ enum JoinRequestStatus {
   cancelled
 }
 
+enum MatchRequestStatus {
+  open
+  matched
+  cancelled
+  expired
+}
+
+enum ChallengeStatus {
+  pending
+  accepted
+  rejected
+  withdrawn
+}
+
+enum MatchStatus {
+  scheduled
+  completed
+  cancelled
+}
+
 model User {
   id            String     @id @default(cuid())
   email         String     @unique
@@ -103,6 +123,10 @@ model Team {
 
   members          TeamMember[]
   recruitmentPosts RecruitmentPost[]
+  matchRequests    MatchRequest[]
+  challenges       Challenge[]
+  matchesAsHome    Match[]           @relation("HomeTeam")
+  matchesAsAway    Match[]           @relation("AwayTeam")
 
   @@index([sport, region])
   @@index([sport, skillLevel])
@@ -143,6 +167,68 @@ model JoinRequest {
 
   @@unique([postId, userId])
   @@index([userId, status])
+}
+
+model MatchRequest {
+  id            String             @id @default(cuid())
+  teamId        String
+  sport         Sport
+  region        String?
+  preferredTime DateTime?
+  venueName     String?
+  description   String
+  status        MatchRequestStatus @default(open)
+  skillLevelMin SkillLevel?
+  expiresAt     DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  team       Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  challenges Challenge[]
+  match      Match?
+
+  @@index([sport, region, status])
+  @@index([teamId, status])
+  @@index([status, createdAt])
+}
+
+model Challenge {
+  id               String          @id @default(cuid())
+  matchRequestId   String
+  challengerTeamId String
+  message          String?
+  status           ChallengeStatus @default(pending)
+  createdAt        DateTime        @default(now())
+  decidedAt        DateTime?
+
+  matchRequest    MatchRequest @relation(fields: [matchRequestId], references: [id], onDelete: Cascade)
+  challengerTeam  Team         @relation(fields: [challengerTeamId], references: [id], onDelete: Cascade)
+
+  @@unique([matchRequestId, challengerTeamId])
+  @@index([challengerTeamId, status])
+}
+
+model Match {
+  id              String      @id @default(cuid())
+  matchRequestId  String?     @unique
+  homeTeamId      String
+  awayTeamId      String
+  sport           Sport
+  scheduledAt     DateTime?
+  venueName       String?
+  status          MatchStatus @default(scheduled)
+  homeScore       Int?
+  awayScore       Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  matchRequest MatchRequest? @relation(fields: [matchRequestId], references: [id], onDelete: SetNull)
+  homeTeam     Team          @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam     Team          @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+
+  @@index([homeTeamId, status])
+  @@index([awayTeamId, status])
+  @@index([sport, scheduledAt])
 }
 
 model TeamMember {

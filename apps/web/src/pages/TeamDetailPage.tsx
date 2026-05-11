@@ -236,20 +236,28 @@ export function TeamDetailPage() {
                 {canManage && (
                   <article className="rounded-3xl border border-primary/30 bg-primary/[0.05] p-6 backdrop-blur-2xl">
                     <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-                      Tuyển thành viên
+                      Hoạt động đội
                     </p>
                     <h3 className="mt-2 font-display text-lg font-black uppercase tracking-tight text-cream">
-                      Đăng bài tìm người mới
+                      Đăng tin mới
                     </h3>
                     <p className="mt-2 text-sm text-cream/70">
-                      Bài đăng sẽ xuất hiện cho cộng đồng tại trang Tìm đồng đội.
+                      Tuyển thành viên hoặc tìm đối thủ — bài đăng sẽ xuất hiện trong feed cộng đồng.
                     </p>
-                    <Link
-                      to={`/teams/${team.id}/posts/new`}
-                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-night shadow-[0_18px_50px_-12px_rgb(var(--color-primary))] transition hover:scale-[1.02]"
-                    >
-                      Tạo bài tuyển <span aria-hidden>→</span>
-                    </Link>
+                    <div className="mt-4 flex flex-col gap-2">
+                      <Link
+                        to={`/teams/${team.id}/posts/new`}
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-night shadow-[0_18px_50px_-12px_rgb(var(--color-primary))] transition hover:scale-[1.02]"
+                      >
+                        Tuyển thành viên <span aria-hidden>→</span>
+                      </Link>
+                      <Link
+                        to={`/teams/${team.id}/match-requests/new`}
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-cream/20 bg-cream/[0.03] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-cream transition hover:border-cream/55 hover:bg-cream/[0.08]"
+                      >
+                        Tìm đối thủ <span aria-hidden>→</span>
+                      </Link>
+                    </div>
                   </article>
                 )}
 

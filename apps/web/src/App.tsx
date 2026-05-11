@@ -9,7 +9,10 @@ import { LoginPage } from '@/pages/LoginPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { FindOpponentsPage } from '@/pages/FindOpponentsPage';
 import { FindTeammatesPage } from '@/pages/FindTeammatesPage';
+import { MatchRequestCreatePage } from '@/pages/MatchRequestCreatePage';
+import { MatchRequestDetailPage } from '@/pages/MatchRequestDetailPage';
 import { PostCreatePage } from '@/pages/PostCreatePage';
 import { PostDetailPage } from '@/pages/PostDetailPage';
 import { TeamCreatePage } from '@/pages/TeamCreatePage';
@@ -103,6 +106,30 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <PostDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teams/:id/match-requests/new"
+              element={
+                <ProtectedRoute>
+                  <MatchRequestCreatePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/find-opponents"
+              element={
+                <ProtectedRoute>
+                  <FindOpponentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/match-requests/:id"
+              element={
+                <ProtectedRoute>
+                  <MatchRequestDetailPage />
                 </ProtectedRoute>
               }
             />
