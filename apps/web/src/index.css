@@ -235,9 +235,10 @@
 
   /* Display number — big poster digit */
   .poster-num {
-    font-family: 'Big Shoulders Display', 'Bebas Neue', Impact, sans-serif;
+    font-family: 'Barlow Condensed', 'Be Vietnam Pro', system-ui, sans-serif;
     font-weight: 900;
     letter-spacing: -0.02em;
     line-height: 0.85;
+    font-variant-numeric: tabular-nums;
   }
 }

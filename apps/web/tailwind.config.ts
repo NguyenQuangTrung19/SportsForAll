@@ -22,7 +22,7 @@ export default {
       },
       fontFamily: {
         sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
-        display: ['"Big Shoulders Display"', '"Bebas Neue"', 'Impact', 'sans-serif'],
+        display: ['"Barlow Condensed"', '"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       keyframes: {
