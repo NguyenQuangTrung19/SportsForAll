@@ -20,27 +20,28 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* Hero — compact, single-viewport */}
+      {/* Hero — single column, stats inline at bottom */}
       <section className="border-b border-ink/10">
-        <div className="mx-auto max-w-6xl px-6 py-8 md:py-12">
-          <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-12">
-            <div className="lg:col-span-8">
-              <p className="fade-up text-xs font-bold uppercase tracking-wide text-ink-soft">
-                Cộng đồng thể thao Việt Nam · 2026
-              </p>
-              <h1 className="mt-3 font-display text-[clamp(44px,8vw,108px)] leading-[1] tracking-tight">
-                <span className="fade-up stagger-1 block">Tìm trận.</span>
-                <span className="fade-up stagger-2 block text-primary">Tìm bạn.</span>
-                <span className="fade-up stagger-3 block">Ra sân.</span>
-              </h1>
+        <div className="mx-auto max-w-5xl px-6 py-10 md:py-14">
+          <p className="fade-up text-xs font-bold uppercase tracking-wide text-ink-soft">
+            Cộng đồng thể thao Việt Nam · 2026
+          </p>
+          <h1 className="mt-3 font-display text-[clamp(56px,10vw,128px)] leading-[1] tracking-tight">
+            <span className="fade-up stagger-1 block">Tìm trận.</span>
+            <span className="fade-up stagger-2 block text-primary">Tìm bạn.</span>
+            <span className="fade-up stagger-3 block">Ra sân.</span>
+          </h1>
+
+          <div className="mt-6 grid items-end gap-6 md:grid-cols-12 md:gap-10">
+            <div className="md:col-span-7">
               <div
-                className="mt-5 h-1 origin-left bg-ink animate-draw-line stagger-4"
+                className="h-1 w-32 origin-left bg-ink animate-draw-line stagger-4"
                 aria-hidden
               />
               <p className="fade-up stagger-4 mt-4 max-w-xl text-base leading-relaxed text-ink-soft md:text-lg">
                 Một tài khoản — năm môn thể thao — ba vai trò. Đăng tin tuyển thành viên, gửi lời thách đấu, đặt sân, tất cả ở một nơi.
               </p>
-              <div className="fade-up stagger-5 mt-6 flex flex-wrap items-center gap-3">
+              <div className="fade-up stagger-5 mt-5 flex flex-wrap items-center gap-3">
                 <Link to="/register" className="btn-primary">
                   Tham gia miễn phí <span aria-hidden>→</span>
                 </Link>
@@ -50,19 +51,12 @@ export function LandingPage() {
               </div>
             </div>
 
-            <aside className="lg:col-span-4">
-              <div className="border border-ink/15 bg-white p-5 shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">
-                  Có gì trên SFA
-                </p>
-                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4">
-                  <Stat n="05" label="Môn thể thao" />
-                  <Stat n="03" label="Vai trò" />
-                  <Stat n="0₫" label="Phí player" />
-                  <Stat n="∞" label="Trận đấu" />
-                </dl>
-              </div>
-            </aside>
+            <dl className="fade-up stagger-5 grid grid-cols-4 gap-4 md:col-span-5 md:grid-cols-2 md:gap-x-6 md:gap-y-4 md:border-l md:border-ink/15 md:pl-8">
+              <Stat n="05" label="Môn thể thao" />
+              <Stat n="03" label="Vai trò" />
+              <Stat n="0₫" label="Phí player" />
+              <Stat n="∞" label="Trận đấu" />
+            </dl>
           </div>
         </div>
       </section>
