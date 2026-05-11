@@ -286,21 +286,53 @@ export function HomePage() {
               </Link>
             </article>
 
-            {/* Quick actions list — numbered */}
-            <article className="border border-ink/12 bg-white">
-              <header className="border-b border-ink/10 px-5 py-3">
-                <h3 className="font-display text-lg font-black uppercase tracking-tight">
-                  Lối tắt
-                </h3>
-              </header>
-              <ul>
-                <ShortcutRow num="01" title="Tìm đồng đội" to="/find-teammates" />
-                <ShortcutRow num="02" title="Tìm đối thủ" to="/find-opponents" />
-                <ShortcutRow num="03" title="Quản lý đội" to="/teams" />
-                <ShortcutRow num="04" title="Hồ sơ cá nhân" to="/profile" last />
-              </ul>
-            </article>
           </aside>
+        </section>
+
+        {/* Quick actions — full-width tile grid */}
+        <section className="mt-14">
+          <header className="mb-5 flex items-end justify-between gap-4 border-b-2 border-ink pb-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                Lối tắt
+              </p>
+              <h2 className="mt-1 font-display text-3xl leading-none tracking-tight md:text-4xl">
+                Đi đến đâu?
+              </h2>
+            </div>
+            <span className="poster-num text-3xl text-primary md:text-4xl">04</span>
+          </header>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ShortcutTile
+              num="01"
+              title="Tìm đồng đội"
+              desc="Duyệt bài tuyển từ các đội đang cần thành viên."
+              to="/find-teammates"
+              Icon={UsersIcon}
+            />
+            <ShortcutTile
+              num="02"
+              title="Tìm đối thủ"
+              desc="Xem lời mời thách đấu, gửi đội bạn đi tham gia."
+              to="/find-opponents"
+              Icon={SwordsIcon}
+            />
+            <ShortcutTile
+              num="03"
+              title="Quản lý đội"
+              desc="Đội của tôi, thành viên, lịch sử trận đấu."
+              to="/teams"
+              Icon={ShieldIcon}
+            />
+            <ShortcutTile
+              num="04"
+              title="Hồ sơ cá nhân"
+              desc="Cập nhật trình độ, vị trí, khu vực."
+              to="/profile"
+              Icon={UserIcon}
+            />
+          </div>
         </section>
       </main>
 
@@ -325,37 +357,144 @@ function StatCell({ n, label }: { n: string; label: string }) {
   );
 }
 
-function ShortcutRow({
+function ShortcutTile({
   num,
   title,
+  desc,
   to,
-  last = false,
+  Icon,
 }: {
   num: string;
   title: string;
+  desc: string;
   to: string;
-  last?: boolean;
+  Icon: () => JSX.Element;
 }) {
   return (
-    <li>
-      <Link
-        to={to}
-        className={`group flex items-center gap-4 px-5 py-3.5 transition hover:bg-paper-2 ${
-          last ? '' : 'border-b border-ink/10'
-        }`}
-      >
-        <span className="poster-num w-8 shrink-0 text-2xl text-ink-soft transition group-hover:text-primary">
+    <Link
+      to={to}
+      className="group relative block overflow-hidden border border-ink/15 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-ink hover:shadow-[6px_6px_0_rgba(15,17,21,0.12)] focus-visible:-translate-y-1 focus-visible:border-ink focus-visible:shadow-[6px_6px_0_rgba(15,17,21,0.12)] focus-visible:outline-none"
+    >
+      {/* Top accent bar — animates in on hover */}
+      <span
+        className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-primary transition-transform duration-300 group-hover:scale-x-100 group-focus-visible:scale-x-100"
+        aria-hidden
+      />
+
+      <div className="flex items-start justify-between">
+        <span className="poster-num text-5xl text-ink-soft transition-colors duration-200 group-hover:text-primary group-focus-visible:text-primary">
           {num}
         </span>
-        <span className="flex-1 text-base font-semibold text-ink">{title}</span>
+        <span
+          className="flex size-9 items-center justify-center border border-ink/15 bg-paper-2/40 text-ink-soft transition-colors duration-200 group-hover:border-ink group-hover:bg-ink group-hover:text-paper group-focus-visible:border-ink group-focus-visible:bg-ink group-focus-visible:text-paper"
+          aria-hidden
+        >
+          <Icon />
+        </span>
+      </div>
+
+      <p className="mt-5 font-display text-2xl leading-tight tracking-tight">
+        {title}
+      </p>
+      <p className="mt-1 text-sm leading-snug text-ink-soft">{desc}</p>
+
+      <div className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-ink">
+        <span>Mở</span>
         <span
           aria-hidden
-          className="text-ink-soft transition group-hover:translate-x-1 group-hover:text-ink"
+          className="inline-block transition-transform duration-200 group-hover:translate-x-1 group-focus-visible:translate-x-1"
         >
           →
         </span>
-      </Link>
-    </li>
+      </div>
+    </Link>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Inline SVG icons for shortcut tiles                                        */
+/* -------------------------------------------------------------------------- */
+
+function UsersIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function SwordsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+      <line x1="13" y1="19" x2="19" y2="13" />
+      <line x1="16" y1="16" x2="20" y2="20" />
+      <line x1="19" y1="21" x2="21" y2="19" />
+      <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
+      <line x1="5" y1="14" x2="9" y2="18" />
+      <line x1="7" y1="17" x2="4" y2="20" />
+      <line x1="3" y1="19" x2="5" y2="21" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
 
