@@ -38,7 +38,6 @@ export function NotificationBell() {
     },
   });
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
@@ -58,26 +57,26 @@ export function NotificationBell() {
         onClick={() => {
           const next = !open;
           setOpen(next);
-          if (next && items.some((n) => !n.readAt)) {
+          if (next) {
             const unreadIds = items.filter((n) => !n.readAt).map((n) => n.id);
             if (unreadIds.length > 0) markReadMutation.mutate(unreadIds);
           }
         }}
         aria-label={`Thông báo (${unreadCount} chưa đọc)`}
-        className="relative inline-flex size-10 items-center justify-center rounded-full border border-cream/15 bg-cream/[0.04] text-cream/75 backdrop-blur-md transition hover:border-cream/40 hover:text-cream"
+        className="relative inline-flex size-10 items-center justify-center border border-ink/15 bg-white text-ink transition hover:border-ink"
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 font-mono text-[10px] font-bold text-night shadow-[0_4px_12px_-2px_rgb(var(--color-primary))]">
+          <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center bg-ink px-1 font-display text-xs font-black text-paper">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-2 w-80 origin-top-right overflow-hidden rounded-2xl border border-cream/15 bg-night/95 backdrop-blur-xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]">
-          <div className="flex items-baseline justify-between border-b border-cream/10 px-4 py-3">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+        <div className="absolute right-0 top-full z-30 mt-2 w-80 border border-ink/15 bg-white shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
+          <div className="flex items-baseline justify-between border-b border-ink/10 px-4 py-3">
+            <p className="font-display text-sm font-black uppercase tracking-tight">
               Thông báo
             </p>
             {unreadCount > 0 && (
@@ -85,20 +84,20 @@ export function NotificationBell() {
                 type="button"
                 onClick={() => markAllMutation.mutate()}
                 disabled={markAllMutation.isPending}
-                className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55 transition hover:text-cream disabled:opacity-50"
+                className="text-xs font-semibold text-ink-soft transition hover:text-ink disabled:opacity-50"
               >
                 Đọc tất cả
               </button>
             )}
           </div>
 
-          <div className="max-h-[28rem] overflow-y-auto">
+          <div className="max-h-[26rem] overflow-y-auto">
             {items.length === 0 ? (
-              <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-[0.22em] text-cream/45">
+              <p className="px-4 py-8 text-center text-sm text-ink-soft">
                 Chưa có thông báo
               </p>
             ) : (
-              <ul className="divide-y divide-cream/10">
+              <ul className="divide-y divide-ink/10">
                 {items.map((n) => (
                   <NotificationItem
                     key={n.id}
@@ -123,21 +122,19 @@ function NotificationItem({
   onClose: () => void;
 }) {
   const body = (
-    <div className="flex items-start gap-3 px-4 py-3 transition hover:bg-cream/[0.04]">
+    <div className="flex items-start gap-3 px-4 py-3 transition hover:bg-paper-2">
       <span
-        className={`mt-1.5 inline-block size-2 shrink-0 rounded-full ${
-          n.readAt ? 'bg-cream/25' : 'bg-primary'
+        className={`mt-1.5 inline-block size-2 shrink-0 ${
+          n.readAt ? 'bg-ink/15' : 'bg-primary'
         }`}
         aria-hidden
       />
       <div className="min-w-0 flex-1">
-        <p className="font-display text-sm font-bold leading-snug tracking-tight text-cream">
-          {n.title}
-        </p>
+        <p className="text-sm font-semibold leading-snug text-ink">{n.title}</p>
         {n.message && (
-          <p className="mt-1 truncate text-xs text-cream/65">{n.message}</p>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">{n.message}</p>
         )}
-        <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.22em] text-cream/40">
+        <p className="mt-1 text-[11px] text-ink-soft/70">
           {new Date(n.createdAt).toLocaleString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',

@@ -2,32 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-@keyframes glow-pulse {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 40px rgb(var(--color-primary) / 0.35));
-  }
-  50% {
-    filter: drop-shadow(0 0 90px rgb(var(--color-primary) / 0.65));
-  }
-}
-
 @layer base {
   :root {
-    /* Default theme: football */
-    --color-primary: 0 200 83;
-    --color-primary-dark: 0 150 36;
-    --mx: 50%;
-    --my: 50%;
+    /* Stadium poster — light cream theme */
+    --color-paper: 250 245 234; /* #FAF5EA */
+    --color-paper-2: 240 233 215; /* #F0E9D7 deeper cream for elevation */
+    --color-ink: 15 17 21; /* #0F1115 */
+    --color-ink-soft: 74 77 85; /* #4A4D55 */
+    --color-line: 15 17 21; /* used with /alpha */
+
+    /* Sport-dynamic primary; default football */
+    --color-primary: 0 168 67; /* #00A843 — slightly muted from raw green for cream readability */
+    --color-primary-dark: 0 124 49;
   }
 
   html,
@@ -37,129 +23,221 @@
   }
 
   body {
-    background-color: #08080c;
-    color: #f4efe3;
+    background-color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'ss01', 'cv11';
+
+    /* Subtle paper grain for warmth */
+    background-image: radial-gradient(rgba(15, 17, 21, 0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
   }
 
   ::selection {
-    background-color: rgb(var(--color-primary));
-    color: #08080c;
+    background-color: rgb(var(--color-ink));
+    color: rgb(var(--color-paper));
+  }
+
+  /* Page-load reveals */
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes draw-line {
+    0% {
+      transform: scaleX(0);
+    }
+    100% {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes count-tick {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 }
 
 @layer components {
+  /* Light form input — works on cream */
   .input {
-    @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm
-      placeholder:text-slate-400
-      focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
+    width: 100%;
+    border: 1px solid rgb(var(--color-line) / 0.18);
+    background-color: rgb(255 255 255 / 0.6);
+    padding: 0.75rem 1rem;
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    font-size: 0.9375rem;
+    color: rgb(var(--color-ink));
+    border-radius: 0;
+    transition:
+      border-color 0.15s,
+      background-color 0.15s,
+      box-shadow 0.15s;
   }
+  .input::placeholder {
+    color: rgb(var(--color-ink-soft) / 0.55);
+  }
+  .input:focus {
+    outline: none;
+    border-color: rgb(var(--color-ink));
+    background-color: rgb(255 255 255);
+    box-shadow: 0 0 0 3px rgb(var(--color-ink) / 0.08);
+  }
+  .input:hover:not(:focus) {
+    border-color: rgb(var(--color-ink) / 0.45);
+  }
+
+  /* Primary button — solid sport-colored block */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium
-      text-white shadow-sm hover:bg-primary-dark
-      disabled:cursor-not-allowed disabled:opacity-60;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background-color: rgb(var(--color-ink));
+    color: rgb(var(--color-paper));
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    letter-spacing: 0.01em;
+    border: 1px solid rgb(var(--color-ink));
+    transition:
+      transform 0.12s ease,
+      background-color 0.15s;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    background-color: rgb(var(--color-ink) / 0.92);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background-color: transparent;
+    color: rgb(var(--color-ink));
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: 1px solid rgb(var(--color-ink) / 0.25);
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover {
+    border-color: rgb(var(--color-ink));
+    background-color: rgb(var(--color-ink) / 0.04);
+  }
+
+  /* Sport-colored accent button */
+  .btn-sport {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-ink));
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 0.875rem;
+    border: 1px solid rgb(var(--color-primary));
+    transition: transform 0.12s ease;
+  }
+  .btn-sport:hover {
+    transform: translateY(-1px);
+  }
+  .btn-sport:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 }
 
 @layer utilities {
-  .marquee-track {
-    width: max-content;
-    animation: marquee 38s linear infinite;
+  /* Layout helpers */
+  .stagger-1 {
+    animation-delay: 0.05s;
   }
-  .pills-track {
-    width: max-content;
-    animation: marquee 26s linear infinite;
+  .stagger-2 {
+    animation-delay: 0.15s;
   }
-  .pills-track:hover {
-    animation-play-state: paused;
+  .stagger-3 {
+    animation-delay: 0.28s;
   }
-  .stagger-1 { animation-delay: 0.05s; }
-  .stagger-2 { animation-delay: 0.18s; }
-  .stagger-3 { animation-delay: 0.32s; }
-  .stagger-4 { animation-delay: 0.48s; }
-  .stagger-5 { animation-delay: 0.66s; }
-
-  /* Light pages keep cream background */
-  .light-shell {
-    background-color: #f4efe3;
-    color: #0a0a0a;
+  .stagger-4 {
+    animation-delay: 0.42s;
+  }
+  .stagger-5 {
+    animation-delay: 0.58s;
   }
 
-  /* 3D enable */
-  .preserve-3d { transform-style: preserve-3d; }
-  .perspective-1500 { perspective: 1500px; }
-
-  /* Mouse spotlight (uses --mx, --my from <html>) */
-  .mouse-spotlight {
-    background: radial-gradient(
-      560px circle at var(--mx) var(--my),
-      rgb(var(--color-primary) / 0.18),
-      transparent 65%
-    );
+  /* Card surfaces */
+  .surface {
+    background-color: #ffffff;
+    border: 1px solid rgb(var(--color-ink) / 0.1);
+  }
+  .surface-elev {
+    background-color: #ffffff;
+    border: 1px solid rgb(var(--color-ink) / 0.12);
+    box-shadow: 4px 4px 0 rgb(var(--color-ink) / 0.08);
+  }
+  .surface-ink {
+    background-color: rgb(var(--color-ink));
+    color: rgb(var(--color-paper));
+  }
+  .surface-sport {
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-ink));
   }
 
-  /* Animated subtle grid */
-  .grid-bg {
-    background-image:
-      linear-gradient(rgba(244, 239, 227, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(244, 239, 227, 0.06) 1px, transparent 1px);
-    background-size: 64px 64px;
-    -webkit-mask-image: radial-gradient(circle at 50% 30%, black, transparent 75%);
-    mask-image: radial-gradient(circle at 50% 30%, black, transparent 75%);
+  /* Sport block — large square anchor */
+  .sport-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-ink));
   }
 
-  /* Shimmer for headlines */
-  .shine-mask {
-    position: relative;
-    overflow: hidden;
-  }
-  .shine-mask::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      120deg,
-      transparent 30%,
-      rgba(244, 239, 227, 0.18) 50%,
-      transparent 70%
-    );
-    transform: translateX(-120%) skewX(-20deg);
-    animation: shine 4.5s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  /* Dotted noise */
-  .dot-noise {
-    background-image: radial-gradient(rgba(244, 239, 227, 0.07) 1px, transparent 1px);
-    background-size: 4px 4px;
-  }
-
-  /* Dark glass input for auth pages */
-  .dark-input {
+  /* Thick separator rule */
+  .rule-thick {
+    height: 2px;
+    background-color: rgb(var(--color-ink));
     width: 100%;
-    border-radius: 0.875rem;
-    border: 1px solid rgba(244, 239, 227, 0.12);
-    background-color: rgba(244, 239, 227, 0.04);
-    padding: 0.875rem 1rem;
-    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
-    font-size: 0.9375rem;
-    color: #f4efe3;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    transform-origin: left;
+    animation: draw-line 0.6s cubic-bezier(0.4, 0, 0.2, 1) backwards;
   }
-  .dark-input::placeholder {
-    color: rgba(244, 239, 227, 0.28);
+
+  .fade-up {
+    animation: fade-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   }
-  .dark-input:focus {
-    outline: none;
-    border-color: rgb(var(--color-primary));
-    background-color: rgba(244, 239, 227, 0.06);
-    box-shadow: 0 0 0 4px rgb(var(--color-primary) / 0.18);
-  }
-  .dark-input:hover:not(:focus) {
-    border-color: rgba(244, 239, 227, 0.25);
+
+  /* Display number — big poster digit */
+  .poster-num {
+    font-family: 'Big Shoulders Display', 'Bebas Neue', Impact, sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 0.85;
   }
 }

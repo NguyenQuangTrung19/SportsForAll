@@ -11,7 +11,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -89,54 +89,33 @@ export function TeamDetailPage() {
     onError: (err) => setActionError(extractMessage(err, 'Không giải tán được đội')),
   });
 
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const r = document.documentElement;
-      r.style.setProperty('--mx', `${e.clientX}px`);
-      r.style.setProperty('--my', `${e.clientY}px`);
-    };
-    window.addEventListener('pointermove', onMove);
-    return () => window.removeEventListener('pointermove', onMove);
-  }, []);
-
   const team = teamQuery.data;
   const viewerRole = team?.viewerRole ?? null;
   const canManage = viewerRole === 'captain' || viewerRole === 'co_captain';
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-night text-cream">
-      <div className="mouse-spotlight pointer-events-none fixed inset-0 z-0" aria-hidden />
-      <div className="grid-bg pointer-events-none fixed inset-0 z-0" aria-hidden />
-
-      <header className="relative z-10 border-b border-cream/10 bg-night/40 backdrop-blur-xl">
+    <div className="min-h-screen bg-paper text-ink">
+      <header className="border-b border-ink/10">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/teams"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight text-cream md:text-3xl"
+            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
           >
             SportsForAll<span className="text-primary">.</span>
           </Link>
-          <Link
-            to="/teams"
-            className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55 transition hover:text-cream"
-          >
-            <span aria-hidden className="transition-transform group-hover:-translate-x-1">
-              ←
-            </span>
-            Đội của tôi
+          <Link to="/teams" className="text-sm font-semibold text-ink-soft hover:text-ink">
+            ← Đội của tôi
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-10 md:py-14">
+      <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
         {teamQuery.isLoading && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55">
-            Đang tải đội...
-          </p>
+          <p className="text-sm text-ink-soft">Đang tải đội...</p>
         )}
 
         {teamQuery.isError && (
-          <p className="rounded-xl border border-ember/35 bg-ember/10 p-3 font-mono text-[11px] uppercase tracking-wider text-ember">
+          <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
             Không tải được đội. Có thể đội đã bị giải tán hoặc bạn không có quyền xem.
           </p>
         )}
@@ -146,40 +125,42 @@ export function TeamDetailPage() {
             <TeamHeader team={team} />
 
             {actionError && (
-              <p className="mt-6 rounded-xl border border-ember/35 bg-ember/10 p-3 font-mono text-[11px] uppercase tracking-wider text-ember">
+              <p className="mt-6 border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
                 {actionError}
               </p>
             )}
 
             <section className="mt-8 grid gap-6 lg:grid-cols-12">
               <div className="lg:col-span-7">
-                <h2 className="font-display text-xl font-black uppercase tracking-tight text-cream md:text-2xl">
-                  Thành viên ({team.members.length})
-                </h2>
-                <ul className="mt-4 space-y-3">
+                <header className="flex items-baseline justify-between border-b-2 border-ink pb-3">
+                  <h2 className="font-display text-2xl font-black uppercase tracking-tight">
+                    Thành viên
+                  </h2>
+                  <span className="poster-num text-2xl text-primary">
+                    {String(team.members.length).padStart(2, '0')}
+                  </span>
+                </header>
+                <ul className="mt-2 divide-y divide-ink/10">
                   {team.members.map((m) => {
                     const isSelf = m.userId === currentUserId;
                     return (
-                      <li
-                        key={m.userId}
-                        className="flex items-center gap-4 rounded-xl border border-cream/10 bg-cream/[0.03] p-4"
-                      >
+                      <li key={m.userId} className="flex items-center gap-4 py-4">
                         <div
-                          className="flex size-11 items-center justify-center rounded-xl border border-cream/15 bg-cream/[0.04] font-display text-base font-black uppercase text-primary"
+                          className="flex size-11 shrink-0 items-center justify-center bg-ink font-display text-base font-black uppercase text-paper"
                           aria-hidden
                         >
                           {m.displayName.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-display text-base font-black uppercase tracking-tight text-cream">
+                          <p className="truncate font-display text-base font-black uppercase tracking-tight">
                             {m.displayName}
                             {isSelf && (
-                              <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.22em] text-primary">
+                              <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-primary">
                                 · bạn
                               </span>
                             )}
                           </p>
-                          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                          <p className="mt-0.5 text-xs text-ink-soft">
                             {TEAM_ROLE_LABELS[m.role]} · gia nhập{' '}
                             {new Date(m.joinedAt).toLocaleDateString('vi-VN')}
                           </p>
@@ -196,10 +177,10 @@ export function TeamDetailPage() {
                               });
                             }}
                             disabled={updateRoleMutation.isPending}
-                            className="rounded-lg border border-cream/15 bg-night/50 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-cream"
+                            className="border border-ink/15 bg-white px-2 py-1 text-xs font-semibold text-ink"
                           >
                             {TEAM_ROLES.map((r) => (
-                              <option key={r} value={r} className="bg-night">
+                              <option key={r} value={r}>
                                 {TEAM_ROLE_LABELS[r]}
                               </option>
                             ))}
@@ -218,10 +199,8 @@ export function TeamDetailPage() {
                               setActionError(null);
                               removeMutation.mutate({ userId: m.userId, isSelf });
                             }}
-                            disabled={
-                              removeMutation.isPending || m.role === 'captain'
-                            }
-                            className="rounded-full border border-ember/35 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ember transition hover:bg-ember/10 disabled:cursor-not-allowed disabled:opacity-40"
+                            disabled={removeMutation.isPending || m.role === 'captain'}
+                            className="border border-rust px-3 py-1.5 text-xs font-semibold text-rust transition hover:bg-rust/5 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             {isSelf ? 'Rời' : 'Xoá'}
                           </button>
@@ -234,26 +213,26 @@ export function TeamDetailPage() {
 
               <aside className="space-y-6 lg:col-span-5">
                 {canManage && (
-                  <article className="rounded-3xl border border-primary/30 bg-primary/[0.05] p-6 backdrop-blur-2xl">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
+                  <article className="border border-ink/15 bg-white p-6">
+                    <p className="text-xs font-bold uppercase tracking-wide text-primary">
                       Hoạt động đội
                     </p>
-                    <h3 className="mt-2 font-display text-lg font-black uppercase tracking-tight text-cream">
+                    <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
                       Đăng tin mới
                     </h3>
-                    <p className="mt-2 text-sm text-cream/70">
+                    <p className="mt-2 text-sm text-ink-soft">
                       Tuyển thành viên hoặc tìm đối thủ — bài đăng sẽ xuất hiện trong feed cộng đồng.
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
                       <Link
                         to={`/teams/${team.id}/posts/new`}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-night shadow-[0_18px_50px_-12px_rgb(var(--color-primary))] transition hover:scale-[1.02]"
+                        className="btn-primary"
                       >
                         Tuyển thành viên <span aria-hidden>→</span>
                       </Link>
                       <Link
                         to={`/teams/${team.id}/match-requests/new`}
-                        className="inline-flex items-center justify-center gap-2 rounded-full border border-cream/20 bg-cream/[0.03] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-cream transition hover:border-cream/55 hover:bg-cream/[0.08]"
+                        className="btn-ghost"
                       >
                         Tìm đối thủ <span aria-hidden>→</span>
                       </Link>
@@ -272,25 +251,30 @@ export function TeamDetailPage() {
                 )}
 
                 {viewerRole === 'captain' && (
-                  <article className="rounded-3xl border border-ember/30 bg-ember/[0.05] p-6">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ember">
+                  <article className="border border-rust bg-rust/[0.03] p-6">
+                    <p className="text-xs font-bold uppercase tracking-wide text-rust">
                       Vùng nguy hiểm
                     </p>
-                    <h3 className="mt-2 font-display text-lg font-black uppercase tracking-tight text-cream">
+                    <h3 className="mt-1 font-display text-lg font-black uppercase tracking-tight">
                       Giải tán đội
                     </h3>
-                    <p className="mt-2 text-sm text-cream/65">
+                    <p className="mt-2 text-sm text-ink-soft">
                       Toàn bộ thành viên sẽ mất quyền truy cập. Hành động không thể hoàn tác.
                     </p>
                     <button
                       type="button"
                       onClick={() => {
-                        if (!window.confirm(`Giải tán đội "${team.name}"? Hành động này không thể hoàn tác.`)) return;
+                        if (
+                          !window.confirm(
+                            `Giải tán đội "${team.name}"? Hành động này không thể hoàn tác.`,
+                          )
+                        )
+                          return;
                         setActionError(null);
                         disbandMutation.mutate();
                       }}
                       disabled={disbandMutation.isPending}
-                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-ember/40 bg-ember/10 px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-ember transition hover:bg-ember/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="mt-4 inline-flex border border-rust bg-rust/10 px-4 py-2 text-sm font-bold text-rust transition hover:bg-rust/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {disbandMutation.isPending ? 'Đang giải tán...' : 'Giải tán đội'}
                     </button>
@@ -308,42 +292,34 @@ export function TeamDetailPage() {
 function TeamHeader({ team }: { team: TeamDetail }) {
   const t = SPORT_THEMES[team.sport];
   return (
-    <article className="overflow-hidden rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl md:p-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start">
-        <div
-          className="flex size-20 shrink-0 items-center justify-center rounded-2xl text-4xl"
-          style={{ background: `${t.primary}25`, border: `1px solid ${t.primary}55` }}
+    <article className="border border-ink/12 bg-white p-6 md:p-8">
+      <div className="flex flex-col gap-5 md:flex-row md:items-start">
+        <span
+          className="flex size-20 shrink-0 items-center justify-center text-4xl"
+          style={{ backgroundColor: t.primary, color: '#fff' }}
           aria-hidden
         >
           {t.emoji}
-        </div>
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
             {t.nameVi}
             {team.region ? ` · ${team.region}` : ''}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-black uppercase tracking-tight text-cream md:text-4xl">
+          <h1 className="mt-1 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
             {team.name}
           </h1>
           {team.description && (
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-cream/75">
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
               {team.description}
             </p>
           )}
-          <div className="mt-4 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65">
-            <span className="rounded-full border border-cream/15 bg-cream/[0.04] px-3 py-1">
-              {team.members.length} thành viên
-            </span>
-            {team.skillLevel && (
-              <span className="rounded-full border border-cream/15 bg-cream/[0.04] px-3 py-1">
-                {SKILL_LEVEL_LABELS[team.skillLevel]}
-              </span>
-            )}
-            <span className="rounded-full border border-cream/15 bg-cream/[0.04] px-3 py-1">
-              Uy tín · {team.reputation.toFixed(1)}
-            </span>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Tag>{team.members.length} thành viên</Tag>
+            {team.skillLevel && <Tag>{SKILL_LEVEL_LABELS[team.skillLevel]}</Tag>}
+            <Tag>Uy tín · {team.reputation.toFixed(1)}</Tag>
             {team.viewerRole && (
-              <span className="rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-primary">
+              <span className="inline-flex border border-ink bg-ink px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-paper">
                 {TEAM_ROLE_LABELS[team.viewerRole]}
               </span>
             )}
@@ -351,6 +327,14 @@ function TeamHeader({ team }: { team: TeamDetail }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex border border-ink/15 bg-paper-2/40 px-2.5 py-1 text-xs font-semibold text-ink-soft">
+      {children}
+    </span>
   );
 }
 
@@ -372,11 +356,11 @@ function AddMemberCard({
   });
 
   return (
-    <article className="rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl">
-      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+    <article className="border border-ink/15 bg-white p-6">
+      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
         Mời thành viên
       </p>
-      <h3 className="mt-1 font-display text-lg font-black uppercase tracking-tight text-cream">
+      <h3 className="mt-1 font-display text-lg font-black uppercase tracking-tight">
         Thêm bằng email
       </h3>
       <form
@@ -393,27 +377,21 @@ function AddMemberCard({
           type="email"
           placeholder="ban@example.com"
           {...register('email')}
-          className="dark-input"
+          className="input"
         />
         {errors.email?.message && (
-          <p className="font-mono text-[10px] uppercase tracking-wider text-ember">
-            {errors.email.message}
-          </p>
+          <p className="text-sm font-medium text-rust">{errors.email.message}</p>
         )}
 
-        <select {...register('role')} className="dark-input">
+        <select {...register('role')} className="input">
           {TEAM_ROLES.filter((r) => r !== 'captain').map((r) => (
-            <option key={r} value={r} className="bg-night">
+            <option key={r} value={r}>
               {TEAM_ROLE_LABELS[r]}
             </option>
           ))}
         </select>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-full bg-primary px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-night shadow-[0_18px_50px_-12px_rgb(var(--color-primary))] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className="btn-primary w-full">
           {pending ? 'Đang thêm...' : 'Thêm thành viên'}
         </button>
       </form>

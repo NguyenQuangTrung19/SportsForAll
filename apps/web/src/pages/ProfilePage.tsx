@@ -97,10 +97,10 @@ export function ProfilePage() {
       state.birthYear !== '' &&
       (state.birthYear < MIN_YEAR || state.birthYear > CURRENT_YEAR)
     ) {
-      setServerError(`Năm sinh phải nằm trong khoảng ${MIN_YEAR}–${CURRENT_YEAR}`);
+      setServerError(`Năm sinh phải trong khoảng ${MIN_YEAR}–${CURRENT_YEAR}`);
       return;
     }
-    const payload: UpdateProfileInput = {
+    mutation.mutate({
       displayName: state.displayName.trim(),
       bio: state.bio.trim() || null,
       birthYear: state.birthYear === '' ? null : Number(state.birthYear),
@@ -110,8 +110,7 @@ export function ProfilePage() {
         skillLevel: p.skillLevel,
         position: p.position?.trim() || null,
       })),
-    };
-    mutation.mutate(payload);
+    });
   };
 
   const onCancel = () => {
@@ -154,99 +153,71 @@ export function ProfilePage() {
     [profile?.displayName],
   );
 
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const r = document.documentElement;
-      r.style.setProperty('--mx', `${e.clientX}px`);
-      r.style.setProperty('--my', `${e.clientY}px`);
-    };
-    window.addEventListener('pointermove', onMove);
-    return () => window.removeEventListener('pointermove', onMove);
-  }, []);
-
   return (
-    <div className="relative min-h-screen overflow-hidden bg-night text-cream">
-      <div className="mouse-spotlight pointer-events-none fixed inset-0 z-0" aria-hidden />
-      <div className="grid-bg pointer-events-none fixed inset-0 z-0" aria-hidden />
-      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
-        <div className="absolute -left-32 top-[18%] size-[28rem] animate-pulse-slow rounded-full bg-primary/15 blur-[120px]" />
-      </div>
-
-      <header className="relative z-10 border-b border-cream/10 bg-night/40 backdrop-blur-xl">
+    <div className="min-h-screen bg-paper text-ink">
+      <header className="border-b border-ink/10">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/dashboard"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight text-cream md:text-3xl"
+            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
           >
             SportsForAll<span className="text-primary">.</span>
           </Link>
-          <Link
-            to="/dashboard"
-            className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55 transition hover:text-cream"
-          >
-            <span aria-hidden className="transition-transform group-hover:-translate-x-1">
-              ←
-            </span>
-            Bảng điều khiển
+          <Link to="/dashboard" className="text-sm font-semibold text-ink-soft hover:text-ink">
+            ← Bảng điều khiển
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-10 md:py-14">
-        <div className="mb-8 flex items-baseline justify-between">
+      <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+            <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
               Hồ sơ cá nhân
             </p>
-            <h1 className="mt-1 font-display text-3xl font-black uppercase tracking-tight text-cream md:text-4xl">
+            <h1 className="mt-2 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
               {profile?.displayName ?? '...'}
             </h1>
+            <div className="mt-3 h-[3px] w-32 origin-left bg-ink animate-draw-line" aria-hidden />
           </div>
           {profile && !editing && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="rounded-full border border-cream/20 bg-cream/[0.03] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-cream transition hover:border-cream/55 hover:bg-cream/[0.08]"
-            >
+            <button type="button" onClick={() => setEditing(true)} className="btn-ghost">
               Chỉnh sửa
             </button>
           )}
         </div>
 
         {profileQuery.isLoading && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55">
-            Đang tải hồ sơ...
-          </p>
+          <p className="text-sm text-ink-soft">Đang tải hồ sơ...</p>
         )}
 
         {profileQuery.isError && (
-          <p className="rounded-xl border border-ember/35 bg-ember/10 p-3 font-mono text-[11px] uppercase tracking-wider text-ember">
+          <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
             Không tải được hồ sơ. Thử tải lại trang.
           </p>
         )}
 
         {profile && state && (
           <div className="grid gap-6 lg:grid-cols-12">
-            {/* LEFT card */}
-            <article className="relative overflow-hidden rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl md:p-8 lg:col-span-5">
+            <article className="border border-ink/12 bg-white p-6 md:p-8 lg:col-span-5">
               <div className="flex items-start gap-4">
                 <div
-                  className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-primary/40 bg-primary/15 font-display text-2xl font-black uppercase text-primary"
+                  className="flex size-16 shrink-0 items-center justify-center bg-ink font-display text-2xl font-black uppercase text-paper"
                   aria-hidden
                 >
                   {initial}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-cream/55">
+                  <p className="truncate text-xs font-semibold uppercase tracking-wide text-ink-soft">
                     {profile.email}
                   </p>
-                  <p className="mt-1 truncate font-mono text-[10px] tracking-[0.18em] text-cream/40">
+                  <p className="mt-1 text-xs text-ink-soft/70">
                     Tham gia · {new Date(profile.createdAt).toLocaleDateString('vi-VN')}
                   </p>
                 </div>
               </div>
 
-              <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-cream/10 pt-6">
+              <dl className="mt-6 grid grid-cols-2 gap-5 border-t border-ink/10 pt-5">
                 <Stat label="Uy tín" value={profile.reputation.toFixed(1)} />
                 <Stat label="Môn" value={String(profile.sportPreferences.length)} />
                 <Stat
@@ -257,14 +228,13 @@ export function ProfilePage() {
               </dl>
 
               {profile.bio && !editing && (
-                <p className="mt-6 border-t border-cream/10 pt-6 text-sm leading-relaxed text-cream/75">
+                <p className="mt-6 border-t border-ink/10 pt-5 text-base leading-relaxed text-ink-soft">
                   {profile.bio}
                 </p>
               )}
             </article>
 
-            {/* RIGHT — view or edit */}
-            <article className="relative overflow-hidden rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl md:p-8 lg:col-span-7">
+            <article className="border border-ink/12 bg-white p-6 md:p-8 lg:col-span-7">
               {!editing ? (
                 <ViewMode profile={profile} />
               ) : (
@@ -278,18 +248,18 @@ export function ProfilePage() {
               )}
 
               {serverError && (
-                <p className="mt-6 rounded-xl border border-ember/35 bg-ember/10 p-3 font-mono text-[11px] uppercase tracking-wider text-ember">
+                <p className="mt-6 border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
                   {serverError}
                 </p>
               )}
 
               {editing && (
-                <div className="mt-8 flex flex-col gap-3 border-t border-cream/10 pt-6 sm:flex-row sm:items-center sm:justify-end">
+                <div className="mt-8 flex flex-col-reverse gap-3 border-t border-ink/10 pt-6 sm:flex-row sm:items-center sm:justify-end">
                   <button
                     type="button"
                     onClick={onCancel}
                     disabled={mutation.isPending}
-                    className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-cream/65 transition hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
+                    className="text-sm font-semibold text-ink-soft transition hover:text-ink disabled:opacity-50"
                   >
                     Huỷ
                   </button>
@@ -297,7 +267,7 @@ export function ProfilePage() {
                     type="button"
                     onClick={onSave}
                     disabled={mutation.isPending}
-                    className="rounded-full bg-primary px-6 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-night shadow-[0_18px_50px_-12px_rgb(var(--color-primary))] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="btn-primary"
                   >
                     {mutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                   </button>
@@ -314,10 +284,8 @@ export function ProfilePage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
-        {label}
-      </dt>
-      <dd className="mt-1 font-display text-xl font-black text-primary">{value}</dd>
+      <dt className="text-xs font-bold uppercase tracking-wide text-ink-soft">{label}</dt>
+      <dd className="mt-1 poster-num text-3xl text-ink">{value}</dd>
     </div>
   );
 }
@@ -325,40 +293,41 @@ function Stat({ label, value }: { label: string; value: string }) {
 function ViewMode({ profile }: { profile: ProfileResponse }) {
   return (
     <div>
-      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
         Môn thể thao & trình độ
       </p>
-      <h2 className="mt-1 font-display text-2xl font-black uppercase tracking-tight text-cream">
+      <h2 className="mt-1 font-display text-2xl font-black uppercase tracking-tight">
         Hồ sơ thể thao
       </h2>
 
       {profile.sportPreferences.length === 0 ? (
-        <p className="mt-4 text-sm text-cream/65">
+        <p className="mt-4 text-base text-ink-soft">
           Chưa có môn nào. Bấm "Chỉnh sửa" để thêm.
         </p>
       ) : (
-        <ul className="mt-5 space-y-3">
+        <ul className="mt-5 divide-y divide-ink/10">
           {profile.sportPreferences.map((pref) => {
             const t = SPORT_THEMES[pref.sport];
             const stars = SKILL_LEVELS.indexOf(pref.skillLevel) + 1;
             return (
-              <li
-                key={pref.sport}
-                className="flex items-center gap-4 rounded-xl border border-cream/10 bg-cream/[0.03] p-4"
-              >
-                <span className="text-2xl" aria-hidden>
+              <li key={pref.sport} className="flex items-center gap-4 py-4">
+                <span
+                  className="flex size-12 shrink-0 items-center justify-center text-xl"
+                  style={{ backgroundColor: t.primary, color: '#fff' }}
+                  aria-hidden
+                >
                   {t.emoji}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-base font-black uppercase tracking-tight text-cream">
+                  <p className="font-display text-lg font-black uppercase tracking-tight">
                     {t.nameVi}
                   </p>
-                  <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                  <p className="mt-0.5 text-sm text-ink-soft">
                     {SKILL_LEVEL_LABELS[pref.skillLevel]}
                     {pref.position ? ` · ${pref.position}` : ''}
                   </p>
                 </div>
-                <span className="font-mono text-xs tracking-wide text-primary" aria-hidden>
+                <span className="text-sm text-primary" aria-hidden>
                   {'⭐'.repeat(stars)}
                 </span>
               </li>
@@ -386,27 +355,23 @@ function EditMode({
   return (
     <div className="space-y-6">
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+        <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
           Thông tin cơ bản
         </p>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           <label className="block md:col-span-2">
-            <span className="mb-2 block font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-cream/55">
-              Tên hiển thị
-            </span>
+            <span className="mb-2 block text-sm font-semibold">Tên hiển thị</span>
             <input
               type="text"
               value={state.displayName}
               onChange={(e) => setState({ ...state, displayName: e.target.value })}
-              className="dark-input"
+              className="input"
               maxLength={50}
             />
           </label>
 
           <label className="block">
-            <span className="mb-2 block font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-cream/55">
-              Năm sinh
-            </span>
+            <span className="mb-2 block text-sm font-semibold">Năm sinh</span>
             <input
               type="number"
               value={state.birthYear === '' ? '' : state.birthYear}
@@ -418,35 +383,31 @@ function EditMode({
                   birthYear: e.target.value === '' ? '' : Number(e.target.value),
                 })
               }
-              className="dark-input"
+              className="input"
             />
           </label>
 
           <label className="block">
-            <span className="mb-2 block font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-cream/55">
-              Khu vực
-            </span>
+            <span className="mb-2 block text-sm font-semibold">Khu vực</span>
             <input
               type="text"
               value={state.region}
               onChange={(e) => setState({ ...state, region: e.target.value })}
-              className="dark-input"
+              className="input"
               maxLength={100}
             />
           </label>
 
           <label className="block md:col-span-2">
-            <span className="mb-2 block font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-cream/55">
-              Giới thiệu
-            </span>
+            <span className="mb-2 block text-sm font-semibold">Giới thiệu</span>
             <textarea
               value={state.bio}
               onChange={(e) => setState({ ...state, bio: e.target.value })}
               rows={3}
               maxLength={500}
-              className="dark-input resize-none"
+              className="input resize-none"
             />
-            <span className="mt-1 block text-right font-mono text-[10px] uppercase tracking-[0.22em] text-cream/40">
+            <span className="mt-1 block text-right text-xs text-ink-soft">
               {state.bio.length}/500
             </span>
           </label>
@@ -454,7 +415,7 @@ function EditMode({
       </div>
 
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+        <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
           Môn thể thao
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -466,10 +427,10 @@ function EditMode({
                 key={slug}
                 type="button"
                 onClick={() => togglePref(slug)}
-                className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] transition ${
+                className={`inline-flex items-center gap-2 border px-3.5 py-1.5 text-sm font-semibold transition ${
                   isOn
-                    ? 'border-transparent bg-primary text-night shadow-[0_10px_24px_-10px_rgb(var(--color-primary))]'
-                    : 'border-cream/15 bg-cream/[0.03] text-cream hover:border-cream/40'
+                    ? 'border-ink bg-ink text-paper'
+                    : 'border-ink/15 bg-white text-ink hover:border-ink'
                 }`}
               >
                 <span aria-hidden>{t.emoji}</span>
@@ -484,20 +445,21 @@ function EditMode({
             {state.prefs.map((pref) => {
               const t = SPORT_THEMES[pref.sport];
               return (
-                <div
-                  key={pref.sport}
-                  className="rounded-xl border border-cream/10 bg-cream/[0.03] p-4"
-                >
-                  <header className="mb-3 flex items-center gap-2">
-                    <span className="text-xl" aria-hidden>
+                <div key={pref.sport} className="border border-ink/10 bg-paper-2/40 p-4">
+                  <header className="mb-3 flex items-center gap-3">
+                    <span
+                      className="flex size-9 items-center justify-center text-base"
+                      style={{ backgroundColor: t.primary, color: '#fff' }}
+                      aria-hidden
+                    >
                       {t.emoji}
                     </span>
-                    <h4 className="font-display text-base font-black uppercase tracking-tight text-cream">
+                    <h4 className="font-display text-base font-black uppercase tracking-tight">
                       {t.nameVi}
                     </h4>
                   </header>
 
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                     Trình độ
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -508,10 +470,10 @@ function EditMode({
                           key={lvl}
                           type="button"
                           onClick={() => setPrefSkill(pref.sport, lvl)}
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] transition ${
+                          className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold transition ${
                             isOn
-                              ? 'border-transparent bg-cream/15 text-cream'
-                              : 'border-cream/10 bg-night/20 text-cream/65 hover:border-cream/30 hover:text-cream'
+                              ? 'border-ink bg-paper-2 text-ink'
+                              : 'border-ink/15 bg-white text-ink-soft hover:border-ink hover:text-ink'
                           }`}
                         >
                           <span aria-hidden>{'⭐'.repeat(idx + 1)}</span>
@@ -521,7 +483,7 @@ function EditMode({
                     })}
                   </div>
 
-                  <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wide text-ink-soft">
                     Vị trí
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -531,13 +493,11 @@ function EditMode({
                         <button
                           key={pos}
                           type="button"
-                          onClick={() =>
-                            setPrefPosition(pref.sport, isOn ? '' : pos)
-                          }
-                          className={`rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] transition ${
+                          onClick={() => setPrefPosition(pref.sport, isOn ? '' : pos)}
+                          className={`border px-2.5 py-1 text-xs font-medium transition ${
                             isOn
-                              ? 'border-cream/40 bg-cream/10 text-cream'
-                              : 'border-cream/10 bg-night/20 text-cream/65 hover:border-cream/30 hover:text-cream'
+                              ? 'border-ink bg-paper-2 text-ink'
+                              : 'border-ink/15 bg-white text-ink-soft hover:border-ink hover:text-ink'
                           }`}
                         >
                           {pos}

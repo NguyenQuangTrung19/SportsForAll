@@ -7,7 +7,7 @@ import {
 } from '@sfa/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -101,16 +101,6 @@ export function PostDetailPage() {
     onError: (err) => setActionError(extractMessage(err, 'Không đóng được bài')),
   });
 
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const r = document.documentElement;
-      r.style.setProperty('--mx', `${e.clientX}px`);
-      r.style.setProperty('--my', `${e.clientY}px`);
-    };
-    window.addEventListener('pointermove', onMove);
-    return () => window.removeEventListener('pointermove', onMove);
-  }, []);
-
   const post = postQuery.data;
   const isTeamMember = post?.viewerIsTeamMember ?? false;
   const myPendingRequest = post?.requests.find(
@@ -118,39 +108,29 @@ export function PostDetailPage() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-night text-cream">
-      <div className="mouse-spotlight pointer-events-none fixed inset-0 z-0" aria-hidden />
-      <div className="grid-bg pointer-events-none fixed inset-0 z-0" aria-hidden />
-
-      <header className="relative z-10 border-b border-cream/10 bg-night/40 backdrop-blur-xl">
+    <div className="min-h-screen bg-paper text-ink">
+      <header className="border-b border-ink/10">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/find-teammates"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight text-cream md:text-3xl"
+            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
           >
             SportsForAll<span className="text-primary">.</span>
           </Link>
           <Link
             to="/find-teammates"
-            className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55 transition hover:text-cream"
+            className="text-sm font-semibold text-ink-soft hover:text-ink"
           >
-            <span aria-hidden className="transition-transform group-hover:-translate-x-1">
-              ←
-            </span>
-            Tìm đồng đội
+            ← Tìm đồng đội
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-10 md:py-14">
-        {postQuery.isLoading && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55">
-            Đang tải bài đăng...
-          </p>
-        )}
+      <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
+        {postQuery.isLoading && <p className="text-sm text-ink-soft">Đang tải...</p>}
 
         {postQuery.isError && (
-          <p className="rounded-xl border border-ember/35 bg-ember/10 p-3 font-mono text-[11px] uppercase tracking-wider text-ember">
+          <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
             Không tải được bài đăng.
           </p>
         )}
@@ -160,48 +140,56 @@ export function PostDetailPage() {
             <PostHeader post={post} />
 
             {actionError && (
-              <p className="mt-6 rounded-xl border border-ember/35 bg-ember/10 p-3 font-mono text-[11px] uppercase tracking-wider text-ember">
+              <p className="mt-6 border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
                 {actionError}
               </p>
             )}
 
             <section className="mt-8 grid gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-7 space-y-6">
-                <article className="rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+              <div className="space-y-6 lg:col-span-7">
+                <article className="border border-ink/12 bg-white p-6 md:p-8">
+                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                     Nội dung bài đăng
                   </p>
-                  <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-cream/85">
+                  <p className="mt-3 whitespace-pre-line text-base leading-relaxed">
                     {post.description}
                   </p>
                 </article>
 
                 {isTeamMember && (
-                  <article className="rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl">
-                    <header className="flex items-baseline justify-between">
-                      <h2 className="font-display text-xl font-black uppercase tracking-tight text-cream">
-                        Đơn ứng tuyển ({post.requests.length})
+                  <article className="border border-ink/12 bg-white p-6 md:p-8">
+                    <header className="flex items-baseline justify-between border-b-2 border-ink pb-3">
+                      <h2 className="font-display text-xl font-black uppercase tracking-tight">
+                        Đơn ứng tuyển
                       </h2>
-                      {post.status === 'open' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!window.confirm('Đóng bài này? Sẽ không nhận thêm đơn mới.')) return;
-                            setActionError(null);
-                            closeMutation.mutate();
-                          }}
-                          disabled={closeMutation.isPending}
-                          className="rounded-full border border-cream/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65 transition hover:border-cream/55 hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Đóng bài
-                        </button>
-                      )}
+                      <div className="flex items-baseline gap-3">
+                        <span className="poster-num text-2xl text-primary">
+                          {String(post.requests.length).padStart(2, '0')}
+                        </span>
+                        {post.status === 'open' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                !window.confirm('Đóng bài này? Sẽ không nhận thêm đơn mới.')
+                              )
+                                return;
+                              setActionError(null);
+                              closeMutation.mutate();
+                            }}
+                            disabled={closeMutation.isPending}
+                            className="border border-ink/15 px-3 py-1.5 text-xs font-semibold transition hover:border-ink disabled:opacity-50"
+                          >
+                            Đóng bài
+                          </button>
+                        )}
+                      </div>
                     </header>
 
                     {post.requests.length === 0 ? (
-                      <p className="mt-4 text-sm text-cream/65">Chưa có đơn nào.</p>
+                      <p className="mt-4 text-sm text-ink-soft">Chưa có đơn nào.</p>
                     ) : (
-                      <ul className="mt-5 space-y-3">
+                      <ul className="mt-2 divide-y divide-ink/10">
                         {post.requests.map((req) => (
                           <JoinRequestRow
                             key={req.id}
@@ -223,30 +211,27 @@ export function PostDetailPage() {
                 )}
               </div>
 
-              {/* Sidebar */}
               <aside className="space-y-6 lg:col-span-5">
                 {!isTeamMember && (
-                  <article className="rounded-3xl border border-primary/30 bg-primary/[0.06] p-6 backdrop-blur-2xl">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-                      Bạn quan tâm bài này?
+                  <article className="border border-ink bg-white p-6 shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                      Quan tâm bài này?
                     </p>
-                    <h3 className="mt-2 font-display text-xl font-black uppercase tracking-tight text-cream">
+                    <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
                       Gửi đơn ứng tuyển
                     </h3>
 
                     {post.viewerRequestStatus && post.viewerRequestStatus !== 'pending' && (
-                      <p className="mt-3 rounded-xl border border-cream/15 bg-cream/[0.04] p-3 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65">
+                      <p className="mt-3 border border-ink/15 bg-paper-2/40 p-3 text-xs font-semibold text-ink-soft">
                         Đơn trước đây: {labelForStatus(post.viewerRequestStatus)} — bạn có thể gửi lại.
                       </p>
                     )}
 
                     {post.status !== 'open' ? (
-                      <p className="mt-4 font-mono text-[11px] uppercase tracking-wider text-ember">
-                        Bài đã đóng.
-                      </p>
+                      <p className="mt-4 text-sm font-semibold text-rust">Bài đã đóng.</p>
                     ) : myPendingRequest ? (
                       <div className="mt-4 space-y-3">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                        <p className="text-sm text-ink-soft">
                           Bạn đã gửi đơn — chờ đội duyệt.
                         </p>
                         <button
@@ -257,7 +242,7 @@ export function PostDetailPage() {
                             cancelMutation.mutate(myPendingRequest.id);
                           }}
                           disabled={cancelMutation.isPending}
-                          className="w-full rounded-full border border-ember/35 bg-ember/10 px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-ember transition hover:bg-ember/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="w-full border border-rust bg-rust/5 px-4 py-2 text-sm font-bold text-rust transition hover:bg-rust/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {cancelMutation.isPending ? 'Đang huỷ...' : 'Huỷ đơn'}
                         </button>
@@ -270,7 +255,7 @@ export function PostDetailPage() {
                           rows={3}
                           maxLength={500}
                           placeholder="Vài dòng về bạn — trình độ, vị trí ưa thích, lịch rảnh..."
-                          className="dark-input resize-none"
+                          className="input resize-none"
                         />
                         <button
                           type="button"
@@ -279,7 +264,7 @@ export function PostDetailPage() {
                             applyMutation.mutate();
                           }}
                           disabled={applyMutation.isPending}
-                          className="w-full rounded-full bg-primary px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-night shadow-[0_18px_50px_-12px_rgb(var(--color-primary))] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="btn-primary w-full"
                         >
                           {applyMutation.isPending ? 'Đang gửi...' : 'Gửi đơn'}
                         </button>
@@ -288,23 +273,23 @@ export function PostDetailPage() {
                   </article>
                 )}
 
-                <article className="rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+                <article className="border border-ink/12 bg-white p-6">
+                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                     Về đội
                   </p>
-                  <h3 className="mt-2 font-display text-xl font-black uppercase tracking-tight text-cream">
+                  <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
                     {post.team.name}
                   </h3>
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                  <p className="mt-1 text-xs text-ink-soft">
                     {SPORT_THEMES[post.team.sport].nameVi}
                     {post.team.region ? ` · ${post.team.region}` : ''}
                   </p>
-                  <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65">
+                  <p className="mt-3 text-xs font-semibold text-ink-soft">
                     Uy tín · {post.team.reputation.toFixed(1)}
                   </p>
                   <Link
                     to={`/teams/${post.teamId}`}
-                    className="mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-primary transition hover:translate-x-1"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink transition hover:text-primary"
                   >
                     Xem trang đội <span aria-hidden>→</span>
                   </Link>
@@ -321,23 +306,23 @@ export function PostDetailPage() {
 function PostHeader({ post }: { post: RecruitmentPostDetail }) {
   const t = SPORT_THEMES[post.sport];
   return (
-    <article className="overflow-hidden rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl md:p-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start">
-        <div
-          className="flex size-16 shrink-0 items-center justify-center rounded-2xl text-3xl"
-          style={{ background: `${t.primary}25`, border: `1px solid ${t.primary}55` }}
+    <article className="border border-ink/12 bg-white p-6 md:p-8">
+      <div className="flex flex-col gap-5 md:flex-row md:items-start">
+        <span
+          className="flex size-16 shrink-0 items-center justify-center text-3xl"
+          style={{ backgroundColor: t.primary, color: '#fff' }}
           aria-hidden
         >
           {t.emoji}
-        </div>
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
             Tuyển thành viên · {t.nameVi}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-black uppercase tracking-tight text-cream md:text-4xl">
+          <h1 className="mt-1 font-display text-3xl font-black uppercase leading-[0.9] tracking-tight md:text-4xl">
             {post.team.name}
           </h1>
-          <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65">
+          <div className="mt-4 flex flex-wrap gap-2">
             {post.region && <Tag>Khu vực · {post.region}</Tag>}
             {post.positionNeeded && <Tag>Vị trí · {post.positionNeeded}</Tag>}
             {post.skillLevelMin && (
@@ -345,7 +330,7 @@ function PostHeader({ post }: { post: RecruitmentPostDetail }) {
             )}
             <Tag>{post.requestCount} đơn</Tag>
             {post.status === 'closed' && (
-              <span className="rounded-full border border-ember/35 bg-ember/10 px-2 py-0.5 text-ember">
+              <span className="inline-flex border border-rust bg-rust/5 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-rust">
                 Đã đóng
               </span>
             )}
@@ -358,7 +343,7 @@ function PostHeader({ post }: { post: RecruitmentPostDetail }) {
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full border border-cream/15 bg-cream/[0.04] px-3 py-1">
+    <span className="inline-flex border border-ink/15 bg-paper-2/40 px-2.5 py-1 text-xs font-semibold text-ink-soft">
       {children}
     </span>
   );
@@ -376,49 +361,47 @@ function JoinRequestRow({
   pending: boolean;
 }) {
   return (
-    <li className="rounded-xl border border-cream/10 bg-cream/[0.03] p-4">
-      <div className="flex items-start gap-3">
-        <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-cream/15 bg-cream/[0.04] font-display text-sm font-black uppercase text-primary"
-          aria-hidden
-        >
-          {request.displayName.charAt(0).toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-base font-black uppercase tracking-tight text-cream">
-            {request.displayName}
+    <li className="flex items-start gap-3 py-4">
+      <div
+        className="flex size-10 shrink-0 items-center justify-center bg-ink font-display text-sm font-black uppercase text-paper"
+        aria-hidden
+      >
+        {request.displayName.charAt(0).toUpperCase()}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-display text-base font-black uppercase tracking-tight">
+          {request.displayName}
+        </p>
+        <p className="mt-0.5 text-xs text-ink-soft">
+          {JOIN_REQUEST_STATUS_LABELS[request.status]} ·{' '}
+          {new Date(request.createdAt).toLocaleString('vi-VN')}
+        </p>
+        {request.message && (
+          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+            {request.message}
           </p>
-          <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
-            {JOIN_REQUEST_STATUS_LABELS[request.status]} ·{' '}
-            {new Date(request.createdAt).toLocaleString('vi-VN')}
-          </p>
-          {request.message && (
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-cream/75">
-              {request.message}
-            </p>
-          )}
-        </div>
-        {request.status === 'pending' && (
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={onAccept}
-              disabled={pending}
-              className="rounded-full bg-primary px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-night transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Chấp nhận
-            </button>
-            <button
-              type="button"
-              onClick={onReject}
-              disabled={pending}
-              className="rounded-full border border-ember/35 px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-ember transition hover:bg-ember/10 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Từ chối
-            </button>
-          </div>
         )}
       </div>
+      {request.status === 'pending' && (
+        <div className="flex shrink-0 flex-col gap-2">
+          <button
+            type="button"
+            onClick={onAccept}
+            disabled={pending}
+            className="bg-ink px-3 py-1.5 text-xs font-bold text-paper transition hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Chấp nhận
+          </button>
+          <button
+            type="button"
+            onClick={onReject}
+            disabled={pending}
+            className="border border-rust px-3 py-1.5 text-xs font-bold text-rust transition hover:bg-rust/5 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Từ chối
+          </button>
+        </div>
+      )}
     </li>
   );
 }

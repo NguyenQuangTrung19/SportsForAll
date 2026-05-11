@@ -9,7 +9,7 @@ import {
   type SportSlug,
 } from '@sfa/shared';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useSportStore } from '@/stores/sport-store';
@@ -27,16 +27,6 @@ export function FindTeammatesPage() {
     region: '',
     skillLevelMin: 'any',
   });
-
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const r = document.documentElement;
-      r.style.setProperty('--mx', `${e.clientX}px`);
-      r.style.setProperty('--my', `${e.clientY}px`);
-    };
-    window.addEventListener('pointermove', onMove);
-    return () => window.removeEventListener('pointermove', onMove);
-  }, []);
 
   const queryString = (() => {
     const p = new URLSearchParams();
@@ -58,60 +48,51 @@ export function FindTeammatesPage() {
   });
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-night text-cream">
-      <div className="mouse-spotlight pointer-events-none fixed inset-0 z-0" aria-hidden />
-      <div className="grid-bg pointer-events-none fixed inset-0 z-0" aria-hidden />
-
-      <header className="relative z-10 border-b border-cream/10 bg-night/40 backdrop-blur-xl">
+    <div className="min-h-screen bg-paper text-ink">
+      <header className="border-b border-ink/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/dashboard"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight text-cream md:text-3xl"
+            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
           >
             SportsForAll<span className="text-primary">.</span>
           </Link>
-          <Link
-            to="/dashboard"
-            className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55 transition hover:text-cream"
-          >
-            <span aria-hidden className="transition-transform group-hover:-translate-x-1">
-              ←
-            </span>
-            Bảng điều khiển
+          <Link to="/dashboard" className="text-sm font-semibold text-ink-soft hover:text-ink">
+            ← Bảng điều khiển
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 py-10 md:py-14">
+      <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
         <div className="mb-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
+          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
             Tìm đồng đội
           </p>
-          <h1 className="mt-1 font-display text-3xl font-black uppercase tracking-tight text-cream md:text-4xl">
-            Các đội đang tuyển thành viên.
+          <h1 className="mt-2 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
+            Các đội đang
+            <br />
+            tuyển thành viên.
           </h1>
+          <div className="mt-3 h-[3px] w-32 origin-left bg-ink animate-draw-line" aria-hidden />
         </div>
 
-        {/* Filters */}
-        <section className="mb-8 rounded-2xl border border-cream/15 bg-cream/[0.04] p-5 backdrop-blur-md">
+        <section className="mb-8 border border-ink/12 bg-white p-5">
           <div className="mb-3 flex items-baseline justify-between">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cream/55">
-              Bộ lọc
-            </p>
+            <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Bộ lọc</p>
             <button
               type="button"
               onClick={() =>
                 setFilters({ sport: 'all', region: '', skillLevelMin: 'any' })
               }
-              className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55 transition hover:text-cream"
+              className="text-xs font-semibold text-ink-soft transition hover:text-ink"
             >
               Đặt lại
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                 Môn
               </p>
               <div className="flex flex-wrap gap-2">
@@ -136,7 +117,7 @@ export function FindTeammatesPage() {
 
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   Khu vực
                 </span>
                 <input
@@ -144,13 +125,13 @@ export function FindTeammatesPage() {
                   value={filters.region}
                   onChange={(e) => setFilters({ ...filters, region: e.target.value })}
                   placeholder="Hà Nội, TP. HCM..."
-                  className="dark-input"
+                  className="input"
                   maxLength={100}
                 />
               </label>
 
               <div>
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   Trình độ tối thiểu
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -175,25 +156,20 @@ export function FindTeammatesPage() {
           </div>
         </section>
 
-        {/* Results */}
-        {isLoading && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-cream/55">
-            Đang tìm bài đăng...
-          </p>
-        )}
+        {isLoading && <p className="text-sm text-ink-soft">Đang tìm bài đăng...</p>}
 
         {isError && (
-          <p className="rounded-xl border border-ember/35 bg-ember/10 p-3 font-mono text-[11px] uppercase tracking-wider text-ember">
+          <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
             Không tải được bài đăng.
           </p>
         )}
 
         {data && data.items.length === 0 && (
-          <article className="rounded-3xl border border-dashed border-cream/20 bg-cream/[0.02] p-10 text-center">
-            <p className="font-display text-2xl font-black uppercase tracking-tight text-cream">
+          <article className="border border-dashed border-ink/25 bg-white p-10 text-center">
+            <p className="font-display text-2xl font-black uppercase tracking-tight">
               Chưa có bài tuyển phù hợp.
             </p>
-            <p className="mt-2 text-sm text-cream/65">
+            <p className="mt-2 text-sm text-ink-soft">
               Thử bớt bộ lọc, hoặc đến đội của bạn để đăng bài tuyển đầu tiên.
             </p>
           </article>
@@ -226,12 +202,12 @@ function FilterPill({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center rounded-full border font-mono uppercase transition ${
-        compact ? 'px-2.5 py-1 text-[10px] tracking-[0.16em]' : 'px-3.5 py-1.5 text-[11px] tracking-[0.18em]'
+      className={`inline-flex items-center border font-semibold transition ${
+        compact ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-sm'
       } ${
         active
-          ? 'border-transparent bg-primary text-night shadow-[0_10px_24px_-10px_rgb(var(--color-primary))]'
-          : 'border-cream/15 bg-cream/[0.03] text-cream/75 hover:border-cream/40 hover:text-cream'
+          ? 'border-ink bg-ink text-paper'
+          : 'border-ink/15 bg-white text-ink hover:border-ink'
       }`}
     >
       {label}
@@ -245,46 +221,42 @@ function PostCard({ post }: { post: RecruitmentPostSummary }) {
     <li>
       <Link
         to={`/posts/${post.id}`}
-        className="group block h-full overflow-hidden rounded-3xl border border-cream/15 bg-gradient-to-br from-cream/[0.06] to-cream/[0.02] p-6 backdrop-blur-2xl transition hover:-translate-y-1 hover:border-cream/40"
+        className="group block h-full border border-ink/12 bg-white p-6 transition hover:border-ink hover:shadow-[6px_6px_0_rgba(15,17,21,0.08)]"
       >
         <header className="flex items-start gap-3">
-          <div
-            className="flex size-12 shrink-0 items-center justify-center rounded-xl text-2xl"
-            style={{ background: `${t.primary}25`, border: `1px solid ${t.primary}55` }}
+          <span
+            className="flex size-12 shrink-0 items-center justify-center text-2xl"
+            style={{ backgroundColor: t.primary, color: '#fff' }}
             aria-hidden
           >
             {t.emoji}
-          </div>
+          </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-lg font-black uppercase tracking-tight text-cream">
+            <p className="truncate font-display text-lg font-black uppercase tracking-tight">
               {post.team.name}
             </p>
-            <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+            <p className="mt-0.5 text-xs text-ink-soft">
               {t.nameVi}
               {post.region ? ` · ${post.region}` : ''}
             </p>
           </div>
           {post.viewerRequestStatus && (
-            <span className="rounded-full border border-primary/40 bg-primary/15 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.22em] text-primary">
+            <span className="border border-primary bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-primary">
               {labelForStatus(post.viewerRequestStatus)}
             </span>
           )}
         </header>
 
-        <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-cream/75">
+        <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-ink-soft">
           {post.description}
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-cream/10 pt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65">
-          {post.positionNeeded && (
-            <Tag>Vị trí · {post.positionNeeded}</Tag>
-          )}
-          {post.skillLevelMin && (
-            <Tag>≥ {SKILL_LEVEL_LABELS[post.skillLevelMin]}</Tag>
-          )}
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-ink/10 pt-3">
+          {post.positionNeeded && <Tag>Vị trí · {post.positionNeeded}</Tag>}
+          {post.skillLevelMin && <Tag>≥ {SKILL_LEVEL_LABELS[post.skillLevelMin]}</Tag>}
           <Tag>{post.requestCount} đơn</Tag>
           {post.status === 'closed' && (
-            <span className="rounded-full border border-ember/35 bg-ember/10 px-2 py-0.5 text-ember">
+            <span className="border border-rust bg-rust/5 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-rust">
               Đã đóng
             </span>
           )}
@@ -296,7 +268,7 @@ function PostCard({ post }: { post: RecruitmentPostSummary }) {
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full border border-cream/15 bg-cream/[0.04] px-2 py-0.5">
+    <span className="inline-flex border border-ink/15 bg-paper-2/40 px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
       {children}
     </span>
   );
