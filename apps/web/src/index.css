@@ -235,10 +235,10 @@
 
   /* Display number — big poster digit */
   .poster-num {
-    font-family: 'Barlow Condensed', 'Be Vietnam Pro', system-ui, sans-serif;
+    font-family: 'Archivo', 'Be Vietnam Pro', system-ui, sans-serif;
     font-weight: 900;
-    letter-spacing: -0.02em;
-    line-height: 0.85;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
     font-variant-numeric: tabular-nums;
   }
 }
