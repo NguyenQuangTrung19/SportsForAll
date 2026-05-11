@@ -1,7 +1,19 @@
-import { SPORT_THEMES, SPORTS, type SportSlug } from '@sfa/shared';
-import { useEffect, useState } from 'react';
+import {
+  SKILL_LEVEL_LABELS,
+  SPORT_THEMES,
+  SPORTS,
+  type MatchRequestListResponse,
+  type MatchRequestSummary,
+  type RecruitmentListResponse,
+  type RecruitmentPostSummary,
+  type SportSlug,
+  type TeamSummary,
+} from '@sfa/shared';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KineticText } from '@/components/KineticText';
+import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
 
@@ -118,6 +130,65 @@ export function HomePage() {
 
   const tip = ONBOARDING_TIPS[tipIdx]!;
 
+  const postsQuery = useQuery({
+    queryKey: ['recruitment', 'home', current],
+    queryFn: async () => {
+      const { data } = await api.get<RecruitmentListResponse>(
+        `/recruitment/posts?sport=${current}&limit=4`,
+      );
+      return data.items;
+    },
+  });
+
+  const matchRequestsQuery = useQuery({
+    queryKey: ['matches', 'home', current],
+    queryFn: async () => {
+      const { data } = await api.get<MatchRequestListResponse>(
+        `/matches/requests?sport=${current}&limit=4`,
+      );
+      return data.items;
+    },
+  });
+
+  const teamsQuery = useQuery({
+    queryKey: ['teams', 'me'],
+    queryFn: async () => {
+      const { data } = await api.get<{ teams: TeamSummary[] }>('/teams/me');
+      return data.teams;
+    },
+  });
+
+  const myMatchesQuery = useQuery({
+    queryKey: ['matches', 'my'],
+    queryFn: async () => {
+      const { data } = await api.get<{ matches: { id: string }[] }>('/matches/my');
+      return data.matches;
+    },
+  });
+
+  const feed = useMemo(() => {
+    const posts = (postsQuery.data ?? []).map((p) => ({
+      kind: 'post' as const,
+      id: p.id,
+      createdAt: p.createdAt,
+      data: p,
+    }));
+    const reqs = (matchRequestsQuery.data ?? []).map((r) => ({
+      kind: 'match' as const,
+      id: r.id,
+      createdAt: r.createdAt,
+      data: r,
+    }));
+    return [...posts, ...reqs]
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, 6);
+  }, [postsQuery.data, matchRequestsQuery.data]);
+
+  const newOpportunityCount =
+    (postsQuery.data?.length ?? 0) + (matchRequestsQuery.data?.length ?? 0);
+  const teamsCount = teamsQuery.data?.length ?? 0;
+  const matchesCount = myMatchesQuery.data?.length ?? 0;
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-night text-cream">
       <div className="mouse-spotlight pointer-events-none fixed inset-0 z-0" aria-hidden />
@@ -216,12 +287,12 @@ export function HomePage() {
               </div>
               <p className="mt-3 font-display text-3xl font-black uppercase leading-tight tracking-tight text-cream md:text-4xl">
                 <span className="text-primary">
-                  <CountUp to={3} />
+                  <CountUp to={newOpportunityCount} />
                 </span>{' '}
-                cơ hội mới
+                cơ hội mở
               </p>
               <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
-                trong bán kính 5 km · {theme.nameVi}
+                cập nhật từ cộng đồng · {theme.nameVi}
               </p>
               <div className="mt-4 flex items-center gap-2 border-t border-cream/10 pt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65">
                 <span className="relative inline-block size-1.5 rounded-full bg-primary">
@@ -300,40 +371,55 @@ export function HomePage() {
                   </h2>
                 </div>
                 <span className="hidden rounded-full border border-cream/15 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55 sm:inline">
-                  <CountUp to={3} /> mới
+                  <CountUp to={newOpportunityCount} /> mới
                 </span>
               </header>
 
-              <div className="space-y-3">
-                <FeedRow
-                  tone="primary"
-                  tag="Tuyển thành viên"
-                  title="FC Đống Đa cần một trung vệ"
-                  meta="Hạng B · Tối thứ 4 · Sân Bách Khoa"
-                />
-                <FeedRow
-                  tone="ember"
-                  tag="Thách đấu"
-                  title="Hồ Tây Strikers tìm đối thủ"
-                  meta="Rating 4.4 · Thứ 7 · 19:30"
-                />
-                <FeedRow
-                  tone="cream"
-                  tag="Sân trống"
-                  title="Sân Cầu Giấy mở khung 18–22h"
-                  meta="200K/giờ · Cần đội đặt tuần này"
-                />
-                <FeedRow
-                  tone="primary"
-                  tag="Tuyển thành viên"
-                  title="Đội bóng Mỹ Đình cần tiền vệ"
-                  meta="Hạng C · Sáng Chủ Nhật · Sân Olympia"
-                />
-              </div>
+              {(postsQuery.isLoading || matchRequestsQuery.isLoading) && feed.length === 0 ? (
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/55">
+                  Đang tải cơ hội...
+                </p>
+              ) : feed.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-cream/20 bg-cream/[0.02] p-8 text-center">
+                  <p className="font-display text-lg font-black uppercase tracking-tight text-cream">
+                    Chưa có cơ hội nào cho {theme.nameVi}.
+                  </p>
+                  <p className="mt-2 text-sm text-cream/65">
+                    Tạo đội và đăng bài tuyển hoặc tìm đối thủ để khởi động.
+                  </p>
+                  <Link
+                    to="/teams"
+                    className="mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-primary transition hover:translate-x-1"
+                  >
+                    Đến trang đội của tôi <span aria-hidden>→</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {feed.map((entry) =>
+                    entry.kind === 'post' ? (
+                      <RecruitmentFeedRow key={`p-${entry.id}`} post={entry.data} />
+                    ) : (
+                      <MatchFeedRow key={`m-${entry.id}`} req={entry.data} />
+                    ),
+                  )}
+                </div>
+              )}
 
-              <p className="mt-5 border-t border-cream/10 pt-4 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-cream/40">
-                Dữ liệu mẫu · feed thật khi tính năng đăng tin sẵn sàng
-              </p>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-cream/10 pt-4">
+                <Link
+                  to="/find-teammates"
+                  className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65 transition hover:text-cream"
+                >
+                  → Tất cả bài tuyển
+                </Link>
+                <Link
+                  to="/find-opponents"
+                  className="font-mono text-[10px] uppercase tracking-[0.22em] text-cream/65 transition hover:text-cream"
+                >
+                  → Tất cả thách đấu
+                </Link>
+              </div>
             </article>
           </section>
 
@@ -366,9 +452,9 @@ export function HomePage() {
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 border-t border-cream/10 pt-5">
-                <MiniStat n="0" label="Trận" />
+                <MiniStat n={String(matchesCount)} label="Trận" />
                 <MiniStat n="—" label="Rating" />
-                <MiniStat n="0" label="Đội" />
+                <MiniStat n={String(teamsCount)} label="Đội" />
                 <MiniStat n="0" label="Sân đặt" />
               </div>
 
@@ -478,12 +564,14 @@ export function HomePage() {
   );
 }
 
-function FeedRow({
+function FeedShell({
+  to,
   tone,
   tag,
   title,
   meta,
 }: {
+  to: string;
   tone: 'primary' | 'ember' | 'cream';
   tag: string;
   title: string;
@@ -497,24 +585,69 @@ function FeedRow({
         : 'border-cream/30 bg-cream/10 text-cream';
 
   return (
-    <div className="group flex items-center justify-between gap-4 rounded-xl border border-cream/10 bg-cream/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-cream/30 hover:bg-cream/[0.06]">
+    <Link
+      to={to}
+      className="group flex items-center justify-between gap-4 rounded-xl border border-cream/10 bg-cream/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-cream/30 hover:bg-cream/[0.06]"
+    >
       <div className="min-w-0 flex-1">
         <span
           className={`inline-block rounded-full border px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.22em] ${toneClass}`}
         >
           {tag}
         </span>
-        <p className="mt-2 font-display text-lg font-black uppercase leading-tight tracking-tight text-cream md:text-xl">
+        <p className="mt-2 truncate font-display text-lg font-black uppercase leading-tight tracking-tight text-cream md:text-xl">
           {title}
         </p>
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-cream/55">
+        <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-wider text-cream/55">
           {meta}
         </p>
       </div>
       <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-cream/40 transition group-hover:translate-x-1 group-hover:text-primary">
         →
       </span>
-    </div>
+    </Link>
+  );
+}
+
+function RecruitmentFeedRow({ post }: { post: RecruitmentPostSummary }) {
+  const metaParts: string[] = [];
+  if (post.positionNeeded) metaParts.push(`Vị trí · ${post.positionNeeded}`);
+  if (post.skillLevelMin) metaParts.push(`≥ ${SKILL_LEVEL_LABELS[post.skillLevelMin]}`);
+  if (post.region) metaParts.push(post.region);
+  return (
+    <FeedShell
+      to={`/posts/${post.id}`}
+      tone="primary"
+      tag="Tuyển thành viên"
+      title={post.team.name}
+      meta={metaParts.length > 0 ? metaParts.join(' · ') : 'Đang tuyển mở'}
+    />
+  );
+}
+
+function MatchFeedRow({ req }: { req: MatchRequestSummary }) {
+  const metaParts: string[] = [];
+  if (req.preferredTime) {
+    metaParts.push(
+      new Date(req.preferredTime).toLocaleString('vi-VN', {
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    );
+  }
+  if (req.venueName) metaParts.push(`Sân · ${req.venueName}`);
+  if (req.region) metaParts.push(req.region);
+  return (
+    <FeedShell
+      to={`/match-requests/${req.id}`}
+      tone="ember"
+      tag="Thách đấu"
+      title={req.team.name}
+      meta={metaParts.length > 0 ? metaParts.join(' · ') : 'Đang tìm đối thủ'}
+    />
   );
 }
 
