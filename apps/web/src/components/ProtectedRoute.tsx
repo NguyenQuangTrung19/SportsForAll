@@ -8,5 +8,21 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
+  if (!user.onboardedAt) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  return <>{children}</>;
+}
+
+export function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  if (user.onboardedAt) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }

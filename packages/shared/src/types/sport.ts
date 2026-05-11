@@ -10,6 +10,14 @@ export interface SportTheme {
   primaryDark: string;
 }
 
+export const POSITIONS_BY_SPORT: Record<SportSlug, readonly string[]> = {
+  football: ['Thủ môn', 'Hậu vệ', 'Tiền vệ', 'Tiền đạo'],
+  basketball: ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'],
+  badminton: ['Đơn', 'Đôi', 'Đôi nam nữ'],
+  volleyball: ['Chuyền 2', 'Đối chuyền', 'Chủ công', 'Phụ công', 'Libero'],
+  tennis: ['Đơn', 'Đôi'],
+} as const;
+
 export const SPORT_THEMES: Record<SportSlug, SportTheme> = {
   football: {
     slug: 'football',

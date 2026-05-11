@@ -27,6 +27,7 @@ function toAuthUser(u: User): AuthUser {
     avatarUrl: u.avatarUrl,
     role: u.role,
     emailVerified: u.emailVerified,
+    onboardedAt: u.onboardedAt?.toISOString() ?? null,
   };
 }
 

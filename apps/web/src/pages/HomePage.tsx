@@ -372,15 +372,15 @@ export function HomePage() {
                 <MiniStat n="0" label="Sân đặt" />
               </div>
 
-              <button
-                type="button"
+              <Link
+                to="/profile"
                 className="group mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-cream/20 bg-cream/[0.03] px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-cream transition hover:border-cream/55 hover:bg-cream/[0.08]"
               >
                 Chỉnh sửa hồ sơ
                 <span aria-hidden className="transition-transform group-hover:translate-x-1">
                   →
                 </span>
-              </button>
+              </Link>
             </article>
 
             {/* Tip card with conic ring + auto-cycling content + 3D tilt */}

@@ -11,6 +11,7 @@ interface AuthState {
   refreshToken: string | null;
   hydrated: boolean;
   setSession: (data: AuthResponse) => void;
+  updateUser: (patch: Partial<AuthUser>) => void;
   clear: () => void;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
@@ -30,6 +31,11 @@ export const useAuthStore = create<AuthState>()(
           accessToken: data.tokens.accessToken,
           refreshToken: data.tokens.refreshToken,
         }),
+      updateUser: (patch) => {
+        const current = get().user;
+        if (!current) return;
+        set({ user: { ...current, ...patch } });
+      },
       clear: () => set({ user: null, accessToken: null, refreshToken: null }),
       login: async (input) => {
         const { data } = await axios.post<AuthResponse>(`${baseURL}/api/auth/login`, input, {

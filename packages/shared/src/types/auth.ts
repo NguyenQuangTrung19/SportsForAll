@@ -7,6 +7,7 @@ export interface AuthUser {
   avatarUrl: string | null;
   role: UserRole;
   emailVerified: boolean;
+  onboardedAt: string | null;
 }
 
 export interface AuthTokens {
