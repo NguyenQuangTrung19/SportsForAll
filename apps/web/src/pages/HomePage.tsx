@@ -449,7 +449,7 @@ export function HomePage() {
             <ActionTile num="01" title="Tìm đồng đội" sub="Đăng tin tìm bạn" />
             <ActionTile num="02" title="Tìm đối thủ" sub="Gửi lời thách đấu" />
             <ActionTile num="03" title="Đặt sân" sub="Mở lịch sân trống" />
-            <ActionTile num="04" title="Quản lý đội" sub="Thành viên & lịch sử" />
+            <ActionTile num="04" title="Quản lý đội" sub="Thành viên & lịch sử" to="/teams" />
           </div>
         </section>
       </main>
@@ -517,12 +517,19 @@ function MiniStat({ n, label }: { n: string; label: string }) {
   );
 }
 
-function ActionTile({ num, title, sub }: { num: string; title: string; sub: string }) {
-  return (
-    <button
-      type="button"
-      className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-cream/12 bg-cream/[0.04] p-5 text-left backdrop-blur-md transition hover:-translate-y-1 hover:border-primary/40 hover:bg-cream/[0.07]"
-    >
+function ActionTile({
+  num,
+  title,
+  sub,
+  to,
+}: {
+  num: string;
+  title: string;
+  sub: string;
+  to?: string;
+}) {
+  const inner = (
+    <>
       <div className="flex items-baseline justify-between">
         <span className="font-display text-3xl font-black leading-none text-primary transition-transform group-hover:scale-110 group-hover:rotate-[-4deg] md:text-4xl">
           {num}
@@ -542,6 +549,22 @@ function ActionTile({ num, title, sub }: { num: string; title: string; sub: stri
           {sub}
         </p>
       </div>
+    </>
+  );
+
+  const cls =
+    'group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-cream/12 bg-cream/[0.04] p-5 text-left backdrop-blur-md transition hover:-translate-y-1 hover:border-primary/40 hover:bg-cream/[0.07]';
+
+  if (to) {
+    return (
+      <Link to={to} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" className={cls}>
+      {inner}
     </button>
   );
 }

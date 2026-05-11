@@ -32,6 +32,12 @@ enum SkillLevel {
   pro
 }
 
+enum TeamRole {
+  captain
+  co_captain
+  member
+}
+
 model User {
   id            String     @id @default(cuid())
   email         String     @unique
@@ -50,6 +56,7 @@ model User {
 
   refreshTokens     RefreshToken[]
   sportPreferences  SportPreference[]
+  teamMemberships   TeamMember[]
 
   @@index([region])
 }
@@ -67,6 +74,38 @@ model SportPreference {
 
   @@unique([userId, sport])
   @@index([sport, skillLevel])
+}
+
+model Team {
+  id          String      @id @default(cuid())
+  name        String
+  sport       Sport
+  region      String?
+  description String?
+  logoUrl     String?
+  skillLevel  SkillLevel?
+  reputation  Float       @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  members TeamMember[]
+
+  @@index([sport, region])
+  @@index([sport, skillLevel])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(member)
+  joinedAt  DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
 }
 
 model RefreshToken {

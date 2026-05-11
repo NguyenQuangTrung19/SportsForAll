@@ -9,6 +9,9 @@ import { LoginPage } from '@/pages/LoginPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { TeamCreatePage } from '@/pages/TeamCreatePage';
+import { TeamDetailPage } from '@/pages/TeamDetailPage';
+import { TeamsPage } from '@/pages/TeamsPage';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
 
 function ThemeBridge({ children }: { children: React.ReactNode }) {
@@ -49,6 +52,30 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teams"
+              element={
+                <ProtectedRoute>
+                  <TeamsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teams/new"
+              element={
+                <ProtectedRoute>
+                  <TeamCreatePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teams/:id"
+              element={
+                <ProtectedRoute>
+                  <TeamDetailPage />
                 </ProtectedRoute>
               }
             />
