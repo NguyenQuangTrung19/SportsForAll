@@ -1,10 +1,11 @@
 import { createSportSchema, type SportCatalogItem } from '@sfa/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useState } from 'react';
+import { useRef, useState, type MutableRefObject } from 'react';
 import { SportFields } from '@/components/SportFields';
 import { parsePositions, type SportFieldValues } from '@/lib/sport-form';
 import { api } from '@/lib/api';
+import { LANDING_IMAGES_KEY } from '@/lib/use-landing-images';
 import { SPORTS_KEY } from '@/lib/use-sports';
 
 /** Sinh slug từ tên tiếng Việt: bỏ dấu, thay khoảng trắng bằng gạch ngang. */
@@ -30,9 +31,21 @@ export function AddSportForm({ onDone }: { onDone: () => void }) {
     positions: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [step, setStep] = useState<'idle' | 'icon' | 'image'>('idle');
+  const iconRef = useRef<HTMLInputElement | null>(null);
+  const imageRef = useRef<HTMLInputElement | null>(null);
 
   const effectiveSlug = slugTouched ? slug : slugify(values.nameVi);
 
+  /**
+   * Tạo môn rồi đính kèm icon và ảnh nền trong cùng một lần bấm.
+   *
+   * Phải chạy tuần tự vì hai endpoint tải lên đều khoá theo slug, tức môn phải
+   * tồn tại trước. Nếu một bước tải lên hỏng thì môn vẫn được giữ — báo rõ phần
+   * nào chưa xong thay vì xoá ngược lại, vì xoá đi sẽ mất luôn phần đã nhập.
+   */
   const create = useMutation({
     mutationFn: async () => {
       const { data } = await api.post<SportCatalogItem>('/sports', {
@@ -42,13 +55,47 @@ export function AddSportForm({ onDone }: { onDone: () => void }) {
         primaryDark: values.primaryDark,
         positions: parsePositions(values.positions),
       });
-      return data;
+
+      const failed: string[] = [];
+
+      if (iconFile) {
+        setStep('icon');
+        try {
+          const form = new FormData();
+          form.append('icon', iconFile);
+          await api.post(`/sports/${data.slug}/icon`, form);
+        } catch {
+          failed.push('icon');
+        }
+      }
+
+      if (imageFile) {
+        setStep('image');
+        try {
+          const form = new FormData();
+          form.append('image', imageFile);
+          await api.put(`/landing/images/${data.slug}`, form);
+        } catch {
+          failed.push('ảnh nền');
+        }
+      }
+
+      return failed;
     },
-    onSuccess: () => {
+    onSuccess: (failed) => {
       void queryClient.invalidateQueries({ queryKey: SPORTS_KEY });
+      void queryClient.invalidateQueries({ queryKey: LANDING_IMAGES_KEY });
+      if (failed.length > 0) {
+        setStep('idle');
+        setError(
+          `Đã thêm môn nhưng chưa tải được ${failed.join(' và ')}. Dùng nút "Sửa môn" ở hàng bên dưới để thử lại.`,
+        );
+        return;
+      }
       onDone();
     },
     onError: (err: unknown) => {
+      setStep('idle');
       setError(
         err instanceof AxiosError
           ? ((err.response?.data as { error?: { message?: string } })?.error?.message ??
@@ -102,6 +149,30 @@ export function AddSportForm({ onDone }: { onDone: () => void }) {
         </label>
 
         <SportFields value={values} onChange={setValues} />
+
+        <div className="grid gap-4 border-t border-ink/10 pt-4 md:grid-cols-2">
+          <FilePicker
+            label="Icon (tuỳ chọn)"
+            hint="SVG hoặc PNG nền trong suốt, khung vuông"
+            accept="image/svg+xml,image/png,image/webp,image/jpeg"
+            file={iconFile}
+            inputRef={iconRef}
+            onPick={setIconFile}
+          />
+          <FilePicker
+            label="Ảnh nền (tuỳ chọn)"
+            hint="Ngang 16:9, rộng tối thiểu 1200px"
+            accept="image/jpeg,image/png,image/webp"
+            file={imageFile}
+            inputRef={imageRef}
+            onPick={setImageFile}
+          />
+        </div>
+
+        <p className="text-xs text-ink-soft">
+          Bỏ trống cũng được — thêm sau bằng nút &quot;Sửa môn&quot;. Môn chưa có ảnh nền sẽ tạm
+          mượn ảnh của môn đầu tiên.
+        </p>
       </div>
 
       {error && (
@@ -125,9 +196,71 @@ export function AddSportForm({ onDone }: { onDone: () => void }) {
           disabled={create.isPending || values.nameVi.trim().length < 2}
           className="btn-primary"
         >
-          {create.isPending ? 'Đang thêm...' : 'Thêm môn'}
+          {step === 'icon'
+            ? 'Đang tải icon...'
+            : step === 'image'
+              ? 'Đang tải ảnh nền...'
+              : create.isPending
+                ? 'Đang thêm...'
+                : 'Thêm môn'}
         </button>
       </div>
     </section>
+  );
+}
+
+function FilePicker({
+  label,
+  hint,
+  accept,
+  file,
+  inputRef,
+  onPick,
+}: {
+  label: string;
+  hint: string;
+  accept: string;
+  file: File | null;
+  inputRef: MutableRefObject<HTMLInputElement | null>;
+  onPick: (f: File | null) => void;
+}) {
+  return (
+    <div>
+      <span className="mb-2 block text-xs font-bold tracking-wide text-ink-soft">{label}</span>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="btn-ghost !px-3 !py-2 !text-xs"
+        >
+          {file ? 'Đổi file' : 'Chọn file'}
+        </button>
+        {file && (
+          <>
+            <span className="min-w-0 flex-1 truncate text-xs text-ink">{file.name}</span>
+            <button
+              type="button"
+              onClick={() => onPick(null)}
+              className="text-xs font-semibold text-ink-soft transition hover:text-rust"
+            >
+              Bỏ
+            </button>
+          </>
+        )}
+      </div>
+      <p className="mt-1.5 text-[11px] text-ink-soft/80">{hint}</p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => {
+          const picked = e.target.files?.[0] ?? null;
+          e.target.value = ''; // cho phép chọn lại đúng file vừa bỏ
+          onPick(picked);
+        }}
+      />
+    </div>
   );
 }
