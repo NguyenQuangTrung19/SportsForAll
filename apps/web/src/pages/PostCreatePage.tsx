@@ -1,11 +1,9 @@
 import {
   SKILL_LEVELS,
   SKILL_LEVEL_LABELS,
-  SPORT_THEMES,
   createRecruitmentPostSchema,
   type CreateRecruitmentPostInput,
   type RecruitmentPostDetail,
-  type SkillLevel,
   type TeamDetail,
 } from '@sfa/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,8 +13,10 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 
 export function PostCreatePage() {
+  const { sportOf } = useSports();
   const { id: teamId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -66,9 +66,9 @@ export function PostCreatePage() {
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to={`/teams/${teamId}`}
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link
             to={`/teams/${teamId}`}
@@ -81,20 +81,16 @@ export function PostCreatePage() {
 
       <main className="mx-auto max-w-3xl px-6 py-10 md:py-14">
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+          <p className="text-xs font-bold tracking-wide text-ink-soft">
             {team ? `Bài tuyển · ${team.name}` : 'Bài tuyển'}
           </p>
-          <h1 className="mt-2 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
+          <h1 className="mt-2 font-display text-4xl font-black leading-[0.9] tracking-tight md:text-5xl">
             Tuyển thành viên
             <br />
             mới.
           </h1>
           <div className="mt-3 h-[3px] w-32 origin-left bg-ink animate-draw-line" aria-hidden />
-          {team && (
-            <p className="mt-4 text-sm text-ink-soft">
-              Môn: {SPORT_THEMES[team.sport].emoji} {SPORT_THEMES[team.sport].nameVi}
-            </p>
-          )}
+          {team && <p className="mt-4 text-sm text-ink-soft">Môn: {sportOf(team.sport).nameVi}</p>}
         </div>
 
         <form
@@ -155,9 +151,7 @@ export function PostCreatePage() {
                       <button
                         key={lvl}
                         type="button"
-                        onClick={() =>
-                          field.onChange(isOn ? undefined : (lvl as SkillLevel))
-                        }
+                        onClick={() => field.onChange(isOn ? undefined : lvl)}
                         className={`border px-3 py-1.5 text-xs font-semibold transition ${
                           isOn
                             ? 'border-ink bg-paper-2 text-ink'
@@ -186,11 +180,7 @@ export function PostCreatePage() {
             >
               Huỷ
             </Link>
-            <button
-              type="submit"
-              disabled={mutation.isPending || !team}
-              className="btn-primary"
-            >
+            <button type="submit" disabled={mutation.isPending || !team} className="btn-primary">
               {mutation.isPending ? 'Đang đăng...' : 'Đăng bài tuyển'}
             </button>
           </div>
@@ -213,9 +203,7 @@ function Field({
     <label className="block">
       <span className="mb-2 block text-sm font-semibold">{label}</span>
       {children}
-      {error && (
-        <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>
-      )}
+      {error && <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>}
     </label>
   );
 }

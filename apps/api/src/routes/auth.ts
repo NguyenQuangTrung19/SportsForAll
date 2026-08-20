@@ -1,4 +1,5 @@
 import {
+  changePasswordSchema,
   loginSchema,
   refreshSchema,
   registerSchema,
@@ -8,14 +9,11 @@ import {
 import { Prisma, type User } from '@prisma/client';
 import { Router } from 'express';
 import { prisma } from '../lib/db.js';
-import {
-  hashRefreshToken,
-  issueRefreshToken,
-  signAccessToken,
-} from '../lib/jwt.js';
+import { hashRefreshToken, issueRefreshToken, signAccessToken } from '../lib/jwt.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
+import { loginLimiter, refreshLimiter, registerLimiter } from '../middleware/rate-limit.js';
 
 export const authRouter = Router();
 
@@ -31,7 +29,10 @@ function toAuthUser(u: User): AuthUser {
   };
 }
 
-async function issueSession(userId: string, role: string): Promise<{
+async function issueSession(
+  userId: string,
+  role: string,
+): Promise<{
   accessToken: string;
   refreshToken: string;
 }> {
@@ -47,7 +48,7 @@ async function issueSession(userId: string, role: string): Promise<{
   return { accessToken, refreshToken: refresh.token };
 }
 
-authRouter.post('/register', async (req, res, next) => {
+authRouter.post('/register', registerLimiter, async (req, res, next) => {
   try {
     const input = registerSchema.parse(req.body);
     const passwordHash = await hashPassword(input.password);
@@ -74,7 +75,7 @@ authRouter.post('/register', async (req, res, next) => {
   }
 });
 
-authRouter.post('/login', async (req, res, next) => {
+authRouter.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const input = loginSchema.parse(req.body);
     const user = await prisma.user.findUnique({
@@ -91,7 +92,7 @@ authRouter.post('/login', async (req, res, next) => {
   }
 });
 
-authRouter.post('/refresh', async (req, res, next) => {
+authRouter.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
     const input = refreshSchema.parse(req.body);
     const tokenHash = hashRefreshToken(input.refreshToken);
@@ -136,6 +137,40 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { id: req.user!.sub } });
     if (!user) throw new HttpError(404, 'Không tìm thấy người dùng', 'USER_NOT_FOUND');
     res.json({ user: toAuthUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Doi mat khau. Thu hoi toan bo refresh token dang song: neu mat khau bi lo,
+ * doi mat khau phai da nguoi kia ra khoi moi thiet bi.
+ */
+authRouter.post('/change-password', requireAuth, async (req, res, next) => {
+  try {
+    const input = changePasswordSchema.parse(req.body);
+    const userId = req.user!.sub;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.passwordHash) {
+      throw new HttpError(400, 'Tài khoản này không dùng mật khẩu', 'NO_PASSWORD');
+    }
+    if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
+      throw new HttpError(400, 'Mật khẩu hiện tại không đúng', 'WRONG_PASSWORD');
+    }
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    const tokens = await issueSession(userId, user.role);
+    const body: AuthResponse = { user: toAuthUser(user), tokens };
+    res.json(body);
   } catch (err) {
     next(err);
   }

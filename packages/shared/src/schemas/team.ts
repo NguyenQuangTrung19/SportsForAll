@@ -1,11 +1,11 @@
 import { z } from 'zod';
+import { sportSlugSchema } from './sport.js';
 import { SKILL_LEVELS } from '../types/skill-level.js';
-import { SPORTS } from '../types/sport.js';
 import { TEAM_ROLES } from '../types/team.js';
 
 export const createTeamSchema = z.object({
   name: z.string().trim().min(2, 'Tên đội tối thiểu 2 ký tự').max(60),
-  sport: z.enum(SPORTS),
+  sport: sportSlugSchema,
   region: z.string().trim().max(100).optional(),
   description: z.string().trim().max(500).optional(),
   logoUrl: z.string().url().optional(),
@@ -22,14 +22,16 @@ export const updateTeamSchema = z.object({
 });
 export type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
 
-export const addMemberSchema = z.object({
-  email: z.string().email().optional(),
-  userId: z.string().cuid().optional(),
-  role: z.enum(TEAM_ROLES).default('member'),
-}).refine((v) => v.email || v.userId, {
-  message: 'Cần email hoặc userId',
-  path: ['email'],
-});
+export const addMemberSchema = z
+  .object({
+    email: z.string().email().optional(),
+    userId: z.string().cuid().optional(),
+    role: z.enum(TEAM_ROLES).default('member'),
+  })
+  .refine((v) => v.email || v.userId, {
+    message: 'Cần email hoặc userId',
+    path: ['email'],
+  });
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
 
 export const updateMemberRoleSchema = z.object({

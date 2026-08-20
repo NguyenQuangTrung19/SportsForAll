@@ -13,17 +13,34 @@ export default {
         'paper-2': 'rgb(var(--color-paper-2) / <alpha-value>)',
         ink: 'rgb(var(--color-ink) / <alpha-value>)',
         'ink-soft': 'rgb(var(--color-ink-soft) / <alpha-value>)',
-        rust: '#C43C1A',
+        rust: '#B03A18', // 5.42:1 trên nền vôi — đạt AA
+        // Bảng màu riêng của trang giới thiệu (biến định nghĩa trong .landing).
+        // Khai báo ở đây để dùng được độ mờ: text-chalk/70, border-pine/12...
+        chalk: 'rgb(var(--l-chalk) / <alpha-value>)',
+        sand: 'rgb(var(--l-sand) / <alpha-value>)',
+        pine: {
+          DEFAULT: 'rgb(var(--l-pine) / <alpha-value>)',
+          2: 'rgb(var(--l-pine-2) / <alpha-value>)',
+        },
+        lime: 'rgb(var(--l-lime) / <alpha-value>)',
+        clay: 'rgb(var(--l-clay) / <alpha-value>)',
+        graphite: {
+          DEFAULT: 'rgb(var(--l-graphite) / <alpha-value>)',
+          soft: 'rgb(var(--l-graphite-soft) / <alpha-value>)',
+        },
         // Legacy aliases retained until all pages migrate
         night: 'rgb(var(--color-paper) / <alpha-value>)',
         midnight: 'rgb(var(--color-paper-2) / <alpha-value>)',
         cream: 'rgb(var(--color-ink) / <alpha-value>)',
-        ember: '#C43C1A',
+        ember: '#B03A18',
       },
       fontFamily: {
         sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
-        display: ['"Viaoda Libre"', '"Be Vietnam Pro"', 'Georgia', 'serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        // Trong app dung chung mot ho font, phan cap bang weight — kieu cua
+        // moi mang xa hoi. Dau tieng Viet o co chu nho nho do ma sach.
+        display: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
+        // Chi dung o trang gioi thieu, noi can ca tinh.
+        poster: ['Archivo', '"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         'fade-up': {

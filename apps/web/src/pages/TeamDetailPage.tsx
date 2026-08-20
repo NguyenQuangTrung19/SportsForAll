@@ -1,6 +1,5 @@
 import {
   SKILL_LEVEL_LABELS,
-  SPORT_THEMES,
   TEAM_ROLES,
   TEAM_ROLE_LABELS,
   addMemberSchema,
@@ -14,7 +13,9 @@ import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 
 function extractMessage(err: unknown, fallback: string): string {
@@ -44,7 +45,7 @@ export function TeamDetailPage() {
 
   const setTeam = (team: TeamDetail) => {
     queryClient.setQueryData(['teams', id], team);
-    queryClient.invalidateQueries({ queryKey: ['teams', 'me'] });
+    void queryClient.invalidateQueries({ queryKey: ['teams', 'me'] });
   };
 
   const addMemberMutation = useMutation({
@@ -71,9 +72,9 @@ export function TeamDetailPage() {
       return { isSelf };
     },
     onSuccess: ({ isSelf }) => {
-      queryClient.invalidateQueries({ queryKey: ['teams', 'me'] });
+      void queryClient.invalidateQueries({ queryKey: ['teams', 'me'] });
       if (isSelf) navigate('/teams', { replace: true });
-      else queryClient.invalidateQueries({ queryKey: ['teams', id] });
+      else void queryClient.invalidateQueries({ queryKey: ['teams', id] });
     },
     onError: (err) => setActionError(extractMessage(err, 'Không xoá được thành viên')),
   });
@@ -83,7 +84,7 @@ export function TeamDetailPage() {
       await api.delete(`/teams/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', 'me'] });
+      void queryClient.invalidateQueries({ queryKey: ['teams', 'me'] });
       navigate('/teams', { replace: true });
     },
     onError: (err) => setActionError(extractMessage(err, 'Không giải tán được đội')),
@@ -99,9 +100,9 @@ export function TeamDetailPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/teams"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link to="/teams" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Đội của tôi
@@ -110,9 +111,7 @@ export function TeamDetailPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
-        {teamQuery.isLoading && (
-          <p className="text-sm text-ink-soft">Đang tải đội...</p>
-        )}
+        {teamQuery.isLoading && <p className="text-sm text-ink-soft">Đang tải đội...</p>}
 
         {teamQuery.isError && (
           <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
@@ -133,10 +132,8 @@ export function TeamDetailPage() {
             <section className="mt-8 grid gap-6 lg:grid-cols-12">
               <div className="lg:col-span-7">
                 <header className="flex items-baseline justify-between border-b-2 border-ink pb-3">
-                  <h2 className="font-display text-2xl font-black uppercase tracking-tight">
-                    Thành viên
-                  </h2>
-                  <span className="poster-num text-2xl text-primary">
+                  <h2 className="font-display text-2xl font-black tracking-tight">Thành viên</h2>
+                  <span className="poster-num text-2xl text-primary-dark">
                     {String(team.members.length).padStart(2, '0')}
                   </span>
                 </header>
@@ -152,10 +149,10 @@ export function TeamDetailPage() {
                           {m.displayName.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-display text-base font-black uppercase tracking-tight">
+                          <p className="truncate font-display text-base font-black tracking-tight">
                             {m.displayName}
                             {isSelf && (
-                              <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                              <span className="ml-2 text-[11px] font-semibold tracking-wide text-primary-dark">
                                 · bạn
                               </span>
                             )}
@@ -214,26 +211,21 @@ export function TeamDetailPage() {
               <aside className="space-y-6 lg:col-span-5">
                 {canManage && (
                   <article className="border border-ink/15 bg-white p-6">
-                    <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                    <p className="text-xs font-bold tracking-wide text-primary-dark">
                       Hoạt động đội
                     </p>
-                    <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
+                    <h3 className="mt-1 font-display text-xl font-black tracking-tight">
                       Đăng tin mới
                     </h3>
                     <p className="mt-2 text-sm text-ink-soft">
-                      Tuyển thành viên hoặc tìm đối thủ — bài đăng sẽ xuất hiện trong feed cộng đồng.
+                      Tuyển thành viên hoặc tìm đối thủ — bài đăng sẽ xuất hiện trong feed cộng
+                      đồng.
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
-                      <Link
-                        to={`/teams/${team.id}/posts/new`}
-                        className="btn-primary"
-                      >
+                      <Link to={`/teams/${team.id}/posts/new`} className="btn-primary">
                         Tuyển thành viên <span aria-hidden>→</span>
                       </Link>
-                      <Link
-                        to={`/teams/${team.id}/match-requests/new`}
-                        className="btn-ghost"
-                      >
+                      <Link to={`/teams/${team.id}/match-requests/new`} className="btn-ghost">
                         Tìm đối thủ <span aria-hidden>→</span>
                       </Link>
                     </div>
@@ -252,10 +244,8 @@ export function TeamDetailPage() {
 
                 {viewerRole === 'captain' && (
                   <article className="border border-rust bg-rust/[0.03] p-6">
-                    <p className="text-xs font-bold uppercase tracking-wide text-rust">
-                      Vùng nguy hiểm
-                    </p>
-                    <h3 className="mt-1 font-display text-lg font-black uppercase tracking-tight">
+                    <p className="text-xs font-bold tracking-wide text-rust">Vùng nguy hiểm</p>
+                    <h3 className="mt-1 font-display text-lg font-black tracking-tight">
                       Giải tán đội
                     </h3>
                     <p className="mt-2 text-sm text-ink-soft">
@@ -290,7 +280,8 @@ export function TeamDetailPage() {
 }
 
 function TeamHeader({ team }: { team: TeamDetail }) {
-  const t = SPORT_THEMES[team.sport];
+  const { sportOf } = useSports();
+  const t = sportOf(team.sport);
   return (
     <article className="border border-ink/12 bg-white p-6 md:p-8">
       <div className="flex flex-col gap-5 md:flex-row md:items-start">
@@ -299,14 +290,14 @@ function TeamHeader({ team }: { team: TeamDetail }) {
           style={{ backgroundColor: t.primary, color: '#fff' }}
           aria-hidden
         >
-          {t.emoji}
+          <SportIcon sport={t.slug} className="size-[1em]" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+          <p className="text-xs font-bold tracking-wide text-ink-soft">
             {t.nameVi}
             {team.region ? ` · ${team.region}` : ''}
           </p>
-          <h1 className="mt-1 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
+          <h1 className="mt-1 font-display text-4xl font-black leading-[0.9] tracking-tight md:text-5xl">
             {team.name}
           </h1>
           {team.description && (
@@ -319,7 +310,7 @@ function TeamHeader({ team }: { team: TeamDetail }) {
             {team.skillLevel && <Tag>{SKILL_LEVEL_LABELS[team.skillLevel]}</Tag>}
             <Tag>Uy tín · {team.reputation.toFixed(1)}</Tag>
             {team.viewerRole && (
-              <span className="inline-flex border border-ink bg-ink px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-paper">
+              <span className="inline-flex border border-ink bg-ink px-2.5 py-1 text-xs font-bold tracking-wide text-paper">
                 {TEAM_ROLE_LABELS[team.viewerRole]}
               </span>
             )}
@@ -357,12 +348,8 @@ function AddMemberCard({
 
   return (
     <article className="border border-ink/15 bg-white p-6">
-      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-        Mời thành viên
-      </p>
-      <h3 className="mt-1 font-display text-lg font-black uppercase tracking-tight">
-        Thêm bằng email
-      </h3>
+      <p className="text-xs font-bold tracking-wide text-ink-soft">Mời thành viên</p>
+      <h3 className="mt-1 font-display text-lg font-black tracking-tight">Thêm bằng email</h3>
       <form
         onSubmit={handleSubmit((values) => {
           onSubmit({

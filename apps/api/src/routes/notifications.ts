@@ -66,9 +66,7 @@ notificationsRouter.post('/mark-read', requireAuth, async (req, res, next) => {
     const input = markReadSchema.parse(req.body);
     const userId = req.user!.sub;
     const where =
-      'all' in input
-        ? { userId, readAt: null }
-        : { userId, id: { in: input.ids }, readAt: null };
+      'all' in input ? { userId, readAt: null } : { userId, id: { in: input.ids }, readAt: null };
     const result = await prisma.notification.updateMany({
       where,
       data: { readAt: new Date() },

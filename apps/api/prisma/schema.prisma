@@ -16,14 +16,6 @@ enum UserRole {
   admin
 }
 
-enum Sport {
-  football
-  basketball
-  badminton
-  volleyball
-  tennis
-}
-
 enum SkillLevel {
   beginner
   amateur
@@ -80,9 +72,36 @@ enum NotificationType {
   match_scheduled
 }
 
+/// Danh muc mon the thao. Truoc day la enum Postgres nen admin khong them duoc
+/// mon moi luc chay; gio la bang de quan tri qua giao dien.
+model Sport {
+  slug        String   @id
+  nameVi      String
+  primary     String
+  primaryDark String
+  /// Icon do admin tai len. Null thi web dung icon SVG dung san theo slug.
+  iconUrl     String?
+  positions   String[]
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sportPreferences SportPreference[]
+  teams            Team[]
+  recruitmentPosts RecruitmentPost[]
+  matchRequests    MatchRequest[]
+  matches          Match[]
+  lookingForPosts  LookingForTeamPost[]
+  landingImage     LandingImage?
+
+  @@index([active, sortOrder])
+}
+
 model User {
   id            String     @id @default(cuid())
   email         String     @unique
+  phone         String?    @unique
   passwordHash  String?
   displayName   String
   avatarUrl     String?
@@ -101,6 +120,8 @@ model User {
   teamMemberships   TeamMember[]
   joinRequests      JoinRequest[]
   notifications     Notification[]
+  lookingForPosts   LookingForTeamPost[]
+  landingImages     LandingImage[]
 
   @@index([region])
 }
@@ -108,7 +129,8 @@ model User {
 model SportPreference {
   id          String      @id @default(cuid())
   userId      String
-  sport       Sport
+  sport       String
+  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
   skillLevel  SkillLevel
   position    String?
   createdAt   DateTime    @default(now())
@@ -123,7 +145,8 @@ model SportPreference {
 model Team {
   id          String      @id @default(cuid())
   name        String
-  sport       Sport
+  sport       String
+  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
   region      String?
   description String?
   logoUrl     String?
@@ -146,7 +169,8 @@ model Team {
 model RecruitmentPost {
   id             String            @id @default(cuid())
   teamId         String
-  sport          Sport
+  sport          String
+  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
   region         String?
   positionNeeded String?
   skillLevelMin  SkillLevel?
@@ -183,7 +207,8 @@ model JoinRequest {
 model MatchRequest {
   id            String             @id @default(cuid())
   teamId        String
-  sport         Sport
+  sport         String
+  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
   region        String?
   preferredTime DateTime?
   venueName     String?
@@ -240,7 +265,8 @@ model Match {
   matchRequestId  String?     @unique
   homeTeamId      String
   awayTeamId      String
-  sport           Sport
+  sport           String
+  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
   scheduledAt     DateTime?
   venueName       String?
   status          MatchStatus @default(scheduled)
@@ -256,6 +282,44 @@ model Match {
   @@index([homeTeamId, status])
   @@index([awayTeamId, status])
   @@index([sport, scheduledAt])
+}
+
+/// Bai "Tim doi" do ca nhan dang — chieu nguoc lai voi RecruitmentPost (doi tuyen nguoi).
+model LookingForTeamPost {
+  id          String            @id @default(cuid())
+  userId      String
+  sport       String
+  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  region      String?
+  position    String?
+  skillLevel  SkillLevel?
+  description String
+  status      RecruitmentStatus @default(open)
+  expiresAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sport, region, status])
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+/// Anh nen trang gioi thieu, do admin thay. Khong co ban ghi -> web dung anh
+/// mac dinh dong kem trong bundle.
+model LandingImage {
+  id          String   @id @default(cuid())
+  sport       String   @unique
+  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  largeUrl    String
+  smallUrl    String
+  tileUrl     String
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 }
 
 model TeamMember {

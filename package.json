@@ -9,19 +9,34 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel run dev",
-    "dev:api": "pnpm --filter @sfa/api dev",
-    "dev:web": "pnpm --filter @sfa/web dev",
+    "dev": "pnpm build:shared && pnpm -r --parallel run dev",
+    "dev:api": "pnpm build:shared && pnpm --filter @sfa/api dev",
+    "dev:web": "pnpm build:shared && pnpm --filter @sfa/web dev",
+    "build:shared": "pnpm --filter @sfa/shared build",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "lint": "pnpm -r run lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^15.15.0",
     "prettier": "^3.3.3",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.67.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "argon2", "esbuild", "prisma"]
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "argon2",
+      "esbuild",
+      "prisma"
+    ]
   }
 }

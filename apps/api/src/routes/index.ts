@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import { authRouter } from './auth.js';
 import { healthRouter } from './health.js';
+import { landingRouter } from './landing.js';
+import { lookingForTeamRouter } from './looking-for-team.js';
 import { matchesRouter } from './matches.js';
 import { notificationsRouter } from './notifications.js';
 import { profileRouter } from './profile.js';
+import { sportsRouter } from './sports.js';
 import { recruitmentRouter } from './recruitment.js';
 import { teamsRouter } from './teams.js';
 
@@ -14,5 +17,8 @@ apiRouter.use('/auth', authRouter);
 apiRouter.use('/profile', profileRouter);
 apiRouter.use('/teams', teamsRouter);
 apiRouter.use('/recruitment', recruitmentRouter);
+apiRouter.use('/looking-for-team', lookingForTeamRouter);
+apiRouter.use('/landing', landingRouter);
+apiRouter.use('/sports', sportsRouter);
 apiRouter.use('/matches', matchesRouter);
 apiRouter.use('/notifications', notificationsRouter);

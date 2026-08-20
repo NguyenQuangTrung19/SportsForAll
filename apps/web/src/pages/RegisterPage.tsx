@@ -36,11 +36,8 @@ export function RegisterPage() {
     <div className="min-h-screen bg-paper text-ink">
       <header className="border-b border-ink/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <Link
-            to="/"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
-          >
-            SportsForAll<span className="text-primary">.</span>
+          <Link to="/" className="font-display text-2xl font-black leading-none tracking-tight">
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link to="/login" className="text-sm font-semibold text-ink-soft hover:text-ink">
             Đã có tài khoản? Đăng nhập →
@@ -50,20 +47,16 @@ export function RegisterPage() {
 
       <main className="mx-auto grid max-w-6xl gap-12 px-6 py-12 lg:grid-cols-12 lg:gap-16 lg:py-20">
         <section className="lg:col-span-7">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-            Tạo tài khoản
-          </p>
+          <p className="text-xs font-bold tracking-wide text-ink-soft">Tạo tài khoản</p>
           <h1 className="mt-3 font-display text-[clamp(56px,9vw,112px)] leading-[1] tracking-tight">
             Bắt đầu
             <br />
-            <span className="text-primary">ngay hôm nay.</span>
+            <span className="text-primary-dark">ngay hôm nay.</span>
           </h1>
-          <div
-            className="mt-6 h-[3px] origin-left bg-ink animate-draw-line"
-            aria-hidden
-          />
+          <div className="mt-6 h-[3px] origin-left bg-ink animate-draw-line" aria-hidden />
           <p className="mt-6 max-w-md text-base leading-relaxed text-ink-soft md:text-lg">
-            Sau khi đăng ký, bạn sẽ chọn môn thể thao và điền vài thông tin để cộng đồng dễ tìm thấy bạn.
+            Sau khi đăng ký, bạn sẽ chọn môn thể thao và điền vài thông tin để cộng đồng dễ tìm thấy
+            bạn.
           </p>
 
           <ol className="mt-10 max-w-md space-y-3">
@@ -76,12 +69,8 @@ export function RegisterPage() {
         <section className="lg:col-span-5">
           <article className="border border-ink/15 bg-white p-8 shadow-[6px_6px_0_rgba(15,17,21,0.08)] md:p-10">
             <header className="flex items-baseline justify-between border-b border-ink/10 pb-4">
-              <h2 className="font-display text-2xl font-black uppercase tracking-tight">
-                Đăng ký
-              </h2>
-              <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                01 · Tài khoản
-              </span>
+              <h2 className="font-display text-2xl font-black tracking-tight">Đăng ký</h2>
+              <span className="text-xs font-bold tracking-wide text-ink-soft">01 · Tài khoản</span>
             </header>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5" noValidate>
@@ -131,11 +120,7 @@ export function RegisterPage() {
                 </p>
               )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary w-full"
-              >
+              <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
                 {isSubmitting ? 'Đang tạo...' : 'Tạo tài khoản'}
                 {!isSubmitting && (
                   <span aria-hidden className="animate-arrow-bob">
@@ -168,9 +153,7 @@ function Field({
     <label className="block">
       <span className="mb-2 block text-sm font-semibold text-ink">{label}</span>
       {children}
-      {error && (
-        <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>
-      )}
+      {error && <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>}
     </label>
   );
 }
@@ -178,11 +161,9 @@ function Field({
 function PosterStep({ n, title, desc }: { n: string; title: string; desc: string }) {
   return (
     <li className="flex items-start gap-4 border-b border-ink/10 pb-3 last:border-b-0 last:pb-0">
-      <span className="poster-num w-12 shrink-0 text-4xl text-primary">{n}</span>
+      <span className="poster-num w-12 shrink-0 text-4xl text-primary-dark">{n}</span>
       <div>
-        <p className="font-display text-lg font-black uppercase leading-tight tracking-tight">
-          {title}
-        </p>
+        <p className="font-display text-lg font-black leading-tight tracking-tight">{title}</p>
         <p className="mt-0.5 text-sm text-ink-soft">{desc}</p>
       </div>
     </li>
@@ -191,7 +172,17 @@ function PosterStep({ n, title, desc }: { n: string; title: string; desc: string
 
 function EyeIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -200,7 +191,17 @@ function EyeIcon() {
 
 function EyeOffIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
       <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
       <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />

@@ -4,12 +4,14 @@
 
 @layer base {
   :root {
-    /* Stadium poster — light cream theme */
-    --color-paper: 250 245 234; /* #FAF5EA */
-    --color-paper-2: 240 233 215; /* #F0E9D7 deeper cream for elevation */
-    --color-ink: 15 17 21; /* #0F1115 */
-    --color-ink-soft: 74 77 85; /* #4A4D55 */
-    --color-line: 15 17 21; /* used with /alpha */
+    /* Bảng màu "Vôi & Cỏ" — dùng chung cho toàn app.
+       ink không còn là đen phẳng mà là xanh thông sâu: vừa làm màu chữ
+       (13.14:1 trên nền vôi), vừa làm nền cho các khối tối. */
+    --color-paper: 245 242 233; /* #F5F2E9 giấy vôi */
+    --color-paper-2: 234 228 213; /* #EAE4D5 cát */
+    --color-ink: 11 46 34; /* #0B2E22 xanh thông */
+    --color-ink-soft: 85 96 90; /* #55605A */
+    --color-line: 11 46 34; /* dùng kèm /alpha */
 
     /* Sport-dynamic primary; default football */
     --color-primary: 0 168 67; /* #00A843 — slightly muted from raw green for cream readability */
@@ -212,6 +214,180 @@
   }
 
   /* Sport block — large square anchor */
+
+  /* ------------------------------------------------------------------ */
+  /* Landing — bảng màu "Vôi & Cỏ" (Pitch & Chalk)                       */
+  /* Khoanh vùng trong .landing để các trang trong app không đổi màu.    */
+  /* ------------------------------------------------------------------ */
+  /* Biến để dạng "R G B" (không phải hex) — chỉ như vậy Tailwind mới ghép được
+     độ mờ: text-chalk/70 -> rgb(var(--l-chalk)) / 0.7). Viết hex thì mọi class
+     kèm /alpha đều sinh CSS vô hiệu và chữ âm thầm rơi về màu kế thừa. */
+  .landing {
+    /* Ba màu này đã là token toàn cục — tham chiếu lại để chỉ có một nguồn sự thật. */
+    --l-chalk: var(--color-paper);
+    --l-sand: var(--color-paper-2);
+    --l-pine: var(--color-ink);
+    --l-pine-2: 18 63 47; /* #123F2F */
+    --l-graphite: 16 21 18; /* #101512 */
+    --l-graphite-soft: var(--color-ink-soft);
+    --l-lime: 198 242 78; /* #C6F24E điểm nhấn điện: CHỈ trên nền tối */
+    --l-clay: 176 58 24; /* #B03A18 nhấn ấm trên nền sáng — 5.42:1, đạt AA */
+
+    background-color: rgb(var(--l-chalk));
+    color: rgb(var(--l-graphite));
+  }
+
+  /* Tiêu đề áp phích: Archivo kéo giãn theo trục wdth. */
+  .l-poster {
+    font-family: 'Archivo', 'Be Vietnam Pro', system-ui, sans-serif;
+    font-stretch: 120%;
+    font-weight: 900;
+    letter-spacing: -0.035em;
+    line-height: 0.92;
+  }
+
+  .l-eyebrow {
+    font-family: 'Archivo', 'Be Vietnam Pro', system-ui, sans-serif;
+    font-stretch: 108%;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* ---- Hero 3D ---- */
+
+  /* Khung dựng phối cảnh. Các lớp con dùng --px/--py (do usePointerParallax ghi)
+     với hệ số khác nhau — lớp càng "xa" thì dịch càng ít, đó là cái tạo chiều sâu. */
+  .l-stage {
+    perspective: 1400px;
+    perspective-origin: 50% 50%;
+  }
+  .l-layer {
+    will-change: transform;
+    transform: translate3d(
+        calc(var(--px, 0) * var(--shift-x, 0px)),
+        calc(var(--py, 0) * var(--shift-y, 0px)),
+        var(--depth, 0px)
+      )
+      rotateY(calc(var(--px, 0) * var(--tilt, 0deg)))
+      rotateX(calc(var(--py, 0) * var(--tilt, 0deg) * -1));
+  }
+
+  /* Ken Burns: ảnh nền trôi và phóng rất chậm để khung hình không bao giờ chết cứng. */
+  @keyframes ken-burns {
+    0% {
+      transform: scale(1.06) translate3d(0, 0, 0);
+    }
+    100% {
+      transform: scale(1.16) translate3d(-1.5%, -1%, 0);
+    }
+  }
+  .l-kenburns {
+    animation: ken-burns 14s ease-out forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .l-layer {
+      transform: none;
+    }
+    .l-kenburns {
+      animation: none;
+    }
+  }
+
+
+  /* ---- Băng trượt cho danh sách môn ---- */
+  /* Dùng khi số môn vượt quá một hàng: thay vì xuống dòng lởm chởm thì cho
+     trượt ngang liên tục. Dừng khi rê chuột hoặc khi có phần tử được focus. */
+  @keyframes rail-scroll {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    100% {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+  .l-rail {
+    overflow: hidden;
+  }
+  .l-track {
+    animation: rail-scroll var(--rail-speed, 60s) linear infinite;
+    will-change: transform;
+  }
+  .l-rail:hover .l-track,
+  .l-rail:focus-within .l-track {
+    animation-play-state: paused;
+  }
+
+  /* Ai tắt hiệu ứng thì không tự trượt nữa — đổi thành cuộn tay được. */
+  @media (prefers-reduced-motion: reduce) {
+    .l-track {
+      animation: none;
+    }
+    .l-rail {
+      overflow-x: auto;
+    }
+  }
+
+  /* Nhiễu hạt mảnh — khối tối phẳng lì trông rẻ, thêm hạt cho ra chất giấy in. */
+  .l-grain {
+    opacity: 0.55;
+    background-image: radial-gradient(rgba(245, 242, 233, 0.06) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+
+  /* Lưới sân mờ, dùng làm nền cho khối tối. */
+  .l-pitchgrid {
+    background-image:
+      repeating-linear-gradient(0deg, rgba(198, 242, 78, 0.09) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(90deg, rgba(198, 242, 78, 0.09) 0 1px, transparent 1px 64px);
+  }
+
+  /* Nút chính trên nền tối — lime là màu duy nhất báo "bấm được". */
+  .l-btn-lime {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgb(var(--l-lime));
+    color: rgb(var(--l-pine));
+    padding: 0.9rem 1.75rem;
+    font-family: 'Archivo', system-ui, sans-serif;
+    font-stretch: 108%;
+    font-weight: 800;
+    font-size: 0.875rem;
+    letter-spacing: 0.01em;
+    transition:
+      transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.18s;
+    box-shadow: 0 0 0 rgba(198, 242, 78, 0);
+  }
+  .l-btn-lime:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(198, 242, 78, 0.28);
+  }
+
+  /* Nút phụ trên nền sáng. */
+  .l-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1.5px solid rgb(var(--l-pine));
+    color: rgb(var(--l-pine));
+    padding: 0.9rem 1.75rem;
+    font-family: 'Archivo', system-ui, sans-serif;
+    font-stretch: 108%;
+    font-weight: 800;
+    font-size: 0.875rem;
+    transition:
+      background-color 0.18s,
+      color 0.18s;
+  }
+  .l-btn-outline:hover {
+    background-color: rgb(var(--l-pine));
+    color: rgb(var(--l-chalk));
+  }
+
   .sport-block {
     display: flex;
     align-items: center;
@@ -235,8 +411,10 @@
 
   /* Display number — big poster digit (Viaoda Libre, single weight) */
   .poster-num {
-    font-family: 'Viaoda Libre', 'Be Vietnam Pro', Georgia, serif;
-    font-weight: 400; /* Viaoda Libre is single weight */
+    /* Archivo có trục độ rộng biến thiên — số kéo giãn ra trông đúng chất bảng tỉ số. */
+    font-family: 'Archivo', 'Be Vietnam Pro', system-ui, sans-serif;
+    font-stretch: 112%;
+    font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 0.92;
     font-variant-numeric: tabular-nums lining-nums;

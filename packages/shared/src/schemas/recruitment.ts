@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { sportSlugSchema } from './sport.js';
+import { LIST_SORTS } from './sort.js';
 import { SKILL_LEVELS } from '../types/skill-level.js';
-import { SPORTS } from '../types/sport.js';
 
 export const createRecruitmentPostSchema = z.object({
   teamId: z.string().cuid(),
@@ -23,12 +24,13 @@ export const updateRecruitmentPostSchema = z.object({
 export type UpdateRecruitmentPostInput = z.infer<typeof updateRecruitmentPostSchema>;
 
 export const recruitmentListQuerySchema = z.object({
-  sport: z.enum(SPORTS).optional(),
+  sport: sportSlugSchema.optional(),
   region: z.string().trim().max(100).optional(),
   positionNeeded: z.string().trim().max(50).optional(),
   skillLevelMin: z.enum(SKILL_LEVELS).optional(),
   status: z.enum(['open', 'closed']).optional(),
   teamId: z.string().cuid().optional(),
+  sort: z.enum(LIST_SORTS).default('newest'),
   cursor: z.string().cuid().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });

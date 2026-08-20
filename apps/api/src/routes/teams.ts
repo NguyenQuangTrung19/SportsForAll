@@ -51,7 +51,10 @@ function toDetail(team: TeamWithMembers, viewerUserId: string): TeamDetail {
     ...toSummary(team, viewerUserId),
     members: team.members
       .slice()
-      .sort((a, b) => roleWeight(a.role) - roleWeight(b.role) || a.joinedAt.getTime() - b.joinedAt.getTime())
+      .sort(
+        (a, b) =>
+          roleWeight(a.role) - roleWeight(b.role) || a.joinedAt.getTime() - b.joinedAt.getTime(),
+      )
       .map(toMemberView),
   };
 }
@@ -75,11 +78,7 @@ async function loadTeamOrFail(teamId: string): Promise<TeamWithMembers> {
   return team;
 }
 
-function requireRole(
-  team: TeamWithMembers,
-  userId: string,
-  allowed: TeamRole[],
-): TeamRole {
+function requireRole(team: TeamWithMembers, userId: string, allowed: TeamRole[]): TeamRole {
   const member = team.members.find((m) => m.userId === userId);
   if (!member) throw new HttpError(403, 'Bạn không thuộc đội này', 'NOT_TEAM_MEMBER');
   if (!allowed.includes(member.role)) {
@@ -197,13 +196,15 @@ teamsRouter.post('/:id/members', requireAuth, async (req, res, next) => {
     requireRole(team, req.user!.sub, ['captain', 'co_captain']);
 
     if (input.role === 'captain') {
-      throw new HttpError(400, 'Không thể gán captain trực tiếp — dùng đổi vai trò', 'CAPTAIN_NOT_ASSIGNABLE');
+      throw new HttpError(
+        400,
+        'Không thể gán captain trực tiếp — dùng đổi vai trò',
+        'CAPTAIN_NOT_ASSIGNABLE',
+      );
     }
 
     const target = await prisma.user.findFirst({
-      where: input.userId
-        ? { id: input.userId }
-        : { email: input.email!.toLowerCase() },
+      where: input.userId ? { id: input.userId } : { email: input.email!.toLowerCase() },
       select: { id: true },
     });
     if (!target) throw new HttpError(404, 'Không tìm thấy người dùng', 'USER_NOT_FOUND');

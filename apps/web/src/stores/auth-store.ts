@@ -44,11 +44,9 @@ export const useAuthStore = create<AuthState>()(
         get().setSession(data);
       },
       register: async (input) => {
-        const { data } = await axios.post<AuthResponse>(
-          `${baseURL}/api/auth/register`,
-          input,
-          { withCredentials: true },
-        );
+        const { data } = await axios.post<AuthResponse>(`${baseURL}/api/auth/register`, input, {
+          withCredentials: true,
+        });
         get().setSession(data);
       },
       logout: async () => {

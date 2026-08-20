@@ -10,6 +10,10 @@ const envSchema = z.object({
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL: z.string().default('30d'),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
+  // Số reverse proxy đứng trước API. Quyết định req.ip, tức key của rate limiter:
+  // đặt sai thì hoặc mọi client dùng chung IP của proxy, hoặc kẻ tấn công giả được
+  // X-Forwarded-For để vượt giới hạn. 0 = phơi trực tiếp, không tin header nào.
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 

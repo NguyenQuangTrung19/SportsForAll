@@ -1,8 +1,9 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { OnboardingGate, ProtectedRoute } from '@/components/ProtectedRoute';
+import { AdminRoute, OnboardingGate, ProtectedRoute } from '@/components/ProtectedRoute';
 import { queryClient } from '@/lib/query-client';
+import { AdminLandingPage } from '@/pages/AdminLandingPage';
 import { HomePage } from '@/pages/HomePage';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -11,6 +12,7 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { FindOpponentsPage } from '@/pages/FindOpponentsPage';
 import { FindTeammatesPage } from '@/pages/FindTeammatesPage';
+import { LookingForTeamPage } from '@/pages/LookingForTeamPage';
 import { MatchRequestCreatePage } from '@/pages/MatchRequestCreatePage';
 import { MatchRequestDetailPage } from '@/pages/MatchRequestDetailPage';
 import { PostCreatePage } from '@/pages/PostCreatePage';
@@ -66,6 +68,22 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <TeamsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/landing"
+              element={
+                <AdminRoute>
+                  <AdminLandingPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/looking-for-team"
+              element={
+                <ProtectedRoute>
+                  <LookingForTeamPage />
                 </ProtectedRoute>
               }
             />

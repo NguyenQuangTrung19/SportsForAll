@@ -40,6 +40,12 @@ function parseTtlToDate(ttl: string): Date {
   const n = Number(match[1]);
   const unit = match[2];
   const ms =
-    unit === 's' ? n * 1000 : unit === 'm' ? n * 60_000 : unit === 'h' ? n * 3_600_000 : n * 86_400_000;
+    unit === 's'
+      ? n * 1000
+      : unit === 'm'
+        ? n * 60_000
+        : unit === 'h'
+          ? n * 3_600_000
+          : n * 86_400_000;
   return new Date(Date.now() + ms);
 }

@@ -1,9 +1,7 @@
 import {
-  POSITIONS_BY_SPORT,
   SKILL_LEVELS,
   SKILL_LEVEL_LABELS,
-  SPORTS,
-  SPORT_THEMES,
+  phoneSchema,
   type ProfileResponse,
   type SkillLevel,
   type SportPreference,
@@ -12,9 +10,13 @@ import {
 } from '@sfa/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AvatarUploader } from '@/components/AvatarUploader';
+import { ChangePasswordCard } from '@/components/ChangePasswordCard';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -25,6 +27,7 @@ interface EditState {
   bio: string;
   birthYear: number | '';
   region: string;
+  phone: string;
   prefs: SportPreference[];
 }
 
@@ -34,6 +37,7 @@ function buildEditState(p: ProfileResponse): EditState {
     bio: p.bio ?? '',
     birthYear: p.birthYear ?? '',
     region: p.region ?? '',
+    phone: p.phone ?? '',
     prefs: p.sportPreferences.map((sp) => ({ ...sp })),
   };
 }
@@ -93,11 +97,13 @@ export function ProfilePage() {
       setServerError('Khu vực tối thiểu 2 ký tự');
       return;
     }
-    if (
-      state.birthYear !== '' &&
-      (state.birthYear < MIN_YEAR || state.birthYear > CURRENT_YEAR)
-    ) {
+    if (state.birthYear !== '' && (state.birthYear < MIN_YEAR || state.birthYear > CURRENT_YEAR)) {
       setServerError(`Năm sinh phải trong khoảng ${MIN_YEAR}–${CURRENT_YEAR}`);
+      return;
+    }
+    const phone = state.phone.trim();
+    if (phone && !phoneSchema.safeParse(phone).success) {
+      setServerError('Số điện thoại không hợp lệ (0xxxxxxxxx hoặc +84xxxxxxxxx)');
       return;
     }
     mutation.mutate({
@@ -105,6 +111,7 @@ export function ProfilePage() {
       bio: state.bio.trim() || null,
       birthYear: state.birthYear === '' ? null : Number(state.birthYear),
       region: state.region.trim() || null,
+      phone: phone || null,
       sportPreferences: state.prefs.map((p) => ({
         sport: p.sport,
         skillLevel: p.skillLevel,
@@ -126,7 +133,7 @@ export function ProfilePage() {
       ...state,
       prefs: exists
         ? state.prefs.filter((p) => p.sport !== sport)
-        : [...state.prefs, { sport, skillLevel: 'beginner' as SkillLevel, position: null }],
+        : [...state.prefs, { sport, skillLevel: 'beginner', position: null }],
     });
   };
 
@@ -142,16 +149,9 @@ export function ProfilePage() {
     if (!state) return;
     setState({
       ...state,
-      prefs: state.prefs.map((p) =>
-        p.sport === sport ? { ...p, position: position || null } : p,
-      ),
+      prefs: state.prefs.map((p) => (p.sport === sport ? { ...p, position: position || null } : p)),
     });
   };
-
-  const initial = useMemo(
-    () => (profile?.displayName ?? '?').trim().charAt(0).toUpperCase(),
-    [profile?.displayName],
-  );
 
   return (
     <div className="min-h-screen bg-paper text-ink">
@@ -159,9 +159,9 @@ export function ProfilePage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/dashboard"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link to="/dashboard" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Bảng điều khiển
@@ -172,10 +172,8 @@ export function ProfilePage() {
       <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-              Hồ sơ cá nhân
-            </p>
-            <h1 className="mt-2 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
+            <p className="text-xs font-bold tracking-wide text-ink-soft">Hồ sơ cá nhân</p>
+            <h1 className="mt-2 font-display text-4xl font-black leading-[0.9] tracking-tight md:text-5xl">
               {profile?.displayName ?? '...'}
             </h1>
             <div className="mt-3 h-[3px] w-32 origin-left bg-ink animate-draw-line" aria-hidden />
@@ -187,9 +185,7 @@ export function ProfilePage() {
           )}
         </div>
 
-        {profileQuery.isLoading && (
-          <p className="text-sm text-ink-soft">Đang tải hồ sơ...</p>
-        )}
+        {profileQuery.isLoading && <p className="text-sm text-ink-soft">Đang tải hồ sơ...</p>}
 
         {profileQuery.isError && (
           <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
@@ -200,21 +196,18 @@ export function ProfilePage() {
         {profile && state && (
           <div className="grid gap-6 lg:grid-cols-12">
             <article className="border border-ink/12 bg-white p-6 md:p-8 lg:col-span-5">
-              <div className="flex items-start gap-4">
-                <div
-                  className="flex size-16 shrink-0 items-center justify-center bg-ink font-display text-2xl font-black uppercase text-paper"
-                  aria-hidden
-                >
-                  {initial}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                    {profile.email}
-                  </p>
-                  <p className="mt-1 text-xs text-ink-soft/70">
-                    Tham gia · {new Date(profile.createdAt).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
+              <AvatarUploader profile={profile} />
+
+              <div className="mt-5 border-t border-ink/10 pt-5">
+                <p className="truncate text-xs font-semibold tracking-wide text-ink-soft">
+                  {profile.email}
+                </p>
+                <p className="mt-1 text-xs text-ink-soft/70">
+                  Tham gia · {new Date(profile.createdAt).toLocaleDateString('vi-VN')}
+                </p>
+                {profile.phone && (
+                  <p className="mt-1 text-xs text-ink-soft/70">SĐT · {profile.phone}</p>
+                )}
               </div>
 
               <dl className="mt-6 grid grid-cols-2 gap-5 border-t border-ink/10 pt-5">
@@ -276,6 +269,8 @@ export function ProfilePage() {
             </article>
           </div>
         )}
+
+        {profile && <ChangePasswordCard />}
       </main>
     </div>
   );
@@ -284,30 +279,25 @@ export function ProfilePage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-bold uppercase tracking-wide text-ink-soft">{label}</dt>
+      <dt className="text-xs font-bold tracking-wide text-ink-soft">{label}</dt>
       <dd className="mt-1 poster-num text-3xl text-ink">{value}</dd>
     </div>
   );
 }
 
 function ViewMode({ profile }: { profile: ProfileResponse }) {
+  const { sportOf } = useSports();
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-        Môn thể thao & trình độ
-      </p>
-      <h2 className="mt-1 font-display text-2xl font-black uppercase tracking-tight">
-        Hồ sơ thể thao
-      </h2>
+      <p className="text-xs font-bold tracking-wide text-ink-soft">Môn thể thao & trình độ</p>
+      <h2 className="mt-1 font-display text-2xl font-black tracking-tight">Hồ sơ thể thao</h2>
 
       {profile.sportPreferences.length === 0 ? (
-        <p className="mt-4 text-base text-ink-soft">
-          Chưa có môn nào. Bấm "Chỉnh sửa" để thêm.
-        </p>
+        <p className="mt-4 text-base text-ink-soft">Chưa có môn nào. Bấm "Chỉnh sửa" để thêm.</p>
       ) : (
         <ul className="mt-5 divide-y divide-ink/10">
           {profile.sportPreferences.map((pref) => {
-            const t = SPORT_THEMES[pref.sport];
+            const t = sportOf(pref.sport);
             const stars = SKILL_LEVELS.indexOf(pref.skillLevel) + 1;
             return (
               <li key={pref.sport} className="flex items-center gap-4 py-4">
@@ -316,18 +306,16 @@ function ViewMode({ profile }: { profile: ProfileResponse }) {
                   style={{ backgroundColor: t.primary, color: '#fff' }}
                   aria-hidden
                 >
-                  {t.emoji}
+                  <SportIcon sport={t.slug} className="size-[1em]" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-lg font-black uppercase tracking-tight">
-                    {t.nameVi}
-                  </p>
+                  <p className="font-display text-lg font-black tracking-tight">{t.nameVi}</p>
                   <p className="mt-0.5 text-sm text-ink-soft">
                     {SKILL_LEVEL_LABELS[pref.skillLevel]}
                     {pref.position ? ` · ${pref.position}` : ''}
                   </p>
                 </div>
-                <span className="text-sm text-primary" aria-hidden>
+                <span className="text-sm text-primary-dark" aria-hidden>
                   {'⭐'.repeat(stars)}
                 </span>
               </li>
@@ -352,12 +340,11 @@ function EditMode({
   setPrefSkill: (sport: SportSlug, lvl: SkillLevel) => void;
   setPrefPosition: (sport: SportSlug, pos: string) => void;
 }) {
+  const { sports, sportOf } = useSports();
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-          Thông tin cơ bản
-        </p>
+        <p className="text-xs font-bold tracking-wide text-ink-soft">Thông tin cơ bản</p>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           <label className="block md:col-span-2">
             <span className="mb-2 block text-sm font-semibold">Tên hiển thị</span>
@@ -398,6 +385,19 @@ function EditMode({
             />
           </label>
 
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold">Số điện thoại</span>
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder="0912345678"
+              value={state.phone}
+              onChange={(e) => setState({ ...state, phone: e.target.value })}
+              className="input"
+              maxLength={12}
+            />
+          </label>
+
           <label className="block md:col-span-2">
             <span className="mb-2 block text-sm font-semibold">Giới thiệu</span>
             <textarea
@@ -415,12 +415,10 @@ function EditMode({
       </div>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-          Môn thể thao
-        </p>
+        <p className="text-xs font-bold tracking-wide text-ink-soft">Môn thể thao</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {SPORTS.map((slug) => {
-            const t = SPORT_THEMES[slug];
+          {sports.map(({ slug }) => {
+            const t = sportOf(slug);
             const isOn = state.prefs.some((p) => p.sport === slug);
             return (
               <button
@@ -433,7 +431,9 @@ function EditMode({
                     : 'border-ink/15 bg-white text-ink hover:border-ink'
                 }`}
               >
-                <span aria-hidden>{t.emoji}</span>
+                <span aria-hidden>
+                  <SportIcon sport={t.slug} className="size-[1em]" />
+                </span>
                 <span>{t.nameVi}</span>
               </button>
             );
@@ -443,7 +443,7 @@ function EditMode({
         {state.prefs.length > 0 && (
           <div className="mt-5 space-y-4">
             {state.prefs.map((pref) => {
-              const t = SPORT_THEMES[pref.sport];
+              const t = sportOf(pref.sport);
               return (
                 <div key={pref.sport} className="border border-ink/10 bg-paper-2/40 p-4">
                   <header className="mb-3 flex items-center gap-3">
@@ -452,16 +452,12 @@ function EditMode({
                       style={{ backgroundColor: t.primary, color: '#fff' }}
                       aria-hidden
                     >
-                      {t.emoji}
+                      <SportIcon sport={t.slug} className="size-[1em]" />
                     </span>
-                    <h4 className="font-display text-base font-black uppercase tracking-tight">
-                      {t.nameVi}
-                    </h4>
+                    <h4 className="font-display text-base font-black tracking-tight">{t.nameVi}</h4>
                   </header>
 
-                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                    Trình độ
-                  </p>
+                  <p className="text-xs font-bold tracking-wide text-ink-soft">Trình độ</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {SKILL_LEVELS.map((lvl, idx) => {
                       const isOn = pref.skillLevel === lvl;
@@ -483,11 +479,9 @@ function EditMode({
                     })}
                   </div>
 
-                  <p className="mt-3 text-xs font-bold uppercase tracking-wide text-ink-soft">
-                    Vị trí
-                  </p>
+                  <p className="mt-3 text-xs font-bold tracking-wide text-ink-soft">Vị trí</p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {POSITIONS_BY_SPORT[pref.sport].map((pos) => {
+                    {sportOf(pref.sport).positions.map((pos) => {
                       const isOn = pref.position === pos;
                       return (
                         <button

@@ -1,333 +1,516 @@
-import { SPORT_THEMES, SPORTS, type SportSlug } from '@sfa/shared';
-import { useEffect, useState } from 'react';
+import type { SportCatalogItem, SportSlug } from '@sfa/shared';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
+import { useSports } from '@/lib/use-sports';
+import { SportIcon } from '@/components/SportIcon';
+import { useLandingImages } from '@/lib/use-landing-images';
+import { usePointerParallax } from '@/lib/use-pointer-parallax';
 
+/**
+ * Trang giới thiệu — bảng màu "Vôi & Cỏ".
+ * Icon môn là SVG nét, đồng đều giữa các hệ điều hành và không bị cảm giác clipart.
+ * Màu khoanh trong .landing (index.css) nên các trang trong app không đổi.
+ */
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-ink/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <span className="font-display text-2xl font-black uppercase leading-none tracking-tight">
-            SportsForAll<span className="text-primary">.</span>
-          </span>
-          <div className="flex items-center gap-3">
-            <Link to="/login" className="text-sm font-semibold text-ink-soft hover:text-ink">
-              Đăng nhập
-            </Link>
-            <Link to="/register" className="btn-primary">
-              Tham gia
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="landing min-h-screen">
+      <Header />
+      <Hero />
+      <Marquee />
+      <SportGrid />
+      <HowItWorks />
+      <FinalCta />
+      <Footer />
+    </div>
+  );
+}
 
-      {/* Live ticker strip */}
-      <div className="border-b border-ink/10 bg-paper-2/40">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-          <span className="flex items-center gap-2">
-            <span className="relative inline-flex size-2">
-              <span className="absolute inset-0 animate-ping rounded-full bg-primary opacity-70" />
-              <span className="relative inline-block size-2 rounded-full bg-primary" />
-            </span>
-            <span className="text-ink">Live</span>
-            <span className="hidden sm:inline">· Cộng đồng thể thao Việt Nam</span>
-          </span>
-          <span className="hidden md:inline">
-            Một tài khoản · năm môn · ba vai trò
-          </span>
+/* -------------------------------------------------------------------------- */
+
+function Header() {
+  return (
+    <header className="sticky top-0 z-30 border-b border-pine/12 bg-chalk/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+        <span className="l-poster text-xl">
+          SportsForAll<span className="text-clay">.</span>
+        </span>
+        <div className="flex items-center gap-5">
+          <Link
+            to="/login"
+            className="text-sm font-semibold text-graphite-soft transition hover:text-pine"
+          >
+            Đăng nhập
+          </Link>
+          <Link to="/register" className="l-btn-outline !px-5 !py-2.5 !text-xs">
+            Tham gia
+          </Link>
         </div>
       </div>
+    </header>
+  );
+}
 
-      {/* Hero — split: headline (L) + sport rotator (R) */}
-      <section className="border-b border-ink/10">
-        <div className="mx-auto max-w-6xl px-6 py-10 md:py-14">
-          <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-14">
-            <div className="lg:col-span-7">
-              <p className="fade-up text-xs font-bold uppercase tracking-wide text-ink-soft">
-                Bản tin 2026
-              </p>
-              <h1 className="mt-3 font-display text-[clamp(48px,9vw,120px)] leading-[1] tracking-tight">
-                <span className="fade-up stagger-1 block">Tìm trận.</span>
-                <span className="fade-up stagger-2 block text-primary transition-colors duration-700">
-                  Tìm bạn.
-                </span>
-                <span className="fade-up stagger-3 block">Ra sân.</span>
-              </h1>
-              <div
-                className="mt-6 h-1 w-32 origin-left bg-ink animate-draw-line stagger-4"
-                aria-hidden
-              />
-              <p className="fade-up stagger-4 mt-4 max-w-md text-base leading-relaxed text-ink-soft md:text-lg">
-                Đăng tin tuyển thành viên, gửi lời thách đấu, đặt sân — tất cả ở một nơi.
-              </p>
-              <div className="fade-up stagger-5 mt-6 flex flex-wrap items-center gap-3">
-                <Link to="/register" className="btn-primary">
-                  Tham gia miễn phí <span aria-hidden>→</span>
-                </Link>
-                <Link to="/login" className="btn-ghost">
-                  Đã có tài khoản
-                </Link>
-              </div>
+/* -------------------------------------------------------------------------- */
 
-              <dl className="fade-up stagger-5 mt-8 grid grid-cols-4 gap-4 border-t border-ink/15 pt-5 md:max-w-md">
-                <Stat n="05" label="Môn" />
-                <Stat n="03" label="Vai trò" />
-                <Stat n="0₫" label="Phí player" />
-                <Stat n="∞" label="Trận đấu" />
-              </dl>
-            </div>
+/* -------------------------------------------------------------------------- */
+/* Hero — sân khấu bốn lớp, mỗi lớp trôi một tốc độ để ra chiều sâu            */
+/* -------------------------------------------------------------------------- */
 
-            <div className="lg:col-span-5">
-              <SportRotator />
-            </div>
-          </div>
-        </div>
-      </section>
+const ROTATE_MS = 5200;
 
-      {/* Sport grid */}
-      <section className="border-b border-ink/10">
-        <div className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-          <div className="mb-8 flex items-baseline justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                Năm môn — một cộng đồng
-              </p>
-              <h2 className="mt-2 font-display text-5xl leading-[1] tracking-tight md:text-6xl">
-                Chọn môn của bạn.
-              </h2>
-            </div>
-            <span className="poster-num hidden text-5xl text-primary md:inline">05</span>
-          </div>
+function Hero() {
+  const { sports, sportOf } = useSports();
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const stageRef = usePointerParallax<HTMLElement>();
+  const imageOf = useLandingImages();
+  const sport: SportSlug = sports[idx]?.slug ?? '';
+  const theme = sportOf(sport);
 
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {SPORTS.map((slug, idx) => {
-              const t = SPORT_THEMES[slug];
-              return (
-                <li key={slug}>
-                  <article className="group h-full overflow-hidden border border-ink/12 bg-white transition hover:border-ink hover:shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
-                    <div
-                      className="flex aspect-square items-center justify-center text-6xl"
-                      style={{ backgroundColor: t.primary, color: '#fff' }}
-                      aria-hidden
-                    >
-                      <span style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}>
-                        {t.emoji}
-                      </span>
-                    </div>
-                    <div className="p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">
-                        {String(idx + 1).padStart(2, '0')}
-                      </p>
-                      <p className="mt-1 font-display text-lg font-black uppercase leading-tight tracking-tight">
-                        {t.nameVi}
-                      </p>
-                    </div>
-                  </article>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </section>
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => setIdx((i) => (i + 1) % sports.length), ROTATE_MS);
+    return () => clearInterval(id);
+  }, [paused, sports.length]);
 
-      {/* How it works */}
-      <section className="border-b border-ink/10 bg-paper-2/40">
-        <div className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-            Cách hoạt động
-          </p>
-          <h2 className="mt-2 font-display text-5xl leading-[1] tracking-tight md:text-6xl">
-            Bốn bước,
-            <br />
-            ra sân.
-          </h2>
+  return (
+    <section
+      ref={stageRef}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      className="l-stage relative isolate flex min-h-[min(88vh,900px)] items-center overflow-hidden bg-pine text-chalk"
+    >
+      {/* Lớp 1 — ảnh nền. Xa nhất nên dịch ít nhất, cộng thêm Ken Burns tự trôi. */}
+      <div
+        className="l-layer absolute inset-0 -z-30"
+        style={{ ['--shift-x']: '-26px', ['--shift-y']: '-16px' } as CSSProperties}
+      >
+        {sports.map(({ slug }, i) => (
+          <img
+            key={slug}
+            src={imageOf(slug).src}
+            srcSet={imageOf(slug).srcSet}
+            sizes="100vw"
+            alt=""
+            aria-hidden
+            loading={i === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+            style={{ objectPosition: '66% center' }}
+            className={`absolute inset-0 size-full scale-[1.08] object-cover transition-opacity duration-1000 ${
+              i === idx ? `opacity-100 ${paused ? '' : 'l-kenburns'}` : 'opacity-0'
+            }`}
+          />
+        ))}
+      </div>
 
-          <ol className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Step n="01" title="Đăng ký" body="Email, mật khẩu, một phút — và bạn vào được cộng đồng." />
-            <Step n="02" title="Chọn môn" body="Một hay nhiều môn cũng được. Mỗi môn có theme riêng." />
-            <Step n="03" title="Tạo đội hoặc gia nhập" body="Là captain hay member, bạn đều có chỗ trên feed." />
-            <Step n="04" title="Tuyển / Thách đấu" body="Đăng bài. Cộng đồng phản hồi. Trận đấu được lên lịch." />
-          </ol>
-        </div>
-      </section>
+      {/* Lớp 2 — phủ màu. Vế trái gần đặc vì có ảnh kín người từ trái sang phải. */}
+      <div
+        className="absolute inset-0 -z-20"
+        style={{
+          background:
+            'linear-gradient(100deg, rgb(var(--l-pine)) 0%, rgb(var(--l-pine) / 0.94) 24%, rgb(var(--l-pine) / 0.58) 54%, rgb(var(--l-pine) / 0.12) 100%)',
+        }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 -z-20 bg-gradient-to-t from-pine via-pine/5 to-pine/40"
+        aria-hidden
+      />
 
-      {/* CTA */}
-      <section className="bg-ink text-paper">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-6 py-16 md:flex-row md:items-end md:py-20">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-paper/60">
-              Sẵn sàng?
+      {/* Lớp 3 — tên môn khổng lồ dạng viền rỗng, trôi nhanh hơn ảnh nên nổi lên trước nó. */}
+      <div
+        className="l-layer pointer-events-none absolute inset-x-0 bottom-0 -z-10 hidden justify-end overflow-hidden lg:flex"
+        style={
+          {
+            ['--shift-x']: '48px',
+            ['--shift-y']: '26px',
+            ['--depth']: '40px',
+          } as CSSProperties
+        }
+        aria-hidden
+      >
+        <span
+          key={sport}
+          className="l-poster fade-up block translate-x-[8%] translate-y-[26%] whitespace-nowrap text-[11vw] leading-none text-transparent opacity-[0.16]"
+          style={{ WebkitTextStroke: `2px ${theme.primary}` }}
+        >
+          {theme.nameVi}
+        </span>
+      </div>
+
+      <div className="l-grain pointer-events-none absolute inset-0 -z-10" aria-hidden />
+
+      {/* Lớp 4 — chữ. Gần nhất nên dịch nhiều nhất và có nghiêng nhẹ. */}
+      <div
+        className="l-layer relative mx-auto w-full max-w-6xl px-6 py-16 md:py-20"
+        style={
+          {
+            ['--shift-x']: '16px',
+            ['--shift-y']: '10px',
+            ['--tilt']: '1.6deg',
+            ['--depth']: '80px',
+          } as CSSProperties
+        }
+      >
+        <div className="grid items-end gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-8">
+            <p className="fade-up l-eyebrow flex items-center gap-2.5 text-lime">
+              <span className="relative flex size-1.5">
+                <span className="absolute inset-0 animate-ping rounded-full bg-lime" />
+                <span className="relative size-1.5 rounded-full bg-lime" />
+              </span>
+              Cộng đồng thể thao Việt Nam
             </p>
-            <h2 className="mt-3 font-display text-[clamp(40px,7vw,80px)] leading-[1] tracking-tight">
-              Một trận đấu
-              <br />
-              <span className="text-primary">đang chờ bạn.</span>
-            </h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to="/register"
-              className="bg-primary px-7 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-ink transition hover:-translate-y-0.5"
-            >
-              Tham gia ngay <span aria-hidden>→</span>
-            </Link>
-            <Link
-              to="/login"
-              className="border border-paper/30 px-7 py-3.5 text-sm font-semibold text-paper transition hover:border-paper hover:bg-paper/5"
-            >
-              Đăng nhập
-            </Link>
-          </div>
-        </div>
-      </section>
 
-      <footer className="border-t border-ink/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 md:flex-row md:items-center md:justify-between">
-          <p className="text-xs font-semibold text-ink-soft">SportsForAll · 2026</p>
-          <p className="text-xs text-ink-soft">
-            Xây dựng từ Idea.md — open source, người chơi không trả phí
-          </p>
+            <h1 className="l-poster mt-5 text-[clamp(50px,8.4vw,116px)] [text-shadow:0_4px_60px_rgb(11_46_34_/_0.75)]">
+              <span className="fade-up stagger-1 block">Tìm trận.</span>
+              <span className="fade-up stagger-2 block text-lime">Tìm bạn.</span>
+              <span className="fade-up stagger-3 block">Ra sân.</span>
+            </h1>
+
+            <p className="fade-up stagger-4 mt-7 max-w-md text-base leading-relaxed text-chalk/80">
+              Đăng tin tuyển thành viên, gửi lời thách đấu, tìm sân — tất cả trong một tài khoản.
+            </p>
+
+            <div className="fade-up stagger-5 mt-8 flex flex-wrap items-center gap-5">
+              <Link to="/register" className="l-btn-lime">
+                Tham gia miễn phí
+                <span className="animate-arrow-bob" aria-hidden>
+                  →
+                </span>
+              </Link>
+              <Link
+                to="/login"
+                className="text-sm font-semibold text-chalk/80 underline decoration-lime decoration-2 underline-offset-8 transition hover:text-chalk"
+              >
+                Đã có tài khoản
+              </Link>
+            </div>
+
+            <dl className="fade-up stagger-5 mt-11 flex flex-wrap gap-x-11 gap-y-5 border-t border-lime/25 pt-6">
+              <Stat n="05" label="Môn thể thao" />
+              <Stat n="03" label="Vai trò" />
+              <Stat n="0₫" label="Phí người chơi" />
+              <Stat n="∞" label="Trận đấu" />
+            </dl>
+          </div>
+
+          {/* Chỉ mục môn: vừa cho biết đang xem ảnh nào, vừa cho bấm chuyển thẳng tới môn khác */}
+          <nav
+            className="border border-chalk/10 bg-pine/35 p-3 backdrop-blur-[3px] lg:col-span-4"
+            aria-label="Chọn môn xem trước"
+          >
+            <ul className="fade-up stagger-4 space-y-1">
+              {sports.map(({ slug }, i) => {
+                const t = sportOf(slug);
+                const active = i === idx;
+                return (
+                  <li key={slug}>
+                    <button
+                      type="button"
+                      onClick={() => setIdx(i)}
+                      aria-current={active ? 'true' : undefined}
+                      className={`group flex w-full items-center gap-4 border-l-2 py-2.5 pl-4 text-left transition-all duration-500 ${
+                        active
+                          ? 'border-lime bg-chalk/5 pl-6'
+                          : 'border-chalk/15 hover:border-chalk/50 hover:pl-5'
+                      }`}
+                    >
+                      <span
+                        className={`poster-num text-lg transition-colors duration-300 ${
+                          active ? 'text-lime' : 'text-chalk/40'
+                        }`}
+                      >
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <SportIcon
+                        sport={slug}
+                        className={`size-5 shrink-0 transition-colors duration-300 ${
+                          active ? 'text-lime' : 'text-chalk/45 group-hover:text-chalk/80'
+                        }`}
+                      />
+                      <span
+                        className={`l-poster transition-all duration-500 ${
+                          active ? 'text-xl text-chalk' : 'text-base text-chalk/60'
+                        }`}
+                      >
+                        {t.nameVi}
+                      </span>
+
+                      {/* Vạch chạy hết ROTATE_MS rồi sang môn kế — cho thấy nhịp tự chuyển */}
+                      {active && (
+                        <span
+                          key={`${idx}-${String(paused)}`}
+                          className="ml-auto mr-2 h-px flex-1 origin-left bg-lime/70"
+                          style={{ animation: paused ? 'none' : `draw-line ${ROTATE_MS}ms linear` }}
+                          aria-hidden
+                        />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </div>
-      </footer>
-    </div>
+      </div>
+    </section>
   );
 }
 
 function Stat({ n, label }: { n: string; label: string }) {
   return (
     <div>
-      <p className="poster-num text-4xl text-primary transition-colors duration-700">{n}</p>
-      <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-        {label}
-      </p>
+      <dt className="sr-only">{label}</dt>
+      <dd className="poster-num text-[2.6rem] leading-none text-lime">{n}</dd>
+      <p className="mt-1.5 text-[11px] font-semibold text-chalk/55">{label}</p>
+    </div>
+  );
+}
+
+function Marquee() {
+  const { sports, sportOf } = useSports();
+  const strip = [...sports, ...sports, ...sports];
+  return (
+    <div className="overflow-hidden border-y border-pine/12 bg-pine py-4">
+      <div className="flex w-max animate-marquee items-center gap-8" aria-hidden>
+        {strip.map(({ slug }, i) => (
+          <span key={`${slug}-${i}`} className="flex items-center gap-8">
+            <span className="l-poster text-2xl text-chalk/85">{sportOf(slug).nameVi}</span>
+            <span className="size-1.5 shrink-0 rotate-45 bg-lime" />
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* SportRotator — animated poster that cycles through 5 sports                */
-/* -------------------------------------------------------------------------- */
 
-function hexToRgbTriplet(hex: string): string {
-  const trimmed = hex.replace('#', '');
-  const r = parseInt(trimmed.slice(0, 2), 16);
-  const g = parseInt(trimmed.slice(2, 4), 16);
-  const b = parseInt(trimmed.slice(4, 6), 16);
-  return `${r} ${g} ${b}`;
+/** Quá số này thì lưới bắt đầu xuống dòng lởm chởm — chuyển sang băng trượt. */
+const GRID_MAX = 6;
+
+function SportGrid() {
+  const { sports } = useSports();
+  const scrolling = sports.length > GRID_MAX;
+
+  return (
+    <section className="border-b border-pine/12">
+      <div className="mx-auto max-w-6xl px-6 pb-8 pt-20 md:pt-24">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="l-eyebrow text-clay">{sports.length} môn — một cộng đồng</p>
+            <h2 className="l-poster mt-3 text-[clamp(34px,5vw,60px)]">Chọn môn của bạn.</h2>
+          </div>
+          <p className="max-w-xs text-sm leading-relaxed text-graphite-soft">
+            Mỗi môn có màu riêng, feed riêng, cộng đồng riêng. Đổi môn bất cứ lúc nào.
+          </p>
+        </div>
+      </div>
+
+      {scrolling ? <SportRail sports={sports} /> : <SportGridStatic sports={sports} />}
+
+      <div className="h-20 md:h-24" aria-hidden />
+    </section>
+  );
 }
 
-function SportRotator() {
-  const [idx, setIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const sport: SportSlug = SPORTS[idx]!;
-  const theme = SPORT_THEMES[sport];
+/** Ít môn: lưới tĩnh, auto-fit nên tự chia lại cột. */
+function SportGridStatic({ sports }: { sports: SportCatalogItem[] }) {
+  return (
+    <div className="mx-auto max-w-6xl px-6">
+      <ul className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
+        {sports.map((sport, idx) => (
+          <li key={sport.slug}>
+            <SportTile sport={sport} idx={idx} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
-  // Auto-cycle every 3.5s; pause on hover so user can read
-  useEffect(() => {
-    if (paused) return;
-    const id = setInterval(() => {
-      setIdx((i) => (i + 1) % SPORTS.length);
-    }, 3500);
-    return () => clearInterval(id);
-  }, [paused]);
+/**
+ * Nhiều môn: băng trượt ngang liên tục, tràn ra hai mép để thấy rõ là còn nữa.
+ * Danh sách được nhân đôi và chạy hết đúng 50% chiều rộng nên vòng lặp liền mạch.
+ * Bản sao mang aria-hidden để trình đọc màn hình không đọc hai lần.
+ */
+function SportRail({ sports }: { sports: SportCatalogItem[] }) {
+  // Mỗi môn khoảng 5 giây, để thêm môn thì trượt lâu hơn chứ không nhanh hơn.
+  const speed = `${sports.length * 5}s`;
 
-  // Sync global --color-primary so the "Tìm bạn." headline + Stat numbers
-  // share the current sport color in real time
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty('--color-primary', hexToRgbTriplet(theme.primary));
-    root.style.setProperty('--color-primary-dark', hexToRgbTriplet(theme.primaryDark));
-  }, [theme.primary, theme.primaryDark]);
+  return (
+    <div className="l-rail relative">
+      <ul className="l-track flex w-max gap-3" style={{ ['--rail-speed']: speed } as CSSProperties}>
+        {sports.map((sport, idx) => (
+          <li key={sport.slug} className="w-[190px] shrink-0">
+            <SportTile sport={sport} idx={idx} />
+          </li>
+        ))}
+        {sports.map((sport, idx) => (
+          <li key={`dup-${sport.slug}`} className="w-[190px] shrink-0" aria-hidden>
+            <SportTile sport={sport} idx={idx} />
+          </li>
+        ))}
+      </ul>
+
+      {/* Mờ dần hai mép để băng trượt trông như chạy ra ngoài khung */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-chalk to-transparent"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-chalk to-transparent"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+function SportTile({ sport, idx }: { sport: SportCatalogItem; idx: number }) {
+  const imageOf = useLandingImages();
 
   return (
     <article
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      className="relative aspect-[4/5] overflow-hidden border-2 border-ink shadow-[8px_8px_0_rgba(15,17,21,0.12)] transition-colors duration-700"
-      style={{ backgroundColor: theme.primary }}
-      aria-label={`Cộng đồng môn ${theme.nameVi}`}
+      className="group relative flex aspect-[4/5] flex-col justify-between overflow-hidden p-5 text-white transition-transform duration-300 hover:-translate-y-1.5"
+      style={{ backgroundColor: sport.primary }}
     >
-      {/* Decorative ring grid */}
+      <img
+        src={imageOf(sport.slug).tile}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
+      />
+      {/* Nhuộm màu môn nhưng vẫn để ảnh lộ — dịu đi khi rê chuột */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-20"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(0deg, rgba(255,255,255,0.35) 0 1px, transparent 1px 56px), repeating-linear-gradient(90deg, rgba(255,255,255,0.35) 0 1px, transparent 1px 56px)',
-        }}
+        className="absolute inset-0 opacity-55 mix-blend-multiply transition-opacity duration-500 group-hover:opacity-35"
+        style={{ backgroundColor: sport.primary }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/25"
         aria-hidden
       />
 
-      {/* Index counter */}
-      <div className="absolute left-5 top-5 text-white">
-        <p className="poster-num text-3xl leading-none">{String(idx + 1).padStart(2, '0')}</p>
-        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide opacity-80">
-          / 05 môn
-        </p>
+      <div className="relative flex items-start justify-between">
+        <SportIcon sport={sport.slug} className="size-9" />
+        <span className="poster-num text-2xl opacity-50">{String(idx + 1).padStart(2, '0')}</span>
       </div>
 
-      {/* Pip indicator */}
-      <div className="absolute right-5 top-5 flex gap-1.5">
-        {SPORTS.map((s, i) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setIdx(i)}
-            aria-label={`Xem ${SPORT_THEMES[s].nameVi}`}
-            className={`block h-1.5 transition-all duration-500 ${
-              i === idx ? 'w-7 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
-            }`}
-          />
-        ))}
+      <div className="relative">
+        <p className="l-poster text-xl leading-none">{sport.nameVi}</p>
+        <span className="mt-3 block h-0.5 w-8 origin-left bg-white/70 transition-transform duration-500 group-hover:scale-x-[2.5]" />
       </div>
-
-      {/* Giant emoji centerpiece — fades and gently floats on swap */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span
-          key={sport}
-          className="block fade-up text-[clamp(120px,18vw,200px)] leading-none"
-          style={{
-            filter: 'drop-shadow(0 12px 32px rgba(0,0,0,0.4))',
-          }}
-          aria-hidden
-        >
-          {theme.emoji}
-        </span>
-      </div>
-
-      {/* Bottom plate — vintage pennant footer */}
-      <div className="absolute inset-x-0 bottom-0 border-t-2 border-white/30 bg-ink/20 px-5 py-4 text-white backdrop-blur-[2px]">
-        <p className="text-[10px] font-bold uppercase tracking-wide opacity-80">
-          Đang xem
-        </p>
-        <p
-          key={`name-${sport}`}
-          className="fade-up mt-1 font-display text-3xl leading-none tracking-tight"
-        >
-          {theme.nameVi}
-        </p>
-      </div>
-
-      {/* Progress bar — fills in 3.5s, resets on each sport */}
-      <div
-        key={`bar-${idx}-${paused}`}
-        className="absolute inset-x-0 top-0 h-0.5 origin-left bg-white/70"
-        style={{
-          animation: paused ? 'none' : 'draw-line 3500ms linear',
-        }}
-        aria-hidden
-      />
     </article>
   );
 }
 
-function Step({ n, title, body }: { n: string; title: string; body: string }) {
+function HowItWorks() {
+  const steps = [
+    { n: '01', title: 'Đăng ký', body: 'Email, mật khẩu, một phút — và bạn vào được cộng đồng.' },
+    { n: '02', title: 'Chọn môn', body: 'Một hay nhiều môn cũng được. Mỗi môn có theme riêng.' },
+    {
+      n: '03',
+      title: 'Tạo đội hoặc gia nhập',
+      body: 'Là đội trưởng hay thành viên, bạn đều có chỗ trên feed.',
+    },
+    {
+      n: '04',
+      title: 'Tuyển / Thách đấu',
+      body: 'Đăng bài. Cộng đồng phản hồi. Trận đấu được lên lịch.',
+    },
+  ];
+
   return (
-    <li className="border border-ink/12 bg-white p-6 transition hover:border-ink">
-      <p className="poster-num text-5xl text-primary">{n}</p>
-      <p className="mt-3 font-display text-xl font-black uppercase leading-tight tracking-tight">
-        {title}
-      </p>
-      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{body}</p>
-    </li>
+    <section className="border-b border-pine/12 bg-sand">
+      <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="l-eyebrow text-clay">Cách hoạt động</p>
+            <h2 className="l-poster mt-3 text-[clamp(34px,5vw,60px)]">Bốn bước, ra sân.</h2>
+          </div>
+        </div>
+
+        <ol className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {steps.map((s, i) => (
+            <li key={s.n} className="group relative">
+              {/* Đường nối giữa các bước */}
+              {i < steps.length - 1 && (
+                <span
+                  className="absolute left-14 right-0 top-6 hidden h-px bg-pine/20 lg:block"
+                  aria-hidden
+                />
+              )}
+              <span className="l-poster relative flex size-12 items-center justify-center bg-pine text-lg text-lime transition-colors duration-300 group-hover:bg-clay group-hover:text-white">
+                {s.n}
+              </span>
+              <p className="l-poster mt-5 text-lg text-pine">{s.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-graphite-soft">{s.body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+function FinalCta() {
+  return (
+    <section className="relative overflow-hidden bg-pine text-chalk">
+      <div className="l-pitchgrid pointer-events-none absolute inset-0" aria-hidden />
+      <div className="l-grain pointer-events-none absolute inset-0" aria-hidden />
+      <div
+        className="pointer-events-none absolute -bottom-52 left-1/3 size-[520px] rounded-full opacity-20 blur-3xl"
+        style={{ background: 'radial-gradient(circle, rgba(198,242,78,0.6) 0%, transparent 70%)' }}
+        aria-hidden
+      />
+
+      <div className="relative mx-auto flex max-w-6xl flex-col items-start justify-between gap-10 px-6 py-20 md:flex-row md:items-end md:py-24">
+        <div>
+          <p className="l-eyebrow text-lime">Sẵn sàng?</p>
+          <h2 className="l-poster mt-3 text-[clamp(38px,6.5vw,80px)]">
+            Một trận đấu
+            <br />
+            <span className="text-lime">đang chờ bạn.</span>
+          </h2>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <Link to="/register" className="l-btn-lime">
+            Tham gia ngay
+            <span className="animate-arrow-bob" aria-hidden>
+              →
+            </span>
+          </Link>
+          <Link
+            to="/login"
+            className="border border-chalk/25 px-7 py-3.5 text-sm font-semibold transition hover:border-chalk hover:bg-chalk/5"
+          >
+            Đăng nhập
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+function Footer() {
+  return (
+    <footer>
+      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 md:flex-row md:items-center md:justify-between">
+        <p className="l-poster text-base text-pine">
+          SportsForAll<span className="text-clay">.</span>
+        </p>
+        <p className="text-xs text-graphite-soft">
+          2026 · Người chơi không trả phí · Xây dựng từ Idea.md
+        </p>
+      </div>
+    </footer>
   );
 }

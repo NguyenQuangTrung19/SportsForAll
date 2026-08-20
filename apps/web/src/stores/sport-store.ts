@@ -26,8 +26,11 @@ function hexToRgbTriplet(hex: string): string {
   return `${r} ${g} ${b}`;
 }
 
+/** Màu dùng khi môn không nằm trong bộ dựng sẵn (admin vừa thêm). */
+const NEUTRAL = { primary: '#0B2E22', primaryDark: '#071C15' };
+
 export function applySportTheme(sport: SportSlug) {
-  const theme = SPORT_THEMES[sport];
+  const theme = SPORT_THEMES[sport] ?? NEUTRAL;
   const root = document.documentElement;
   root.style.setProperty('--color-primary', hexToRgbTriplet(theme.primary));
   root.style.setProperty('--color-primary-dark', hexToRgbTriplet(theme.primaryDark));

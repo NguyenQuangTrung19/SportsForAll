@@ -15,6 +15,7 @@ export interface ProfileResponse {
   bio: string | null;
   birthYear: number | null;
   region: string | null;
+  phone: string | null;
   reputation: number;
   emailVerified: boolean;
   onboardedAt: string | null;

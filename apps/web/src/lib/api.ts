@@ -1,5 +1,5 @@
 import type { AuthResponse } from '@sfa/shared';
-import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/auth-store';
 
 const baseURL = import.meta.env.VITE_API_URL ?? '';

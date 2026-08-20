@@ -36,11 +36,8 @@ export function LoginPage() {
     <div className="min-h-screen bg-paper text-ink">
       <header className="border-b border-ink/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <Link
-            to="/"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
-          >
-            SportsForAll<span className="text-primary">.</span>
+          <Link to="/" className="font-display text-2xl font-black leading-none tracking-tight">
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link to="/" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Trang chủ
@@ -51,18 +48,13 @@ export function LoginPage() {
       <main className="mx-auto grid max-w-6xl gap-12 px-6 py-12 lg:grid-cols-12 lg:gap-16 lg:py-20">
         {/* Left: poster */}
         <section className="lg:col-span-7">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-            Đăng nhập
-          </p>
+          <p className="text-xs font-bold tracking-wide text-ink-soft">Đăng nhập</p>
           <h1 className="mt-3 font-display text-[clamp(56px,9vw,112px)] leading-[1] tracking-tight">
             Chào
             <br />
-            <span className="text-primary">trở lại.</span>
+            <span className="text-primary-dark">trở lại.</span>
           </h1>
-          <div
-            className="mt-6 h-[3px] origin-left bg-ink animate-draw-line"
-            aria-hidden
-          />
+          <div className="mt-6 h-[3px] origin-left bg-ink animate-draw-line" aria-hidden />
           <p className="mt-6 max-w-md text-base leading-relaxed text-ink-soft md:text-lg">
             Tìm trận, tìm bạn, ra sân. Một tài khoản — năm môn thể thao — ba vai trò.
           </p>
@@ -78,12 +70,8 @@ export function LoginPage() {
         <section className="lg:col-span-5">
           <article className="border border-ink/15 bg-white p-8 shadow-[6px_6px_0_rgba(15,17,21,0.08)] md:p-10">
             <header className="flex items-baseline justify-between border-b border-ink/10 pb-4">
-              <h2 className="font-display text-2xl font-black uppercase tracking-tight">
-                Đăng nhập
-              </h2>
-              <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                01 · Xác thực
-              </span>
+              <h2 className="font-display text-2xl font-black tracking-tight">Đăng nhập</h2>
+              <span className="text-xs font-bold tracking-wide text-ink-soft">01 · Xác thực</span>
             </header>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5" noValidate>
@@ -122,11 +110,7 @@ export function LoginPage() {
                 </p>
               )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary w-full"
-              >
+              <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
                 {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 {!isSubmitting && (
                   <span aria-hidden className="animate-arrow-bob">
@@ -138,7 +122,7 @@ export function LoginPage() {
 
             <div className="my-7 flex items-center gap-4 text-ink-soft/40">
               <span className="h-px flex-1 bg-ink/10" />
-              <span className="text-xs font-semibold uppercase">hoặc</span>
+              <span className="text-xs font-semibold">hoặc</span>
               <span className="h-px flex-1 bg-ink/10" />
             </div>
 
@@ -169,9 +153,7 @@ function Field({
     <label className="block">
       <span className="mb-2 block text-sm font-semibold text-ink">{label}</span>
       {children}
-      {error && (
-        <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>
-      )}
+      {error && <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>}
     </label>
   );
 }
@@ -179,17 +161,25 @@ function Field({
 function Stat({ n, label }: { n: string; label: string }) {
   return (
     <div>
-      <p className="poster-num text-5xl text-primary">{n}</p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-        {label}
-      </p>
+      <p className="poster-num text-5xl text-primary-dark">{n}</p>
+      <p className="mt-1 text-xs font-semibold tracking-wide text-ink-soft">{label}</p>
     </div>
   );
 }
 
 function EyeIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -198,7 +188,17 @@ function EyeIcon() {
 
 function EyeOffIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
       <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
       <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />

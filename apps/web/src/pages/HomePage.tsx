@@ -1,9 +1,8 @@
 import {
   SKILL_LEVEL_LABELS,
-  SPORT_THEMES,
-  SPORTS,
   type MatchRequestListResponse,
   type MatchRequestSummary,
+  type LookingForTeamListResponse,
   type RecruitmentListResponse,
   type RecruitmentPostSummary,
   type SportSlug,
@@ -13,14 +12,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { NotificationBell } from '@/components/NotificationBell';
+import { Avatar } from '@/components/Avatar';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
 
 export function HomePage() {
+  const { sports, sportOf } = useSports();
   const current = useSportStore((s) => s.current);
   const setCurrent = useSportStore((s) => s.setCurrent);
-  const theme = SPORT_THEMES[current];
+  const theme = sportOf(current);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
@@ -48,6 +51,16 @@ export function HomePage() {
     queryFn: async () => {
       const { data } = await api.get<MatchRequestListResponse>(
         `/matches/requests?sport=${current}&limit=4`,
+      );
+      return data.items;
+    },
+  });
+
+  const seekersQuery = useQuery({
+    queryKey: ['looking-for-team', 'home', current],
+    queryFn: async () => {
+      const { data } = await api.get<LookingForTeamListResponse>(
+        `/looking-for-team?sport=${current}&limit=4`,
       );
       return data.items;
     },
@@ -82,13 +95,10 @@ export function HomePage() {
       createdAt: r.createdAt,
       data: r,
     }));
-    return [...posts, ...reqs]
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-      .slice(0, 6);
+    return [...posts, ...reqs].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 6);
   }, [postsQuery.data, matchRequestsQuery.data]);
 
-  const opportunityCount =
-    (postsQuery.data?.length ?? 0) + (matchRequestsQuery.data?.length ?? 0);
+  const opportunityCount = (postsQuery.data?.length ?? 0) + (matchRequestsQuery.data?.length ?? 0);
   const teamsCount = teamsQuery.data?.length ?? 0;
   const matchesCount = myMatchesQuery.data?.length ?? 0;
 
@@ -107,10 +117,10 @@ export function HomePage() {
       <header className="border-b border-ink/10 bg-paper/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
           <Link to="/dashboard" className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-black uppercase leading-none tracking-tight">
+            <span className="font-display text-2xl font-black leading-none tracking-tight">
               SportsForAll
             </span>
-            <span className="poster-num text-2xl text-primary">·</span>
+            <span className="poster-num text-2xl text-primary-dark">·</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -140,12 +150,9 @@ export function HomePage() {
           <h1 className="mt-4 font-display text-[clamp(48px,9vw,108px)] leading-[0.98] tracking-tight">
             Chào,
             <br />
-            <span className="text-primary">{givenName}.</span>
+            <span className="text-primary-dark">{givenName}.</span>
           </h1>
-          <div
-            className="mt-6 h-[3px] origin-left bg-ink animate-draw-line"
-            aria-hidden
-          />
+          <div className="mt-6 h-[3px] origin-left bg-ink animate-draw-line" aria-hidden />
 
           <div className="mt-6 grid items-end gap-6 md:grid-cols-12">
             <div className="md:col-span-8">
@@ -159,9 +166,7 @@ export function HomePage() {
               <div className="poster-num text-7xl text-ink md:text-8xl">
                 {String(opportunityCount).padStart(2, '0')}
               </div>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                Cơ hội mở
-              </p>
+              <p className="mt-1 text-xs font-semibold tracking-wide text-ink-soft">Cơ hội mở</p>
             </div>
           </div>
         </section>
@@ -169,16 +174,14 @@ export function HomePage() {
         {/* Sport selector — horizontal ribbon */}
         <section className="mt-12 fade-up stagger-2">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-sm font-bold tracking-wide text-ink-soft">
-              Môn đang xem
-            </h2>
+            <h2 className="text-sm font-bold tracking-wide text-ink-soft">Môn đang xem</h2>
             <span className="hidden text-xs text-ink-soft/70 md:inline">
               Chuyển môn để xem dữ liệu khác
             </span>
           </div>
           <div className="-mx-1 flex flex-wrap gap-2">
-            {SPORTS.map((slug) => {
-              const t = SPORT_THEMES[slug];
+            {sports.map(({ slug }) => {
+              const t = sportOf(slug);
               const isActive = slug === current;
               return (
                 <button
@@ -192,7 +195,7 @@ export function HomePage() {
                   }`}
                 >
                   <span aria-hidden className="text-base leading-none">
-                    {t.emoji}
+                    <SportIcon sport={t.slug} className="size-[1em]" />
                   </span>
                   <span>{t.nameVi}</span>
                 </button>
@@ -206,10 +209,10 @@ export function HomePage() {
           {/* Feed */}
           <div className="lg:col-span-8">
             <header className="flex items-baseline justify-between border-b-2 border-ink pb-3">
-              <h2 className="font-display text-3xl font-black uppercase leading-none tracking-tight md:text-4xl">
+              <h2 className="font-display text-3xl font-black leading-none tracking-tight md:text-4xl">
                 Cơ hội đang mở
               </h2>
-              <span className="poster-num text-3xl text-primary md:text-4xl">
+              <span className="poster-num text-3xl text-primary-dark md:text-4xl">
                 {String(opportunityCount).padStart(2, '0')}
               </span>
             </header>
@@ -218,7 +221,7 @@ export function HomePage() {
               <p className="mt-6 text-sm text-ink-soft">Đang tải...</p>
             ) : feed.length === 0 ? (
               <div className="mt-6 border border-dashed border-ink/25 bg-white p-10 text-center">
-                <p className="font-display text-2xl font-black uppercase leading-tight tracking-tight">
+                <p className="font-display text-2xl font-black leading-tight tracking-tight">
                   Chưa có cơ hội cho {theme.nameVi}.
                 </p>
                 <p className="mt-2 text-sm text-ink-soft">
@@ -241,37 +244,69 @@ export function HomePage() {
             )}
 
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-ink/10 pt-4">
-              <Link
-                to="/find-teammates"
-                className="text-sm font-semibold text-ink hover:underline"
-              >
+              <Link to="/find-teammates" className="text-sm font-semibold text-ink hover:underline">
                 Tất cả bài tuyển →
               </Link>
+              <Link to="/find-opponents" className="text-sm font-semibold text-ink hover:underline">
+                Tất cả thách đấu →
+              </Link>
               <Link
-                to="/find-opponents"
+                to="/looking-for-team"
                 className="text-sm font-semibold text-ink hover:underline"
               >
-                Tất cả thách đấu →
+                Người tìm đội →
               </Link>
             </div>
           </div>
 
           {/* Right rail */}
           <aside className="space-y-8 lg:col-span-4">
+            {/* Ca nhan dang tim doi (FR-004.3) */}
+            <article className="border border-ink/12 bg-white p-6">
+              <header className="flex items-baseline justify-between gap-3">
+                <h2 className="font-display text-lg font-black tracking-tight">Đang tìm đội</h2>
+                <Link
+                  to="/looking-for-team"
+                  className="text-xs font-semibold text-ink-soft transition hover:text-ink"
+                >
+                  Xem tất cả →
+                </Link>
+              </header>
+
+              {seekersQuery.isLoading ? (
+                <p className="mt-4 text-sm text-ink-soft">Đang tải...</p>
+              ) : (seekersQuery.data?.length ?? 0) === 0 ? (
+                <p className="mt-4 text-sm text-ink-soft">Chưa có ai đăng tìm đội ở môn này.</p>
+              ) : (
+                <ul className="mt-4 divide-y divide-ink/10">
+                  {seekersQuery.data?.map((s) => (
+                    <li key={s.id} className="flex items-start gap-3 py-3">
+                      <Avatar name={s.author.displayName} src={s.author.avatarUrl} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-ink">
+                          {s.author.displayName}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-ink-soft">
+                          {[s.position, s.region].filter(Boolean).join(' · ') || s.description}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+
             {/* Player stats */}
             <article className="border border-ink/12 bg-white p-6">
               <header className="flex items-start gap-3">
-                <div
-                  className="sport-block h-12 w-12 shrink-0 text-2xl"
-                  aria-hidden
-                >
-                  {theme.emoji}
+                <div className="sport-block h-12 w-12 shrink-0 text-2xl" aria-hidden>
+                  <SportIcon sport={theme.slug} className="size-[1em]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                  <p className="text-xs font-bold tracking-wide text-ink-soft">
                     {user?.email ?? ''}
                   </p>
-                  <p className="mt-1 truncate font-display text-2xl font-black uppercase leading-none tracking-tight">
+                  <p className="mt-1 truncate font-display text-2xl font-black leading-none tracking-tight">
                     {user?.displayName ?? '—'}
                   </p>
                 </div>
@@ -285,7 +320,6 @@ export function HomePage() {
                 Quản lý hồ sơ <span aria-hidden>→</span>
               </Link>
             </article>
-
           </aside>
         </section>
 
@@ -293,14 +327,12 @@ export function HomePage() {
         <section className="mt-14">
           <header className="mb-5 flex items-end justify-between gap-4 border-b-2 border-ink pb-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                Lối tắt
-              </p>
+              <p className="text-xs font-bold tracking-wide text-ink-soft">Lối tắt</p>
               <h2 className="mt-1 font-display text-3xl leading-none tracking-tight md:text-4xl">
                 Đi đến đâu?
               </h2>
             </div>
-            <span className="poster-num text-3xl text-primary md:text-4xl">04</span>
+            <span className="poster-num text-3xl text-primary-dark md:text-4xl">04</span>
           </header>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -327,11 +359,27 @@ export function HomePage() {
             />
             <ShortcutTile
               num="04"
+              title="Người tìm đội"
+              desc="Cá nhân đang muốn gia nhập một đội."
+              to="/looking-for-team"
+              Icon={UserIcon}
+            />
+            <ShortcutTile
+              num="05"
               title="Hồ sơ cá nhân"
               desc="Cập nhật trình độ, vị trí, khu vực."
               to="/profile"
               Icon={UserIcon}
             />
+            {user?.role === 'admin' && (
+              <ShortcutTile
+                num="06"
+                title="Quản trị · Ảnh"
+                desc="Thay ảnh nền trang giới thiệu."
+                to="/admin/landing"
+                Icon={ShieldIcon}
+              />
+            )}
           </div>
         </section>
       </main>
@@ -350,9 +398,7 @@ function StatCell({ n, label }: { n: string; label: string }) {
   return (
     <div>
       <p className="poster-num text-4xl text-ink">{n}</p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-        {label}
-      </p>
+      <p className="mt-1 text-xs font-semibold tracking-wide text-ink-soft">{label}</p>
     </div>
   );
 }
@@ -382,7 +428,7 @@ function ShortcutTile({
       />
 
       <div className="flex items-start justify-between">
-        <span className="poster-num text-5xl text-ink-soft transition-colors duration-200 group-hover:text-primary group-focus-visible:text-primary">
+        <span className="poster-num text-5xl text-ink-soft transition-colors duration-200 group-hover:text-primary-dark group-focus-visible:text-primary-dark">
           {num}
         </span>
         <span
@@ -393,9 +439,7 @@ function ShortcutTile({
         </span>
       </div>
 
-      <p className="mt-5 font-display text-2xl leading-tight tracking-tight">
-        {title}
-      </p>
+      <p className="mt-5 font-display text-2xl leading-tight tracking-tight">{title}</p>
       <p className="mt-1 text-sm leading-snug text-ink-soft">{desc}</p>
 
       <div className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-ink">
@@ -511,27 +555,25 @@ function FeedRow({
   title: string;
   meta: string;
 }) {
-  const t = SPORT_THEMES[sport];
+  const { sportOf } = useSports();
+  const t = sportOf(sport);
   return (
     <li>
-      <Link
-        to={to}
-        className="group flex items-stretch gap-5 py-5 transition hover:bg-paper-2/60"
-      >
+      <Link to={to} className="group flex items-stretch gap-5 py-5 transition hover:bg-paper-2/60">
         <div
           className="flex size-20 shrink-0 items-center justify-center text-3xl"
           style={{ backgroundColor: t.primary, color: '#fff' }}
           aria-hidden
         >
           <span style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}>
-            {t.emoji}
+            <SportIcon sport={t.slug} className="size-[1em]" />
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+          <p className="text-xs font-bold tracking-wide text-ink-soft">
             {tag} · {t.nameVi}
           </p>
-          <p className="mt-1 truncate font-display text-2xl font-black uppercase leading-tight tracking-tight md:text-3xl">
+          <p className="mt-1 truncate font-display text-2xl font-black leading-tight tracking-tight md:text-3xl">
             {title}
           </p>
           <p className="mt-1 truncate text-sm text-ink-soft">{meta}</p>

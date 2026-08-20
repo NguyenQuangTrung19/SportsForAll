@@ -107,9 +107,7 @@ function toDetail(req: MatchRequestWithRelations, viewerId: string): MatchReques
   // Owner sees all challenges; non-owner sees only their own team's challenges
   const visible = viewerOwns
     ? req.challenges
-    : req.challenges.filter((c) =>
-        c.challengerTeam.members.some((m) => m.userId === viewerId),
-      );
+    : req.challenges.filter((c) => c.challengerTeam.members.some((m) => m.userId === viewerId));
   return {
     ...toSummary(req, viewerId),
     challenges: visible
@@ -145,10 +143,7 @@ async function loadRequest(id: string): Promise<MatchRequestWithRelations> {
   return r;
 }
 
-function ensureTeamManager(
-  team: TeamWithMembers,
-  userId: string,
-): void {
+function ensureTeamManager(team: TeamWithMembers, userId: string): void {
   const m = team.members.find((x) => x.userId === userId);
   if (!m || (m.role !== 'captain' && m.role !== 'co_captain')) {
     throw new HttpError(403, 'Chỉ captain/phó đội mới có quyền', 'INSUFFICIENT_TEAM_ROLE');
@@ -198,10 +193,15 @@ matchesRouter.get('/requests', requireAuth, async (req, res, next) => {
       ...(q.teamId && { teamId: q.teamId }),
     };
 
+    const orderBy: Prisma.MatchRequestOrderByWithRelationInput[] =
+      q.sort === 'reputation'
+        ? [{ team: { reputation: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }]
+        : [{ createdAt: 'desc' }, { id: 'desc' }];
+
     const items = await prisma.matchRequest.findMany({
       where,
       include: REQUEST_INCLUDE,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       take: q.limit + 1,
       ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
     });
@@ -300,7 +300,9 @@ matchesRouter.post('/requests/:id/challenges', requireAuth, async (req, res, nex
     }
 
     const existing = await prisma.challenge.findUnique({
-      where: { matchRequestId_challengerTeamId: { matchRequestId: r.id, challengerTeamId: challenger.id } },
+      where: {
+        matchRequestId_challengerTeamId: { matchRequestId: r.id, challengerTeamId: challenger.id },
+      },
     });
     if (existing && existing.status === 'pending') {
       throw new HttpError(409, 'Đã gửi thách đấu rồi', 'ALREADY_CHALLENGED');

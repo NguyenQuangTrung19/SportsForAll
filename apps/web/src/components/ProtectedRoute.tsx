@@ -26,3 +26,20 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   }
   return <>{children}</>;
 }
+
+/**
+ * Chỉ cho admin vào. Đây chỉ là rào ở giao diện cho đỡ khó chịu — mọi endpoint
+ * quản trị vẫn tự kiểm quyền phía server, vì role trong store là do client giữ.
+ */
+export function AdminRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  if (user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}

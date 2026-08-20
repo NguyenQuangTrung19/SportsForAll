@@ -1,51 +1,63 @@
 import {
   SKILL_LEVELS,
   SKILL_LEVEL_LABELS,
-  SPORTS,
-  SPORT_THEMES,
   type MatchRequestListResponse,
   type MatchRequestSummary,
+  type ListSort,
   type SkillLevel,
   type SportSlug,
 } from '@sfa/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { LoadMore } from '@/components/LoadMore';
+import { SortSelect } from '@/components/SortSelect';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 import { useSportStore } from '@/stores/sport-store';
 
 interface Filters {
-  sport: SportSlug | 'all';
+  /** null = tất cả các môn. Không dùng chuỗi 'all' được nữa vì slug giờ là chuỗi tự do. */
+  sport: SportSlug | null;
   region: string;
   skillLevelMin: SkillLevel | 'any';
+  sort: ListSort;
 }
 
 export function FindOpponentsPage() {
+  const { sports, sportOf } = useSports();
   const currentSport = useSportStore((s) => s.current);
   const [filters, setFilters] = useState<Filters>({
     sport: currentSport,
     region: '',
     skillLevelMin: 'any',
+    sort: 'newest',
   });
 
   const queryString = (() => {
     const p = new URLSearchParams();
-    if (filters.sport !== 'all') p.set('sport', filters.sport);
+    if (filters.sport !== null) p.set('sport', filters.sport);
     if (filters.region.trim()) p.set('region', filters.region.trim());
     if (filters.skillLevelMin !== 'any') p.set('skillLevelMin', filters.skillLevelMin);
+    p.set('sort', filters.sort);
     p.set('limit', '20');
     return p.toString();
   })();
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['matches', 'requests', queryString],
-    queryFn: async () => {
-      const { data } = await api.get<MatchRequestListResponse>(
-        `/matches/requests?${queryString}`,
-      );
-      return data;
-    },
-  });
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ['matches', 'requests', queryString],
+      initialPageParam: undefined as string | undefined,
+      queryFn: async ({ pageParam }) => {
+        const qs = pageParam ? `${queryString}&cursor=${pageParam}` : queryString;
+        const { data } = await api.get<MatchRequestListResponse>(`/matches/requests?${qs}`);
+        return data;
+      },
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
+    });
+
+  const items = data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
     <div className="min-h-screen bg-paper text-ink">
@@ -53,9 +65,9 @@ export function FindOpponentsPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/dashboard"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link to="/dashboard" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Bảng điều khiển
@@ -65,10 +77,8 @@ export function FindOpponentsPage() {
 
       <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-            Tìm đối thủ
-          </p>
-          <h1 className="mt-2 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
+          <p className="text-xs font-bold tracking-wide text-ink-soft">Tìm đối thủ</p>
+          <h1 className="mt-2 font-display text-4xl font-black leading-[0.9] tracking-tight md:text-5xl">
             Các đội đang
             <br />
             tìm trận.
@@ -78,11 +88,11 @@ export function FindOpponentsPage() {
 
         <section className="mb-8 border border-ink/12 bg-white p-5">
           <div className="mb-3 flex items-baseline justify-between">
-            <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Bộ lọc</p>
+            <p className="text-xs font-bold tracking-wide text-ink-soft">Bộ lọc</p>
             <button
               type="button"
               onClick={() =>
-                setFilters({ sport: 'all', region: '', skillLevelMin: 'any' })
+                setFilters({ sport: null, region: '', skillLevelMin: 'any', sort: 'newest' })
               }
               className="text-xs font-semibold text-ink-soft transition hover:text-ink"
             >
@@ -92,23 +102,21 @@ export function FindOpponentsPage() {
 
           <div className="space-y-4">
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                Môn
-              </p>
+              <p className="mb-2 text-xs font-semibold tracking-wide text-ink-soft">Môn</p>
               <div className="flex flex-wrap gap-2">
                 <FilterPill
-                  active={filters.sport === 'all'}
-                  onClick={() => setFilters({ ...filters, sport: 'all' })}
+                  active={filters.sport === null}
+                  onClick={() => setFilters({ ...filters, sport: null })}
                   label="Tất cả"
                 />
-                {SPORTS.map((slug) => {
-                  const t = SPORT_THEMES[slug];
+                {sports.map(({ slug }) => {
+                  const t = sportOf(slug);
                   return (
                     <FilterPill
                       key={slug}
                       active={filters.sport === slug}
                       onClick={() => setFilters({ ...filters, sport: slug })}
-                      label={`${t.emoji} ${t.nameVi}`}
+                      label={t.nameVi}
                     />
                   );
                 })}
@@ -117,7 +125,7 @@ export function FindOpponentsPage() {
 
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                <span className="mb-2 block text-xs font-semibold tracking-wide text-ink-soft">
                   Khu vực
                 </span>
                 <input
@@ -131,7 +139,7 @@ export function FindOpponentsPage() {
               </label>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                <p className="mb-2 text-xs font-semibold tracking-wide text-ink-soft">
                   Trình độ tối thiểu
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -153,6 +161,11 @@ export function FindOpponentsPage() {
                 </div>
               </div>
             </div>
+
+            <SortSelect
+              value={filters.sort}
+              onChange={(sort) => setFilters({ ...filters, sort })}
+            />
           </div>
         </section>
 
@@ -164,9 +177,9 @@ export function FindOpponentsPage() {
           </p>
         )}
 
-        {data && data.items.length === 0 && (
+        {data && items.length === 0 && (
           <article className="border border-dashed border-ink/25 bg-white p-10 text-center">
-            <p className="font-display text-2xl font-black uppercase tracking-tight">
+            <p className="font-display text-2xl font-black tracking-tight">
               Chưa có đội nào tìm trận phù hợp.
             </p>
             <p className="mt-2 text-sm text-ink-soft">
@@ -175,12 +188,19 @@ export function FindOpponentsPage() {
           </article>
         )}
 
-        {data && data.items.length > 0 && (
-          <ul className="grid gap-4 md:grid-cols-2">
-            {data.items.map((m) => (
-              <MatchCard key={m.id} req={m} />
-            ))}
-          </ul>
+        {items.length > 0 && (
+          <>
+            <ul className="grid gap-4 md:grid-cols-2">
+              {items.map((m) => (
+                <MatchCard key={m.id} req={m} />
+              ))}
+            </ul>
+            <LoadMore
+              hasMore={Boolean(hasNextPage)}
+              loading={isFetchingNextPage}
+              onClick={() => void fetchNextPage()}
+            />
+          </>
         )}
       </main>
     </div>
@@ -205,9 +225,7 @@ function FilterPill({
       className={`inline-flex items-center border font-semibold transition ${
         compact ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-sm'
       } ${
-        active
-          ? 'border-ink bg-ink text-paper'
-          : 'border-ink/15 bg-white text-ink hover:border-ink'
+        active ? 'border-ink bg-ink text-paper' : 'border-ink/15 bg-white text-ink hover:border-ink'
       }`}
     >
       {label}
@@ -216,7 +234,8 @@ function FilterPill({
 }
 
 function MatchCard({ req }: { req: MatchRequestSummary }) {
-  const t = SPORT_THEMES[req.sport];
+  const { sportOf } = useSports();
+  const t = sportOf(req.sport);
   return (
     <li>
       <Link
@@ -229,10 +248,10 @@ function MatchCard({ req }: { req: MatchRequestSummary }) {
             style={{ backgroundColor: t.primary, color: '#fff' }}
             aria-hidden
           >
-            {t.emoji}
+            <SportIcon sport={t.slug} className="size-[1em]" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-lg font-black uppercase tracking-tight">
+            <p className="truncate font-display text-lg font-black tracking-tight">
               {req.team.name}
             </p>
             <p className="mt-0.5 text-xs text-ink-soft">
@@ -250,22 +269,20 @@ function MatchCard({ req }: { req: MatchRequestSummary }) {
             </p>
           </div>
           {req.viewerChallenge && (
-            <span className="border border-primary bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-primary">
+            <span className="border border-primary bg-primary/10 px-2 py-0.5 text-[11px] font-bold tracking-wide text-primary-dark">
               Đã thách
             </span>
           )}
         </header>
 
-        <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-ink-soft">
-          {req.description}
-        </p>
+        <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-ink-soft">{req.description}</p>
 
         <div className="mt-4 flex flex-wrap gap-2 border-t border-ink/10 pt-3">
           {req.skillLevelMin && <Tag>≥ {SKILL_LEVEL_LABELS[req.skillLevelMin]}</Tag>}
           {req.venueName && <Tag>Sân · {req.venueName}</Tag>}
           <Tag>{req.challengeCount} thách đấu</Tag>
           {req.status !== 'open' && (
-            <span className="border border-rust bg-rust/5 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-rust">
+            <span className="border border-rust bg-rust/5 px-2 py-0.5 text-[11px] font-bold tracking-wide text-rust">
               {req.status === 'matched' ? 'Đã ghép' : 'Đã đóng'}
             </span>
           )}

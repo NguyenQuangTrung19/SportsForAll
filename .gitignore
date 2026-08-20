@@ -21,4 +21,12 @@ coverage
 Thumbs.db
 
 apps/api/prisma/migrations/dev.db*
+apps/api/uploads
+
+# Ảnh gốc của trang giới thiệu (~2MB/tấm) — không đưa vào git.
+# Bản .webp dẫn xuất thì PHẢI giữ: sport-images.ts import trực tiếp,
+# thiếu chúng là build vỡ.
+apps/web/src/assets/sports/*.png
+apps/web/src/assets/sports/*.jpg
+apps/web/src/assets/sports/*.jpeg
 *.tsbuildinfo

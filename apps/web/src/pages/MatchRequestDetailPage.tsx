@@ -1,7 +1,6 @@
 import {
   CHALLENGE_STATUS_LABELS,
   SKILL_LEVEL_LABELS,
-  SPORT_THEMES,
   type ChallengeView,
   type MatchRequestDetail,
   type TeamSummary,
@@ -10,7 +9,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 
 function extractMessage(err: unknown, fallback: string): string {
   if (err instanceof AxiosError) {
@@ -21,6 +22,7 @@ function extractMessage(err: unknown, fallback: string): string {
 }
 
 export function MatchRequestDetailPage() {
+  const { sportOf } = useSports();
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -46,19 +48,16 @@ export function MatchRequestDetailPage() {
 
   const setRequest = (req: MatchRequestDetail) => {
     queryClient.setQueryData(['matches', 'request', id], req);
-    queryClient.invalidateQueries({ queryKey: ['matches', 'requests'] });
+    void queryClient.invalidateQueries({ queryKey: ['matches', 'requests'] });
   };
 
   const challengeMutation = useMutation({
     mutationFn: async () => {
       if (!selectedChallengerTeamId) throw new Error('Chọn đội của bạn');
-      const { data } = await api.post<MatchRequestDetail>(
-        `/matches/requests/${id}/challenges`,
-        {
-          challengerTeamId: selectedChallengerTeamId,
-          message: challengeMessage.trim() || undefined,
-        },
-      );
+      const { data } = await api.post<MatchRequestDetail>(`/matches/requests/${id}/challenges`, {
+        challengerTeamId: selectedChallengerTeamId,
+        message: challengeMessage.trim() || undefined,
+      });
       return data;
     },
     onSuccess: (data) => {
@@ -129,14 +128,11 @@ export function MatchRequestDetailPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/find-opponents"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
-          <Link
-            to="/find-opponents"
-            className="text-sm font-semibold text-ink-soft hover:text-ink"
-          >
+          <Link to="/find-opponents" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Tìm đối thủ
           </Link>
         </div>
@@ -162,10 +158,8 @@ export function MatchRequestDetailPage() {
 
             {req.match && (
               <article className="mt-6 border-2 border-ink bg-white p-6 shadow-[6px_6px_0_rgba(15,17,21,0.12)]">
-                <p className="text-xs font-bold uppercase tracking-wide text-primary">
-                  Trận đã ghép
-                </p>
-                <p className="mt-2 font-display text-3xl font-black uppercase leading-tight tracking-tight md:text-4xl">
+                <p className="text-xs font-bold tracking-wide text-primary-dark">Trận đã ghép</p>
+                <p className="mt-2 font-display text-3xl font-black leading-tight tracking-tight md:text-4xl">
                   {req.match.homeTeam.name}
                   <span className="mx-3 text-ink-soft">vs</span>
                   {req.match.awayTeam.name}
@@ -182,9 +176,7 @@ export function MatchRequestDetailPage() {
             <section className="mt-8 grid gap-6 lg:grid-cols-12">
               <div className="space-y-6 lg:col-span-7">
                 <article className="border border-ink/12 bg-white p-6 md:p-8">
-                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                    Nội dung
-                  </p>
+                  <p className="text-xs font-bold tracking-wide text-ink-soft">Nội dung</p>
                   <p className="mt-3 whitespace-pre-line text-base leading-relaxed">
                     {req.description}
                   </p>
@@ -192,11 +184,11 @@ export function MatchRequestDetailPage() {
 
                 <article className="border border-ink/12 bg-white p-6 md:p-8">
                   <header className="flex items-baseline justify-between border-b-2 border-ink pb-3">
-                    <h2 className="font-display text-xl font-black uppercase tracking-tight">
+                    <h2 className="font-display text-xl font-black tracking-tight">
                       {req.viewerOwns ? 'Thách đấu nhận được' : 'Thách đấu của đội bạn'}
                     </h2>
                     <div className="flex items-baseline gap-3">
-                      <span className="poster-num text-2xl text-primary">
+                      <span className="poster-num text-2xl text-primary-dark">
                         {String(req.challenges.length).padStart(2, '0')}
                       </span>
                       {req.viewerOwns && req.status === 'open' && (
@@ -256,17 +248,17 @@ export function MatchRequestDetailPage() {
               <aside className="space-y-6 lg:col-span-5">
                 {!req.viewerOwns && req.status === 'open' && (
                   <article className="border border-ink bg-white p-6 shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
-                    <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                    <p className="text-xs font-bold tracking-wide text-primary-dark">
                       Đội bạn muốn đấu?
                     </p>
-                    <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
+                    <h3 className="mt-1 font-display text-xl font-black tracking-tight">
                       Gửi thách đấu
                     </h3>
 
                     {eligibleTeams.length === 0 ? (
                       <p className="mt-4 text-sm text-ink-soft">
-                        Bạn cần là captain/phó đội của một đội cùng môn (
-                        {SPORT_THEMES[req.sport].nameVi}) để gửi thách đấu.
+                        Bạn cần là captain/phó đội của một đội cùng môn ({sportOf(req.sport).nameVi}
+                        ) để gửi thách đấu.
                       </p>
                     ) : (
                       <div className="mt-4 space-y-3">
@@ -307,14 +299,12 @@ export function MatchRequestDetailPage() {
                 )}
 
                 <article className="border border-ink/12 bg-white p-6">
-                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                    Đội đăng
-                  </p>
-                  <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
+                  <p className="text-xs font-bold tracking-wide text-ink-soft">Đội đăng</p>
+                  <h3 className="mt-1 font-display text-xl font-black tracking-tight">
                     {req.team.name}
                   </h3>
                   <p className="mt-1 text-xs text-ink-soft">
-                    {SPORT_THEMES[req.team.sport].nameVi}
+                    {sportOf(req.team.sport).nameVi}
                     {req.team.region ? ` · ${req.team.region}` : ''}
                   </p>
                   <p className="mt-3 text-xs font-semibold text-ink-soft">
@@ -322,7 +312,7 @@ export function MatchRequestDetailPage() {
                   </p>
                   <Link
                     to={`/teams/${req.teamId}`}
-                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink transition hover:text-primary"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink transition hover:text-primary-dark"
                   >
                     Xem trang đội <span aria-hidden>→</span>
                   </Link>
@@ -337,7 +327,8 @@ export function MatchRequestDetailPage() {
 }
 
 function Header({ req }: { req: MatchRequestDetail }) {
-  const t = SPORT_THEMES[req.sport];
+  const { sportOf } = useSports();
+  const t = sportOf(req.sport);
   return (
     <article className="border border-ink/12 bg-white p-6 md:p-8">
       <div className="flex flex-col gap-5 md:flex-row md:items-start">
@@ -346,13 +337,13 @@ function Header({ req }: { req: MatchRequestDetail }) {
           style={{ backgroundColor: t.primary, color: '#fff' }}
           aria-hidden
         >
-          {t.emoji}
+          <SportIcon sport={t.slug} className="size-[1em]" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+          <p className="text-xs font-bold tracking-wide text-ink-soft">
             Lời mời thách đấu · {t.nameVi}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-black uppercase leading-[0.9] tracking-tight md:text-4xl">
+          <h1 className="mt-1 font-display text-3xl font-black leading-[0.9] tracking-tight md:text-4xl">
             {req.team.name}
           </h1>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -369,12 +360,10 @@ function Header({ req }: { req: MatchRequestDetail }) {
             )}
             {req.region && <Tag>Khu vực · {req.region}</Tag>}
             {req.venueName && <Tag>Sân · {req.venueName}</Tag>}
-            {req.skillLevelMin && (
-              <Tag>Trình độ ≥ {SKILL_LEVEL_LABELS[req.skillLevelMin]}</Tag>
-            )}
+            {req.skillLevelMin && <Tag>Trình độ ≥ {SKILL_LEVEL_LABELS[req.skillLevelMin]}</Tag>}
             <Tag>{req.challengeCount} thách đấu</Tag>
             {req.status !== 'open' && (
-              <span className="inline-flex border border-rust bg-rust/5 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-rust">
+              <span className="inline-flex border border-rust bg-rust/5 px-2.5 py-1 text-xs font-bold tracking-wide text-rust">
                 {req.status === 'matched'
                   ? 'Đã ghép trận'
                   : req.status === 'cancelled'
@@ -421,10 +410,10 @@ function ChallengeRow({
         {challenge.challengerTeam.name.charAt(0).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-base font-black uppercase tracking-tight">
+        <p className="truncate font-display text-base font-black tracking-tight">
           {challenge.challengerTeam.name}
           {challenge.isMine && (
-            <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-primary">
+            <span className="ml-2 text-[11px] font-semibold tracking-wide text-primary-dark">
               · đội bạn
             </span>
           )}

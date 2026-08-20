@@ -1,11 +1,8 @@
 import {
   SKILL_LEVELS,
   SKILL_LEVEL_LABELS,
-  SPORTS,
-  SPORT_THEMES,
   createTeamSchema,
   type CreateTeamInput,
-  type SkillLevel,
   type TeamDetail,
 } from '@sfa/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,9 +11,12 @@ import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 
 export function TeamCreatePage() {
+  const { sports, sportOf } = useSports();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -51,9 +51,9 @@ export function TeamCreatePage() {
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/teams"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link to="/teams" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Đội của tôi
@@ -63,10 +63,8 @@ export function TeamCreatePage() {
 
       <main className="mx-auto max-w-3xl px-6 py-10 md:py-14">
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-            Tạo đội mới
-          </p>
-          <h1 className="mt-2 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
+          <p className="text-xs font-bold tracking-wide text-ink-soft">Tạo đội mới</p>
+          <h1 className="mt-2 font-display text-4xl font-black leading-[0.9] tracking-tight md:text-5xl">
             Đặt nền móng
             <br />
             cho đội của bạn.
@@ -102,8 +100,8 @@ export function TeamCreatePage() {
               control={control}
               render={({ field }) => (
                 <div className="flex flex-wrap gap-2">
-                  {SPORTS.map((slug) => {
-                    const t = SPORT_THEMES[slug];
+                  {sports.map(({ slug }) => {
+                    const t = sportOf(slug);
                     const isOn = field.value === slug;
                     return (
                       <button
@@ -116,7 +114,9 @@ export function TeamCreatePage() {
                             : 'border-ink/15 bg-white text-ink hover:border-ink'
                         }`}
                       >
-                        <span aria-hidden>{t.emoji}</span>
+                        <span aria-hidden>
+                          <SportIcon sport={t.slug} className="size-[1em]" />
+                        </span>
                         <span>{t.nameVi}</span>
                       </button>
                     );
@@ -150,9 +150,7 @@ export function TeamCreatePage() {
                         <button
                           key={lvl}
                           type="button"
-                          onClick={() =>
-                            field.onChange(isOn ? undefined : (lvl as SkillLevel))
-                          }
+                          onClick={() => field.onChange(isOn ? undefined : lvl)}
                           className={`border px-3 py-1.5 text-xs font-semibold transition ${
                             isOn
                               ? 'border-ink bg-paper-2 text-ink'
@@ -215,9 +213,7 @@ function Field({
     <label className="block">
       <span className="mb-2 block text-sm font-semibold">{label}</span>
       {children}
-      {error && (
-        <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>
-      )}
+      {error && <span className="mt-1.5 block text-sm font-medium text-rust">{error}</span>}
     </label>
   );
 }

@@ -1,9 +1,6 @@
 import {
-  POSITIONS_BY_SPORT,
   SKILL_LEVELS,
   SKILL_LEVEL_LABELS,
-  SPORTS,
-  SPORT_THEMES,
   type CompleteOnboardingInput,
   type ProfileResponse,
   type SkillLevel,
@@ -12,7 +9,9 @@ import {
 import { AxiosError } from 'axios';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
 
@@ -34,6 +33,11 @@ interface SportDraft {
   position: string;
 }
 
+/** Bản nháp rỗng — dùng khi người dùng vừa chọn một môn chưa có nháp nào. */
+function emptyDraft(): SportDraft {
+  return { skillLevel: null, position: '' };
+}
+
 type StepIndex = 0 | 1 | 2;
 
 const STEPS = [
@@ -43,6 +47,7 @@ const STEPS = [
 ] as const;
 
 export function OnboardingPage() {
+  const { sports } = useSports();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
@@ -50,11 +55,8 @@ export function OnboardingPage() {
 
   const [step, setStep] = useState<StepIndex>(0);
   const [selectedSports, setSelectedSports] = useState<SportSlug[]>([]);
-  const [sportDrafts, setSportDrafts] = useState<Record<SportSlug, SportDraft>>(
-    () =>
-      Object.fromEntries(
-        SPORTS.map((s) => [s, { skillLevel: null, position: '' }]),
-      ) as Record<SportSlug, SportDraft>,
+  const [sportDrafts, setSportDrafts] = useState<Record<SportSlug, SportDraft>>(() =>
+    Object.fromEntries(sports.map(({ slug: s }) => [s, { skillLevel: null, position: '' }])),
   );
   const [birthYear, setBirthYear] = useState<number | ''>('');
   const [region, setRegion] = useState<string>('');
@@ -74,7 +76,10 @@ export function OnboardingPage() {
   };
 
   const updateDraft = (sport: SportSlug, patch: Partial<SportDraft>) => {
-    setSportDrafts((prev) => ({ ...prev, [sport]: { ...prev[sport]!, ...patch } }));
+    setSportDrafts((prev) => ({
+      ...prev,
+      [sport]: { ...emptyDraft(), ...prev[sport], ...patch },
+    }));
   };
 
   const canAdvanceStep0 = selectedSports.length > 0;
@@ -108,8 +113,8 @@ export function OnboardingPage() {
         bio: bio.trim() || undefined,
         sportPreferences: selectedSports.map((sport) => ({
           sport,
-          skillLevel: sportDrafts[sport]!.skillLevel!,
-          position: sportDrafts[sport]!.position.trim() || null,
+          skillLevel: (sportDrafts[sport] ?? emptyDraft()).skillLevel!,
+          position: (sportDrafts[sport] ?? emptyDraft()).position.trim() || null,
         })),
       };
       const { data } = await api.post<ProfileResponse>('/profile/me/onboarding', payload);
@@ -135,10 +140,10 @@ export function OnboardingPage() {
     <div className="min-h-screen bg-paper text-ink">
       <header className="border-b border-ink/10">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
-          <span className="font-display text-2xl font-black uppercase leading-none tracking-tight">
-            SportsForAll<span className="text-primary">.</span>
+          <span className="font-display text-2xl font-black leading-none tracking-tight">
+            SportsForAll<span className="text-primary-dark">.</span>
           </span>
-          <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+          <span className="text-xs font-bold tracking-wide text-ink-soft">
             Bước {step + 1} / {STEPS.length}
           </span>
         </div>
@@ -146,12 +151,10 @@ export function OnboardingPage() {
 
       <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
         <section className="fade-up">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-            Thiết lập hồ sơ
-          </p>
+          <p className="text-xs font-bold tracking-wide text-ink-soft">Thiết lập hồ sơ</p>
           <h1 className="mt-3 font-display text-[clamp(40px,7vw,84px)] leading-[1] tracking-tight">
             Chào, {firstName} —<br />
-            <span className="text-primary">kể chúng tôi nghe</span>
+            <span className="text-primary-dark">kể chúng tôi nghe</span>
             <br />
             bạn chơi gì.
           </h1>
@@ -176,18 +179,16 @@ export function OnboardingPage() {
                 <div className="flex items-baseline justify-between">
                   <span
                     className={`poster-num text-4xl ${
-                      state === 'pending' ? 'text-ink-soft/50' : 'text-primary'
+                      state === 'pending' ? 'text-ink-soft/50' : 'text-primary-dark'
                     }`}
                   >
                     {s.num}
                   </span>
                   {state === 'done' && (
-                    <span className="text-xs font-bold uppercase tracking-wide text-primary">
-                      Xong
-                    </span>
+                    <span className="text-xs font-bold tracking-wide text-primary-dark">Xong</span>
                   )}
                 </div>
-                <p className="mt-2 font-display text-lg font-black uppercase leading-tight tracking-tight">
+                <p className="mt-2 font-display text-lg font-black leading-tight tracking-tight">
                   {s.title}
                 </p>
                 <p className="mt-0.5 text-sm text-ink-soft">{s.sub}</p>
@@ -200,11 +201,7 @@ export function OnboardingPage() {
         <article className="mt-8 border border-ink/15 bg-white p-6 shadow-[6px_6px_0_rgba(15,17,21,0.08)] md:p-10">
           {step === 0 && <Step0 selected={selectedSports} onToggle={toggleSport} />}
           {step === 1 && (
-            <Step1
-              selected={selectedSports}
-              drafts={sportDrafts}
-              onUpdate={updateDraft}
-            />
+            <Step1 selected={selectedSports} drafts={sportDrafts} onUpdate={updateDraft} />
           )}
           {step === 2 && (
             <Step2
@@ -236,12 +233,13 @@ export function OnboardingPage() {
               <button
                 type="button"
                 onClick={goNext}
-                disabled={
-                  (step === 0 && !canAdvanceStep0) || (step === 1 && !canAdvanceStep1)
-                }
+                disabled={(step === 0 && !canAdvanceStep0) || (step === 1 && !canAdvanceStep1)}
                 className="btn-primary"
               >
-                Tiếp tục <span aria-hidden className="animate-arrow-bob">→</span>
+                Tiếp tục{' '}
+                <span aria-hidden className="animate-arrow-bob">
+                  →
+                </span>
               </button>
             ) : (
               <button
@@ -251,7 +249,11 @@ export function OnboardingPage() {
                 className="btn-primary"
               >
                 {submitting ? 'Đang lưu...' : 'Hoàn tất'}
-                {!submitting && <span aria-hidden className="animate-arrow-bob">→</span>}
+                {!submitting && (
+                  <span aria-hidden className="animate-arrow-bob">
+                    →
+                  </span>
+                )}
               </button>
             )}
           </div>
@@ -268,10 +270,11 @@ function Step0({
   selected: SportSlug[];
   onToggle: (sport: SportSlug) => void;
 }) {
+  const { sports, sportOf } = useSports();
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Bước 01</p>
-      <h2 className="mt-1 font-display text-3xl font-black uppercase leading-tight tracking-tight">
+      <p className="text-xs font-bold tracking-wide text-ink-soft">Bước 01</p>
+      <h2 className="mt-1 font-display text-3xl font-black leading-tight tracking-tight">
         Bạn chơi môn nào?
       </h2>
       <p className="mt-2 max-w-xl text-base text-ink-soft">
@@ -279,8 +282,8 @@ function Step0({
       </p>
 
       <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {SPORTS.map((slug) => {
-          const t = SPORT_THEMES[slug];
+        {sports.map(({ slug }) => {
+          const t = sportOf(slug);
           const isOn = selected.includes(slug);
           return (
             <li key={slug}>
@@ -299,11 +302,11 @@ function Step0({
                   aria-hidden
                 >
                   <span style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))' }}>
-                    {t.emoji}
+                    <SportIcon sport={t.slug} className="size-[1em]" />
                   </span>
                 </span>
                 <span className="flex-1">
-                  <span className="block font-display text-lg font-black uppercase leading-tight tracking-tight">
+                  <span className="block font-display text-lg font-black leading-tight tracking-tight">
                     {t.nameVi}
                   </span>
                   <span className="block text-xs text-ink-soft">
@@ -311,10 +314,7 @@ function Step0({
                   </span>
                 </span>
                 {isOn && (
-                  <span
-                    aria-hidden
-                    className="poster-num text-2xl text-primary"
-                  >
+                  <span aria-hidden className="poster-num text-2xl text-primary-dark">
                     ✓
                   </span>
                 )}
@@ -336,10 +336,11 @@ function Step1({
   drafts: Record<SportSlug, SportDraft>;
   onUpdate: (sport: SportSlug, patch: Partial<SportDraft>) => void;
 }) {
+  const { sportOf } = useSports();
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Bước 02</p>
-      <h2 className="mt-1 font-display text-3xl font-black uppercase leading-tight tracking-tight">
+      <p className="text-xs font-bold tracking-wide text-ink-soft">Bước 02</p>
+      <h2 className="mt-1 font-display text-3xl font-black leading-tight tracking-tight">
         Bạn chơi ở mức nào?
       </h2>
       <p className="mt-2 max-w-xl text-base text-ink-soft">
@@ -348,8 +349,8 @@ function Step1({
 
       <div className="mt-6 space-y-5">
         {selected.map((sport) => {
-          const t = SPORT_THEMES[sport];
-          const draft = drafts[sport]!;
+          const t = sportOf(sport);
+          const draft = drafts[sport] ?? emptyDraft();
           return (
             <section key={sport} className="border border-ink/12 bg-paper-2/30 p-5">
               <header className="mb-4 flex items-center gap-3">
@@ -358,16 +359,12 @@ function Step1({
                   style={{ backgroundColor: t.primary, color: '#fff' }}
                   aria-hidden
                 >
-                  {t.emoji}
+                  <SportIcon sport={t.slug} className="size-[1em]" />
                 </span>
-                <h3 className="font-display text-xl font-black uppercase tracking-tight">
-                  {t.nameVi}
-                </h3>
+                <h3 className="font-display text-xl font-black tracking-tight">{t.nameVi}</h3>
               </header>
 
-              <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                Trình độ
-              </p>
+              <p className="text-xs font-bold tracking-wide text-ink-soft">Trình độ</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {SKILL_LEVELS.map((lvl, idx) => {
                   const isOn = draft.skillLevel === lvl;
@@ -391,11 +388,11 @@ function Step1({
                 })}
               </div>
 
-              <p className="mt-5 text-xs font-bold uppercase tracking-wide text-ink-soft">
+              <p className="mt-5 text-xs font-bold tracking-wide text-ink-soft">
                 Vị trí (tuỳ chọn)
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {POSITIONS_BY_SPORT[sport].map((pos) => {
+                {sportOf(sport).positions.map((pos) => {
                   const isOn = draft.position === pos;
                   return (
                     <button
@@ -444,8 +441,8 @@ function Step2({
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Bước 03</p>
-      <h2 className="mt-1 font-display text-3xl font-black uppercase leading-tight tracking-tight">
+      <p className="text-xs font-bold tracking-wide text-ink-soft">Bước 03</p>
+      <h2 className="mt-1 font-display text-3xl font-black leading-tight tracking-tight">
         Vài thông tin về bạn.
       </h2>
       <p className="mt-2 max-w-xl text-base text-ink-soft">
@@ -457,9 +454,7 @@ function Step2({
           <span className="mb-2 block text-sm font-semibold">Năm sinh</span>
           <select
             value={birthYear}
-            onChange={(e) =>
-              setBirthYear(e.target.value === '' ? '' : Number(e.target.value))
-            }
+            onChange={(e) => setBirthYear(e.target.value === '' ? '' : Number(e.target.value))}
             className="input"
           >
             <option value="">— Chọn năm —</option>
@@ -499,9 +494,7 @@ function Step2({
             placeholder="Đôi dòng về bạn — phong cách chơi, lịch rảnh, sân ưa thích..."
             className="input resize-none"
           />
-          <span className="mt-1 block text-right text-xs text-ink-soft">
-            {bio.length}/500
-          </span>
+          <span className="mt-1 block text-right text-xs text-ink-soft">{bio.length}/500</span>
         </label>
       </div>
     </div>

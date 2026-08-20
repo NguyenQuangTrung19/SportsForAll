@@ -1,11 +1,18 @@
 import { z } from 'zod';
+import { sportSlugSchema } from './sport.js';
 import { SKILL_LEVELS } from '../types/skill-level.js';
 import { SPORTS } from '../types/sport.js';
 
 const currentYear = new Date().getFullYear();
 
+/** Số điện thoại VN: 0xxxxxxxxx (10 số) hoặc +84xxxxxxxxx. */
+export const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^(0\d{9}|\+84\d{9})$/, 'Số điện thoại không hợp lệ');
+
 export const sportPreferenceSchema = z.object({
-  sport: z.enum(SPORTS),
+  sport: sportSlugSchema,
   skillLevel: z.enum(SKILL_LEVELS),
   position: z.string().trim().max(50).nullish(),
 });
@@ -16,6 +23,7 @@ export const updateProfileSchema = z.object({
   bio: z.string().trim().max(500).nullish(),
   birthYear: z.number().int().min(1920).max(currentYear).nullish(),
   region: z.string().trim().max(100).nullish(),
+  phone: phoneSchema.nullish(),
   avatarUrl: z.string().url().nullish(),
   sportPreferences: z.array(sportPreferenceSchema).max(SPORTS.length).optional(),
 });

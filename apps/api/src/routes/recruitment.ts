@@ -128,7 +128,11 @@ recruitmentRouter.post('/posts', requireAuth, async (req, res, next) => {
     if (!team) throw new HttpError(404, 'Không tìm thấy đội', 'TEAM_NOT_FOUND');
     const membership = team.members[0];
     if (!membership || (membership.role !== 'captain' && membership.role !== 'co_captain')) {
-      throw new HttpError(403, 'Chỉ captain/phó đội mới đăng được bài tuyển', 'INSUFFICIENT_TEAM_ROLE');
+      throw new HttpError(
+        403,
+        'Chỉ captain/phó đội mới đăng được bài tuyển',
+        'INSUFFICIENT_TEAM_ROLE',
+      );
     }
 
     const post = await prisma.recruitmentPost.create({
@@ -166,10 +170,16 @@ recruitmentRouter.get('/posts', requireAuth, async (req, res, next) => {
       ...(q.teamId && { teamId: q.teamId }),
     };
 
+    // id chot cuoi de thu tu toan phan — thieu no thi cursor co the bo sot ban ghi.
+    const orderBy: Prisma.RecruitmentPostOrderByWithRelationInput[] =
+      q.sort === 'reputation'
+        ? [{ team: { reputation: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }]
+        : [{ createdAt: 'desc' }, { id: 'desc' }];
+
     const items = await prisma.recruitmentPost.findMany({
       where,
       include: POST_INCLUDE,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       take: q.limit + 1,
       ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
     });

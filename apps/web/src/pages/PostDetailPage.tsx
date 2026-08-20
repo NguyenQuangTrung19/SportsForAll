@@ -1,7 +1,6 @@
 import {
   JOIN_REQUEST_STATUS_LABELS,
   SKILL_LEVEL_LABELS,
-  SPORT_THEMES,
   type JoinRequestView,
   type RecruitmentPostDetail,
 } from '@sfa/shared';
@@ -9,7 +8,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 
 function extractMessage(err: unknown, fallback: string): string {
@@ -21,6 +22,7 @@ function extractMessage(err: unknown, fallback: string): string {
 }
 
 export function PostDetailPage() {
+  const { sportOf } = useSports();
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -38,15 +40,14 @@ export function PostDetailPage() {
 
   const setPost = (post: RecruitmentPostDetail) => {
     queryClient.setQueryData(['recruitment', 'post', id], post);
-    queryClient.invalidateQueries({ queryKey: ['recruitment', 'list'] });
+    void queryClient.invalidateQueries({ queryKey: ['recruitment', 'list'] });
   };
 
   const applyMutation = useMutation({
     mutationFn: async () => {
-      const { data } = await api.post<RecruitmentPostDetail>(
-        `/recruitment/posts/${id}/requests`,
-        { message: applyMessage.trim() || undefined },
-      );
+      const { data } = await api.post<RecruitmentPostDetail>(`/recruitment/posts/${id}/requests`, {
+        message: applyMessage.trim() || undefined,
+      });
       return data;
     },
     onSuccess: (data) => {
@@ -91,10 +92,9 @@ export function PostDetailPage() {
 
   const closeMutation = useMutation({
     mutationFn: async () => {
-      const { data } = await api.patch<RecruitmentPostDetail>(
-        `/recruitment/posts/${id}`,
-        { status: 'closed' },
-      );
+      const { data } = await api.patch<RecruitmentPostDetail>(`/recruitment/posts/${id}`, {
+        status: 'closed',
+      });
       return data;
     },
     onSuccess: setPost,
@@ -113,14 +113,11 @@ export function PostDetailPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/find-teammates"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
-          <Link
-            to="/find-teammates"
-            className="text-sm font-semibold text-ink-soft hover:text-ink"
-          >
+          <Link to="/find-teammates" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Tìm đồng đội
           </Link>
         </div>
@@ -148,9 +145,7 @@ export function PostDetailPage() {
             <section className="mt-8 grid gap-6 lg:grid-cols-12">
               <div className="space-y-6 lg:col-span-7">
                 <article className="border border-ink/12 bg-white p-6 md:p-8">
-                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                    Nội dung bài đăng
-                  </p>
+                  <p className="text-xs font-bold tracking-wide text-ink-soft">Nội dung bài đăng</p>
                   <p className="mt-3 whitespace-pre-line text-base leading-relaxed">
                     {post.description}
                   </p>
@@ -159,20 +154,18 @@ export function PostDetailPage() {
                 {isTeamMember && (
                   <article className="border border-ink/12 bg-white p-6 md:p-8">
                     <header className="flex items-baseline justify-between border-b-2 border-ink pb-3">
-                      <h2 className="font-display text-xl font-black uppercase tracking-tight">
+                      <h2 className="font-display text-xl font-black tracking-tight">
                         Đơn ứng tuyển
                       </h2>
                       <div className="flex items-baseline gap-3">
-                        <span className="poster-num text-2xl text-primary">
+                        <span className="poster-num text-2xl text-primary-dark">
                           {String(post.requests.length).padStart(2, '0')}
                         </span>
                         {post.status === 'open' && (
                           <button
                             type="button"
                             onClick={() => {
-                              if (
-                                !window.confirm('Đóng bài này? Sẽ không nhận thêm đơn mới.')
-                              )
+                              if (!window.confirm('Đóng bài này? Sẽ không nhận thêm đơn mới.'))
                                 return;
                               setActionError(null);
                               closeMutation.mutate();
@@ -214,16 +207,17 @@ export function PostDetailPage() {
               <aside className="space-y-6 lg:col-span-5">
                 {!isTeamMember && (
                   <article className="border border-ink bg-white p-6 shadow-[6px_6px_0_rgba(15,17,21,0.08)]">
-                    <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                    <p className="text-xs font-bold tracking-wide text-primary-dark">
                       Quan tâm bài này?
                     </p>
-                    <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
+                    <h3 className="mt-1 font-display text-xl font-black tracking-tight">
                       Gửi đơn ứng tuyển
                     </h3>
 
                     {post.viewerRequestStatus && post.viewerRequestStatus !== 'pending' && (
                       <p className="mt-3 border border-ink/15 bg-paper-2/40 p-3 text-xs font-semibold text-ink-soft">
-                        Đơn trước đây: {labelForStatus(post.viewerRequestStatus)} — bạn có thể gửi lại.
+                        Đơn trước đây: {labelForStatus(post.viewerRequestStatus)} — bạn có thể gửi
+                        lại.
                       </p>
                     )}
 
@@ -231,9 +225,7 @@ export function PostDetailPage() {
                       <p className="mt-4 text-sm font-semibold text-rust">Bài đã đóng.</p>
                     ) : myPendingRequest ? (
                       <div className="mt-4 space-y-3">
-                        <p className="text-sm text-ink-soft">
-                          Bạn đã gửi đơn — chờ đội duyệt.
-                        </p>
+                        <p className="text-sm text-ink-soft">Bạn đã gửi đơn — chờ đội duyệt.</p>
                         <button
                           type="button"
                           onClick={() => {
@@ -274,14 +266,12 @@ export function PostDetailPage() {
                 )}
 
                 <article className="border border-ink/12 bg-white p-6">
-                  <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                    Về đội
-                  </p>
-                  <h3 className="mt-1 font-display text-xl font-black uppercase tracking-tight">
+                  <p className="text-xs font-bold tracking-wide text-ink-soft">Về đội</p>
+                  <h3 className="mt-1 font-display text-xl font-black tracking-tight">
                     {post.team.name}
                   </h3>
                   <p className="mt-1 text-xs text-ink-soft">
-                    {SPORT_THEMES[post.team.sport].nameVi}
+                    {sportOf(post.team.sport).nameVi}
                     {post.team.region ? ` · ${post.team.region}` : ''}
                   </p>
                   <p className="mt-3 text-xs font-semibold text-ink-soft">
@@ -289,7 +279,7 @@ export function PostDetailPage() {
                   </p>
                   <Link
                     to={`/teams/${post.teamId}`}
-                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink transition hover:text-primary"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink transition hover:text-primary-dark"
                   >
                     Xem trang đội <span aria-hidden>→</span>
                   </Link>
@@ -304,7 +294,8 @@ export function PostDetailPage() {
 }
 
 function PostHeader({ post }: { post: RecruitmentPostDetail }) {
-  const t = SPORT_THEMES[post.sport];
+  const { sportOf } = useSports();
+  const t = sportOf(post.sport);
   return (
     <article className="border border-ink/12 bg-white p-6 md:p-8">
       <div className="flex flex-col gap-5 md:flex-row md:items-start">
@@ -313,24 +304,22 @@ function PostHeader({ post }: { post: RecruitmentPostDetail }) {
           style={{ backgroundColor: t.primary, color: '#fff' }}
           aria-hidden
         >
-          {t.emoji}
+          <SportIcon sport={t.slug} className="size-[1em]" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+          <p className="text-xs font-bold tracking-wide text-ink-soft">
             Tuyển thành viên · {t.nameVi}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-black uppercase leading-[0.9] tracking-tight md:text-4xl">
+          <h1 className="mt-1 font-display text-3xl font-black leading-[0.9] tracking-tight md:text-4xl">
             {post.team.name}
           </h1>
           <div className="mt-4 flex flex-wrap gap-2">
             {post.region && <Tag>Khu vực · {post.region}</Tag>}
             {post.positionNeeded && <Tag>Vị trí · {post.positionNeeded}</Tag>}
-            {post.skillLevelMin && (
-              <Tag>Trình độ ≥ {SKILL_LEVEL_LABELS[post.skillLevelMin]}</Tag>
-            )}
+            {post.skillLevelMin && <Tag>Trình độ ≥ {SKILL_LEVEL_LABELS[post.skillLevelMin]}</Tag>}
             <Tag>{post.requestCount} đơn</Tag>
             {post.status === 'closed' && (
-              <span className="inline-flex border border-rust bg-rust/5 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-rust">
+              <span className="inline-flex border border-rust bg-rust/5 px-2.5 py-1 text-xs font-bold tracking-wide text-rust">
                 Đã đóng
               </span>
             )}
@@ -369,7 +358,7 @@ function JoinRequestRow({
         {request.displayName.charAt(0).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-base font-black uppercase tracking-tight">
+        <p className="truncate font-display text-base font-black tracking-tight">
           {request.displayName}
         </p>
         <p className="mt-0.5 text-xs text-ink-soft">

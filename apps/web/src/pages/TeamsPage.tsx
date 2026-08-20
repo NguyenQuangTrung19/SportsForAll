@@ -1,14 +1,12 @@
-import {
-  SPORT_THEMES,
-  SKILL_LEVEL_LABELS,
-  TEAM_ROLE_LABELS,
-  type TeamSummary,
-} from '@sfa/shared';
+import { SKILL_LEVEL_LABELS, TEAM_ROLE_LABELS, type TeamSummary } from '@sfa/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { useSports } from '@/lib/use-sports';
 
 export function TeamsPage() {
+  const { sportOf } = useSports();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['teams', 'me'],
     queryFn: async () => {
@@ -23,9 +21,9 @@ export function TeamsPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <Link
             to="/dashboard"
-            className="font-display text-2xl font-black uppercase leading-none tracking-tight"
+            className="font-display text-2xl font-black leading-none tracking-tight"
           >
-            SportsForAll<span className="text-primary">.</span>
+            SportsForAll<span className="text-primary-dark">.</span>
           </Link>
           <Link to="/dashboard" className="text-sm font-semibold text-ink-soft hover:text-ink">
             ← Bảng điều khiển
@@ -36,16 +34,11 @@ export function TeamsPage() {
       <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-              Đội của tôi
-            </p>
-            <h1 className="mt-2 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-5xl">
+            <p className="text-xs font-bold tracking-wide text-ink-soft">Đội của tôi</p>
+            <h1 className="mt-2 font-display text-4xl font-black leading-[0.9] tracking-tight md:text-5xl">
               Các đội bạn đang tham gia
             </h1>
-            <div
-              className="mt-3 h-[3px] w-32 origin-left bg-ink animate-draw-line"
-              aria-hidden
-            />
+            <div className="mt-3 h-[3px] w-32 origin-left bg-ink animate-draw-line" aria-hidden />
           </div>
           <Link to="/teams/new" className="btn-primary">
             + Tạo đội mới
@@ -63,7 +56,7 @@ export function TeamsPage() {
 
           {data && data.length === 0 && (
             <article className="border border-dashed border-ink/25 bg-white p-10 text-center">
-              <p className="font-display text-2xl font-black uppercase leading-tight tracking-tight">
+              <p className="font-display text-2xl font-black leading-tight tracking-tight">
                 Bạn chưa có đội nào.
               </p>
               <p className="mt-2 text-sm text-ink-soft">
@@ -78,7 +71,7 @@ export function TeamsPage() {
           {data && data.length > 0 && (
             <ul className="grid gap-4 md:grid-cols-2">
               {data.map((team) => {
-                const t = SPORT_THEMES[team.sport];
+                const t = sportOf(team.sport);
                 return (
                   <li key={team.id}>
                     <Link
@@ -91,10 +84,10 @@ export function TeamsPage() {
                           style={{ backgroundColor: t.primary, color: '#fff' }}
                           aria-hidden
                         >
-                          {t.emoji}
+                          <SportIcon sport={t.slug} className="size-[1em]" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-display text-xl font-black uppercase leading-tight tracking-tight">
+                          <p className="truncate font-display text-xl font-black leading-tight tracking-tight">
                             {team.name}
                           </p>
                           <p className="mt-0.5 text-xs text-ink-soft">
@@ -102,7 +95,7 @@ export function TeamsPage() {
                             {team.region ? ` · ${team.region}` : ''}
                           </p>
                         </div>
-                        <span className="border border-ink/15 bg-paper-2/40 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-ink-soft">
+                        <span className="border border-ink/15 bg-paper-2/40 px-2 py-0.5 text-[11px] font-bold tracking-wide text-ink-soft">
                           {team.viewerRole ? TEAM_ROLE_LABELS[team.viewerRole] : 'Khách'}
                         </span>
                       </div>
@@ -134,15 +127,13 @@ function Stat({ n, label, small = false }: { n: string; label: string; small?: b
       <p
         className={
           small
-            ? 'truncate font-display text-sm font-black uppercase tracking-tight text-ink'
+            ? 'truncate font-display text-sm font-black tracking-tight text-ink'
             : 'poster-num truncate text-2xl text-ink'
         }
       >
         {n}
       </p>
-      <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-        {label}
-      </p>
+      <p className="mt-1 text-[11px] font-semibold tracking-wide text-ink-soft">{label}</p>
     </div>
   );
 }
