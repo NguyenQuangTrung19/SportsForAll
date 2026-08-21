@@ -1,11 +1,15 @@
 import {
   SKILL_LEVELS,
   SKILL_LEVEL_LABELS,
+  TIME_SLOTS,
+  TIME_SLOT_HINTS,
+  TIME_SLOT_LABELS,
   type MatchRequestListResponse,
   type MatchRequestSummary,
   type ListSort,
   type SkillLevel,
   type SportSlug,
+  type TimeSlot,
 } from '@sfa/shared';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -21,25 +25,39 @@ interface Filters {
   /** null = tất cả các môn. Không dùng chuỗi 'all' được nữa vì slug giờ là chuỗi tự do. */
   sport: SportSlug | null;
   region: string;
+  venue: string;
   skillLevelMin: SkillLevel | 'any';
+  timeSlot: TimeSlot | 'any';
+  /** 0 = không lọc theo uy tín. */
+  reputationMin: number;
   sort: ListSort;
 }
+
+/** Mốc uy tín gợi ý sẵn — thang đánh giá sau trận là 1–5 sao. */
+const REPUTATION_STEPS = [3, 4, 4.5] as const;
+
+const EMPTY_FILTERS: Omit<Filters, 'sport'> = {
+  region: '',
+  venue: '',
+  skillLevelMin: 'any',
+  timeSlot: 'any',
+  reputationMin: 0,
+  sort: 'newest',
+};
 
 export function FindOpponentsPage() {
   const { sports, sportOf } = useSports();
   const currentSport = useSportStore((s) => s.current);
-  const [filters, setFilters] = useState<Filters>({
-    sport: currentSport,
-    region: '',
-    skillLevelMin: 'any',
-    sort: 'newest',
-  });
+  const [filters, setFilters] = useState<Filters>({ sport: currentSport, ...EMPTY_FILTERS });
 
   const queryString = (() => {
     const p = new URLSearchParams();
     if (filters.sport !== null) p.set('sport', filters.sport);
     if (filters.region.trim()) p.set('region', filters.region.trim());
+    if (filters.venue.trim()) p.set('venue', filters.venue.trim());
     if (filters.skillLevelMin !== 'any') p.set('skillLevelMin', filters.skillLevelMin);
+    if (filters.timeSlot !== 'any') p.set('timeSlot', filters.timeSlot);
+    if (filters.reputationMin > 0) p.set('reputationMin', String(filters.reputationMin));
     p.set('sort', filters.sort);
     p.set('limit', '20');
     return p.toString();
@@ -91,9 +109,7 @@ export function FindOpponentsPage() {
             <p className="text-xs font-bold tracking-wide text-ink-soft">Bộ lọc</p>
             <button
               type="button"
-              onClick={() =>
-                setFilters({ sport: null, region: '', skillLevelMin: 'any', sort: 'newest' })
-              }
+              onClick={() => setFilters({ sport: null, ...EMPTY_FILTERS })}
               className="text-xs font-semibold text-ink-soft transition hover:text-ink"
             >
               Đặt lại
@@ -138,6 +154,22 @@ export function FindOpponentsPage() {
                 />
               </label>
 
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold tracking-wide text-ink-soft">
+                  Sân
+                </span>
+                <input
+                  type="text"
+                  value={filters.venue}
+                  onChange={(e) => setFilters({ ...filters, venue: e.target.value })}
+                  placeholder="Sân Bách Khoa, Nhà thi đấu..."
+                  className="input"
+                  maxLength={120}
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <p className="mb-2 text-xs font-semibold tracking-wide text-ink-soft">
                   Trình độ tối thiểu
@@ -160,6 +192,54 @@ export function FindOpponentsPage() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold tracking-wide text-ink-soft">Buổi</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <FilterPill
+                    active={filters.timeSlot === 'any'}
+                    onClick={() => setFilters({ ...filters, timeSlot: 'any' })}
+                    label="Bất kỳ"
+                    compact
+                  />
+                  {TIME_SLOTS.map((slot) => (
+                    <FilterPill
+                      key={slot}
+                      active={filters.timeSlot === slot}
+                      onClick={() => setFilters({ ...filters, timeSlot: slot })}
+                      label={TIME_SLOT_LABELS[slot]}
+                      title={`${TIME_SLOT_LABELS[slot]} · ${TIME_SLOT_HINTS[slot]}`}
+                      compact
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold tracking-wide text-ink-soft">
+                Uy tín tối thiểu
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <FilterPill
+                  active={filters.reputationMin === 0}
+                  onClick={() => setFilters({ ...filters, reputationMin: 0 })}
+                  label="Bất kỳ"
+                  compact
+                />
+                {REPUTATION_STEPS.map((step) => (
+                  <FilterPill
+                    key={step}
+                    active={filters.reputationMin === step}
+                    onClick={() => setFilters({ ...filters, reputationMin: step })}
+                    label={`${step.toFixed(1)} sao trở lên`}
+                    compact
+                  />
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-ink-soft">
+                Đội chưa ai đánh giá tính là 0 sao nên sẽ bị lọc ra.
+              </p>
             </div>
 
             <SortSelect
@@ -211,17 +291,20 @@ function FilterPill({
   active,
   onClick,
   label,
+  title,
   compact = false,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  title?: string;
   compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className={`inline-flex items-center border font-semibold transition ${
         compact ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-sm'
       } ${
@@ -279,6 +362,7 @@ function MatchCard({ req }: { req: MatchRequestSummary }) {
 
         <div className="mt-4 flex flex-wrap gap-2 border-t border-ink/10 pt-3">
           {req.skillLevelMin && <Tag>≥ {SKILL_LEVEL_LABELS[req.skillLevelMin]}</Tag>}
+          {req.timeSlot && <Tag>Buổi {TIME_SLOT_LABELS[req.timeSlot].toLowerCase()}</Tag>}
           {req.venueName && <Tag>Sân · {req.venueName}</Tag>}
           <Tag>{req.challengeCount} thách đấu</Tag>
           {req.status !== 'open' && (

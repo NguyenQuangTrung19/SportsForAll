@@ -1,25 +1,32 @@
 import {
   SKILL_LEVEL_LABELS,
+  type DashboardResponse,
+  type IncomingChallengeItem,
   type MatchRequestListResponse,
   type MatchRequestSummary,
-  type LookingForTeamListResponse,
+  type NextMatchView,
+  type PendingJoinRequestItem,
+  type ProfileResponse,
   type RecruitmentListResponse,
   type RecruitmentPostSummary,
   type SportSlug,
   type TeamSummary,
 } from '@sfa/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { NotificationBell } from '@/components/NotificationBell';
 import { Avatar } from '@/components/Avatar';
+import { NotificationBell } from '@/components/NotificationBell';
 import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
 
+const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
 export function HomePage() {
+  const queryClient = useQueryClient();
   const { sports, sportOf } = useSports();
   const current = useSportStore((s) => s.current);
   const setCurrent = useSportStore((s) => s.setCurrent);
@@ -36,33 +43,11 @@ export function HomePage() {
     year: 'numeric',
   });
 
-  const postsQuery = useQuery({
-    queryKey: ['recruitment', 'home', current],
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard'],
     queryFn: async () => {
-      const { data } = await api.get<RecruitmentListResponse>(
-        `/recruitment/posts?sport=${current}&limit=4`,
-      );
-      return data.items;
-    },
-  });
-
-  const matchRequestsQuery = useQuery({
-    queryKey: ['matches', 'home', current],
-    queryFn: async () => {
-      const { data } = await api.get<MatchRequestListResponse>(
-        `/matches/requests?sport=${current}&limit=4`,
-      );
-      return data.items;
-    },
-  });
-
-  const seekersQuery = useQuery({
-    queryKey: ['looking-for-team', 'home', current],
-    queryFn: async () => {
-      const { data } = await api.get<LookingForTeamListResponse>(
-        `/looking-for-team?sport=${current}&limit=4`,
-      );
-      return data.items;
+      const { data } = await api.get<DashboardResponse>('/dashboard');
+      return data;
     },
   });
 
@@ -74,33 +59,93 @@ export function HomePage() {
     },
   });
 
-  const myMatchesQuery = useQuery({
-    queryKey: ['matches', 'my'],
+  const profileQuery = useQuery({
+    queryKey: ['profile'],
     queryFn: async () => {
-      const { data } = await api.get<{ matches: { id: string }[] }>('/matches/my');
-      return data.matches;
+      const { data } = await api.get<ProfileResponse>('/profile');
+      return data;
     },
   });
 
-  const feed = useMemo(() => {
-    const posts = (postsQuery.data ?? []).map((p) => ({
-      kind: 'post' as const,
-      id: p.id,
-      createdAt: p.createdAt,
-      data: p,
-    }));
-    const reqs = (matchRequestsQuery.data ?? []).map((r) => ({
-      kind: 'match' as const,
-      id: r.id,
-      createdAt: r.createdAt,
-      data: r,
-    }));
-    return [...posts, ...reqs].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 6);
-  }, [postsQuery.data, matchRequestsQuery.data]);
+  const openMatchesQuery = useQuery({
+    queryKey: ['matches', 'open', current],
+    queryFn: async () => {
+      const { data } = await api.get<MatchRequestListResponse>(
+        `/matches/requests?sport=${current}&limit=6`,
+      );
+      return data.items;
+    },
+  });
 
-  const opportunityCount = (postsQuery.data?.length ?? 0) + (matchRequestsQuery.data?.length ?? 0);
-  const teamsCount = teamsQuery.data?.length ?? 0;
-  const matchesCount = myMatchesQuery.data?.length ?? 0;
+  const postsQuery = useQuery({
+    queryKey: ['recruitment', 'home', current],
+    queryFn: async () => {
+      const { data } = await api.get<RecruitmentListResponse>(
+        `/recruitment/posts?sport=${current}&limit=3`,
+      );
+      return data.items;
+    },
+  });
+
+  /** Thách đấu chính đội mình thì không mời được — bỏ khỏi danh sách "đang tìm đối". */
+  const openMatches = useMemo(
+    () => (openMatchesQuery.data ?? []).filter((r) => !r.viewerOwns).slice(0, 3),
+    [openMatchesQuery.data],
+  );
+
+  const dashboard = dashboardQuery.data;
+  const teams = teamsQuery.data ?? [];
+
+  /**
+   * Hồ sơ chưa khai vị trí ở môn đang xem thì đội khó tìm thấy — nhắc ngay trong
+   * khối việc cần xử lý. Đây là việc phía client tự suy ra, không nằm trong
+   * `actionCount` của API.
+   */
+  const missingPosition =
+    profileQuery.data != null &&
+    !profileQuery.data.sportPreferences.some((p) => p.sport === current && p.position);
+
+  const actionCount = (dashboard?.actionCount ?? 0) + (missingPosition ? 1 : 0);
+
+  /** Đội đầu tiên mình làm captain/phó — nơi dẫn tới khi bấm "Đăng tin tìm đối". */
+  const managedTeam = teams.find(
+    (t) => t.viewerRole === 'captain' || t.viewerRole === 'co_captain',
+  );
+  const postMatchTo = managedTeam ? `/teams/${managedTeam.id}/match-requests/new` : '/teams';
+
+  const invalidateActions = () => {
+    void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  };
+
+  const joinRequestMutation = useMutation({
+    mutationFn: async ({ id, decision }: { id: string; decision: 'accept' | 'reject' }) => {
+      await api.post(`/recruitment/requests/${id}/${decision}`);
+    },
+    onSuccess: () => {
+      invalidateActions();
+      void queryClient.invalidateQueries({ queryKey: ['teams'] });
+    },
+  });
+
+  const challengeMutation = useMutation({
+    mutationFn: async ({ id, decision }: { id: string; decision: 'accept' | 'reject' }) => {
+      await api.post(`/matches/challenges/${id}/${decision}`);
+    },
+    onSuccess: () => {
+      invalidateActions();
+      void queryClient.invalidateQueries({ queryKey: ['matches'] });
+    },
+  });
+
+  const attendanceMutation = useMutation({
+    mutationFn: async ({ matchId, going }: { matchId: string; going: boolean }) => {
+      await api.post(`/matches/${matchId}/attendance`, { status: going ? 'going' : 'not_going' });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
 
   const selectSport = (slug: SportSlug) => {
     setCurrent(slug);
@@ -113,7 +158,6 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      {/* Top bar */}
       <header className="border-b border-ink/10 bg-paper/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
           <Link to="/dashboard" className="flex items-baseline gap-2">
@@ -143,490 +187,738 @@ export function HomePage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
-        {/* Hero strip — poster-style */}
-        <section className="fade-up">
-          <p className="font-mono text-[11px] font-medium text-ink-soft">{todayLabel}</p>
-          <h1 className="mt-4 font-display text-[clamp(48px,9vw,108px)] leading-[0.98] tracking-tight">
-            Chào,
-            <br />
-            <span className="text-primary-dark">{givenName}.</span>
-          </h1>
-          <div className="mt-6 h-[3px] origin-left bg-ink animate-draw-line" aria-hidden />
-
-          <div className="mt-6 grid items-end gap-6 md:grid-cols-12">
-            <div className="md:col-span-8">
-              <p className="max-w-xl text-base leading-relaxed text-ink-soft md:text-lg">
-                {opportunityCount > 0
-                  ? `Cộng đồng ${theme.nameVi} ở Hà Nội đang mở ${opportunityCount} cơ hội. Sẵn sàng cho trận tiếp theo?`
-                  : `Chưa có cơ hội cho ${theme.nameVi} hôm nay. Tạo đội và đăng tin để khởi động.`}
-              </p>
-            </div>
-            <div className="md:col-span-4 md:text-right">
-              <div className="poster-num text-7xl text-ink md:text-8xl">
-                {String(opportunityCount).padStart(2, '0')}
-              </div>
-              <p className="mt-1 text-xs font-semibold tracking-wide text-ink-soft">Cơ hội mở</p>
-            </div>
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        {/* Tiêu đề ngày */}
+        <section className="fade-up flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="text-[13px] font-semibold text-ink-soft">{todayLabel} · Hà Nội</p>
+            <h1 className="mt-2 font-display text-[clamp(32px,5vw,44px)] font-black leading-none tracking-tight">
+              Hôm nay của {givenName}
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {actionCount > 0 && (
+              <span className="inline-flex items-center gap-2 border border-ink/15 bg-white px-4 py-2.5 text-[13px] font-semibold">
+                <span aria-hidden className="size-2 bg-rust" />
+                {actionCount} việc cần xử lý
+              </span>
+            )}
+            <Link to={postMatchTo} className="btn-primary">
+              Đăng tin tìm đối <span aria-hidden>→</span>
+            </Link>
           </div>
         </section>
 
-        {/* Sport selector — horizontal ribbon */}
-        <section className="mt-12 fade-up stagger-2">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-sm font-bold tracking-wide text-ink-soft">Môn đang xem</h2>
-            <span className="hidden text-xs text-ink-soft/70 md:inline">
-              Chuyển môn để xem dữ liệu khác
-            </span>
-          </div>
-          <div className="-mx-1 flex flex-wrap gap-2">
-            {sports.map(({ slug }) => {
-              const t = sportOf(slug);
-              const isActive = slug === current;
-              return (
-                <button
-                  key={slug}
-                  type="button"
-                  onClick={() => selectSport(slug)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold transition ${
-                    isActive
-                      ? 'border border-ink bg-ink text-paper'
-                      : 'border border-ink/15 bg-white text-ink hover:border-ink'
-                  }`}
+        <div className="mt-6 h-[3px] origin-left bg-ink animate-draw-line" aria-hidden />
+
+        {/* Tầng 1 — trận kế tiếp + việc cần xử lý */}
+        <section className="mt-8 grid items-start gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            {dashboard?.nextMatch ? (
+              <NextMatchCard
+                match={dashboard.nextMatch}
+                onAttend={(going) =>
+                  attendanceMutation.mutate({ matchId: dashboard.nextMatch!.id, going })
+                }
+                pending={attendanceMutation.isPending}
+              />
+            ) : (
+              <div className="surface-ink l-pitchgrid p-8">
+                <p className="text-[13px] font-bold text-paper/70">Trận kế tiếp của bạn</p>
+                <p className="mt-4 font-display text-3xl font-black leading-tight tracking-tight">
+                  Chưa có trận nào được chốt lịch.
+                </p>
+                <p className="mt-2 text-[15px] text-paper/75">
+                  Nhận lời thách đấu hoặc đăng tin tìm đối để xếp trận đầu tiên.
+                </p>
+                <Link
+                  to="/find-opponents"
+                  className="mt-6 inline-flex items-center gap-2 bg-lime px-6 py-3.5 text-sm font-extrabold text-ink"
                 >
-                  <span aria-hidden className="text-base leading-none">
-                    <SportIcon sport={t.slug} className="size-[1em]" />
-                  </span>
-                  <span>{t.nameVi}</span>
-                </button>
-              );
-            })}
+                  Xem đội đang tìm đối <span aria-hidden>→</span>
+                </Link>
+              </div>
+            )}
           </div>
-        </section>
 
-        {/* Main grid */}
-        <section className="mt-12 grid gap-8 lg:grid-cols-12">
-          {/* Feed */}
-          <div className="lg:col-span-8">
-            <header className="flex items-baseline justify-between border-b-2 border-ink pb-3">
-              <h2 className="font-display text-3xl font-black leading-none tracking-tight md:text-4xl">
-                Cơ hội đang mở
+          <div className="lg:col-span-5">
+            <header className="flex items-baseline justify-between border-b-2 border-ink pb-2.5">
+              <h2 className="font-display text-2xl font-black leading-none tracking-tight">
+                Cần bạn xử lý
               </h2>
-              <span className="poster-num text-3xl text-primary-dark md:text-4xl">
-                {String(opportunityCount).padStart(2, '0')}
+              <span className="poster-num text-2xl text-rust">
+                {String(actionCount).padStart(2, '0')}
               </span>
             </header>
 
-            {(postsQuery.isLoading || matchRequestsQuery.isLoading) && feed.length === 0 ? (
-              <p className="mt-6 text-sm text-ink-soft">Đang tải...</p>
-            ) : feed.length === 0 ? (
-              <div className="mt-6 border border-dashed border-ink/25 bg-white p-10 text-center">
-                <p className="font-display text-2xl font-black leading-tight tracking-tight">
-                  Chưa có cơ hội cho {theme.nameVi}.
+            <div className="mt-4 space-y-4">
+              {dashboard?.pendingJoinRequests.map((r) => (
+                <JoinRequestCard
+                  key={r.id}
+                  item={r}
+                  onDecide={(decision) => joinRequestMutation.mutate({ id: r.id, decision })}
+                  pending={joinRequestMutation.isPending}
+                />
+              ))}
+
+              {dashboard?.incomingChallenges.map((c) => (
+                <ChallengeCard
+                  key={c.id}
+                  item={c}
+                  onDecide={(decision) => challengeMutation.mutate({ id: c.id, decision })}
+                  pending={challengeMutation.isPending}
+                />
+              ))}
+
+              {missingPosition && (
+                <div className="flex items-center gap-3 border border-ink/12 bg-white p-4">
+                  <span aria-hidden className="size-2 shrink-0 bg-rust" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-bold">Hồ sơ thiếu vị trí sở trường</p>
+                    <p className="mt-0.5 text-xs text-ink-soft">
+                      Điền để đội dễ tìm thấy bạn ở môn {theme.nameVi}
+                    </p>
+                  </div>
+                  <Link to="/profile" className="shrink-0 text-[13px] font-bold hover:underline">
+                    Điền ngay →
+                  </Link>
+                </div>
+              )}
+
+              {actionCount === 0 && !dashboardQuery.isLoading && (
+                <p className="border border-dashed border-ink/25 bg-white p-8 text-center text-sm text-ink-soft">
+                  Không có việc nào chờ bạn. Cứ yên tâm đi đá.
                 </p>
-                <p className="mt-2 text-sm text-ink-soft">
-                  Tạo đội và đăng bài tuyển hoặc tìm đối thủ để khởi động.
-                </p>
-                <Link to="/teams" className="btn-primary mt-5">
-                  Đến đội của tôi <span aria-hidden>→</span>
-                </Link>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Tầng 2 — trận còn khuyết một bên */}
+        <section className="mt-14">
+          <header className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3">
+            <div>
+              <p className="text-[13px] font-bold text-ink-soft">
+                Các trận còn khuyết một bên · {theme.nameVi}
+              </p>
+              <h2 className="mt-1.5 font-display text-3xl font-black leading-none tracking-tight md:text-[34px]">
+                Trận đang tìm đối
+              </h2>
+            </div>
+            <div className="flex items-center gap-5">
+              <Link to="/find-opponents" className="text-sm font-bold hover:underline">
+                Xem tất cả →
+              </Link>
+              <span className="poster-num text-3xl text-primary-dark md:text-[34px]">
+                {String(openMatches.length).padStart(2, '0')}
+              </span>
+            </div>
+          </header>
+
+          {openMatchesQuery.isLoading ? (
+            <p className="mt-6 text-sm text-ink-soft">Đang tải...</p>
+          ) : openMatches.length === 0 ? (
+            <p className="mt-5 border border-dashed border-ink/25 bg-white p-10 text-center text-sm text-ink-soft">
+              Chưa đội nào đăng tìm đối ở môn {theme.nameVi}. Đăng trận của bạn để mở màn.
+            </p>
+          ) : (
+            <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {openMatches.map((req) => (
+                <OpenMatchCard key={req.id} req={req} />
+              ))}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap items-center gap-4 border border-dashed border-ink/25 bg-paper-2/40 p-5">
+            <span
+              aria-hidden
+              className="flex size-10 shrink-0 items-center justify-center border-2 border-dashed border-ink/30 text-ink-soft"
+            >
+              <PlusIcon />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-extrabold tracking-tight">
+                Đội bạn cũng đang rảnh cuối tuần?
+              </p>
+              <p className="mt-0.5 text-[13px] text-ink-soft">
+                Đăng một trận và để đội khác tìm đến bạn.
+              </p>
+            </div>
+            <Link to={postMatchTo} className="btn-ghost shrink-0 bg-white">
+              Đăng tin tìm đối <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </section>
+
+        {/* Tầng 3 — tuyển quân + đội của tôi */}
+        <section className="mt-14 grid items-start gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <header className="flex flex-wrap items-end justify-between gap-3 border-b-2 border-ink pb-2.5">
+              <h2 className="font-display text-2xl font-black leading-none tracking-tight">
+                Đội đang cần người
+              </h2>
+              <div className="flex flex-wrap gap-1.5">
+                {sports.map(({ slug, nameVi }) => (
+                  <button
+                    key={slug}
+                    type="button"
+                    onClick={() => selectSport(slug)}
+                    className={`px-3 py-1.5 text-xs font-semibold transition ${
+                      slug === current
+                        ? 'bg-ink font-bold text-paper'
+                        : 'border border-ink/15 bg-white text-ink-soft hover:border-ink hover:text-ink'
+                    }`}
+                  >
+                    {nameVi}
+                  </button>
+                ))}
               </div>
+            </header>
+
+            {postsQuery.isLoading ? (
+              <p className="mt-6 text-sm text-ink-soft">Đang tải...</p>
+            ) : (postsQuery.data?.length ?? 0) === 0 ? (
+              <p className="mt-5 border border-dashed border-ink/25 bg-white p-10 text-center text-sm text-ink-soft">
+                Chưa có đội nào tuyển quân ở môn {theme.nameVi}.
+              </p>
             ) : (
               <ul className="mt-2 divide-y divide-ink/10">
-                {feed.map((entry) =>
-                  entry.kind === 'post' ? (
-                    <RecruitmentRow key={`p-${entry.id}`} post={entry.data} />
-                  ) : (
-                    <MatchRow key={`m-${entry.id}`} req={entry.data} />
-                  ),
-                )}
+                {postsQuery.data?.map((post) => (
+                  <RecruitmentRow key={post.id} post={post} />
+                ))}
               </ul>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-ink/10 pt-4">
-              <Link to="/find-teammates" className="text-sm font-semibold text-ink hover:underline">
+            <div className="mt-5 flex flex-wrap items-center gap-6">
+              <Link to="/find-teammates" className="text-sm font-bold hover:underline">
                 Tất cả bài tuyển →
               </Link>
-              <Link to="/find-opponents" className="text-sm font-semibold text-ink hover:underline">
-                Tất cả thách đấu →
-              </Link>
-              <Link
-                to="/looking-for-team"
-                className="text-sm font-semibold text-ink hover:underline"
-              >
-                Người tìm đội →
+              <Link to="/looking-for-team" className="text-sm font-bold hover:underline">
+                Người đang tìm đội →
               </Link>
             </div>
           </div>
 
-          {/* Right rail */}
-          <aside className="space-y-8 lg:col-span-4">
-            {/* Ca nhan dang tim doi (FR-004.3) */}
-            <article className="border border-ink/12 bg-white p-6">
-              <header className="flex items-baseline justify-between gap-3">
-                <h2 className="font-display text-lg font-black tracking-tight">Đang tìm đội</h2>
-                <Link
-                  to="/looking-for-team"
-                  className="text-xs font-semibold text-ink-soft transition hover:text-ink"
-                >
-                  Xem tất cả →
-                </Link>
-              </header>
-
-              {seekersQuery.isLoading ? (
-                <p className="mt-4 text-sm text-ink-soft">Đang tải...</p>
-              ) : (seekersQuery.data?.length ?? 0) === 0 ? (
-                <p className="mt-4 text-sm text-ink-soft">Chưa có ai đăng tìm đội ở môn này.</p>
-              ) : (
-                <ul className="mt-4 divide-y divide-ink/10">
-                  {seekersQuery.data?.map((s) => (
-                    <li key={s.id} className="flex items-start gap-3 py-3">
-                      <Avatar name={s.author.displayName} src={s.author.avatarUrl} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-ink">
-                          {s.author.displayName}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-ink-soft">
-                          {[s.position, s.region].filter(Boolean).join(' · ') || s.description}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-
-            {/* Player stats */}
-            <article className="border border-ink/12 bg-white p-6">
-              <header className="flex items-start gap-3">
-                <div className="sport-block h-12 w-12 shrink-0 text-2xl" aria-hidden>
-                  <SportIcon sport={theme.slug} className="size-[1em]" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold tracking-wide text-ink-soft">
-                    {user?.email ?? ''}
-                  </p>
-                  <p className="mt-1 truncate font-display text-2xl font-black leading-none tracking-tight">
-                    {user?.displayName ?? '—'}
-                  </p>
-                </div>
-              </header>
-              <dl className="mt-6 grid grid-cols-3 gap-4 border-t border-ink/10 pt-5">
-                <StatCell n={String(matchesCount)} label="Trận" />
-                <StatCell n={String(teamsCount)} label="Đội" />
-                <StatCell n="—" label="Rating" />
-              </dl>
-              <Link to="/profile" className="btn-ghost mt-5 w-full">
-                Quản lý hồ sơ <span aria-hidden>→</span>
-              </Link>
-            </article>
-          </aside>
-        </section>
-
-        {/* Quick actions — full-width tile grid */}
-        <section className="mt-14">
-          <header className="mb-5 flex items-end justify-between gap-4 border-b-2 border-ink pb-3">
-            <div>
-              <p className="text-xs font-bold tracking-wide text-ink-soft">Lối tắt</p>
-              <h2 className="mt-1 font-display text-3xl leading-none tracking-tight md:text-4xl">
-                Đi đến đâu?
+          <aside className="lg:col-span-5">
+            <header className="flex items-baseline justify-between border-b-2 border-ink pb-2.5">
+              <h2 className="font-display text-2xl font-black leading-none tracking-tight">
+                Đội của tôi
               </h2>
-            </div>
-            <span className="poster-num text-3xl text-primary-dark md:text-4xl">04</span>
-          </header>
+              <span className="poster-num text-2xl text-primary-dark">
+                {String(teams.length).padStart(2, '0')}
+              </span>
+            </header>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ShortcutTile
-              num="01"
-              title="Tìm đồng đội"
-              desc="Duyệt bài tuyển từ các đội đang cần thành viên."
-              to="/find-teammates"
-              Icon={UsersIcon}
-            />
-            <ShortcutTile
-              num="02"
-              title="Tìm đối thủ"
-              desc="Xem lời mời thách đấu, gửi đội bạn đi tham gia."
-              to="/find-opponents"
-              Icon={SwordsIcon}
-            />
-            <ShortcutTile
-              num="03"
-              title="Quản lý đội"
-              desc="Đội của tôi, thành viên, lịch sử trận đấu."
-              to="/teams"
-              Icon={ShieldIcon}
-            />
-            <ShortcutTile
-              num="04"
-              title="Người tìm đội"
-              desc="Cá nhân đang muốn gia nhập một đội."
-              to="/looking-for-team"
-              Icon={UserIcon}
-            />
-            <ShortcutTile
-              num="05"
-              title="Hồ sơ cá nhân"
-              desc="Cập nhật trình độ, vị trí, khu vực."
-              to="/profile"
-              Icon={UserIcon}
-            />
-            {user?.role === 'admin' && (
-              <ShortcutTile
-                num="06"
-                title="Quản trị · Ảnh"
-                desc="Thay ảnh nền trang giới thiệu."
-                to="/admin/landing"
-                Icon={ShieldIcon}
-              />
-            )}
-          </div>
+            <div className="mt-4 space-y-4">
+              {teams.length === 0 ? (
+                <div className="border border-dashed border-ink/25 bg-white p-8 text-center">
+                  <p className="text-sm text-ink-soft">Bạn chưa thuộc đội nào.</p>
+                  <Link to="/teams/new" className="btn-primary mt-4">
+                    Tạo đội <span aria-hidden>→</span>
+                  </Link>
+                </div>
+              ) : (
+                teams.map((team) => <TeamRow key={team.id} team={team} />)
+              )}
+
+              <WeekStrip nextMatchAt={dashboard?.nextMatch?.scheduledAt ?? null} />
+            </div>
+          </aside>
         </section>
       </main>
 
       <footer className="border-t border-ink/10 bg-paper">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 md:flex-row md:items-center md:justify-between">
-          <p className="font-mono text-xs text-ink-soft">SportsForAll · 2026</p>
-          <p className="font-mono text-xs text-ink-soft">{user?.email}</p>
+          <p className="text-xs text-ink-soft">SportsForAll · 2026</p>
+          <p className="text-xs text-ink-soft">{user?.email}</p>
         </div>
       </footer>
     </div>
   );
 }
 
-function StatCell({ n, label }: { n: string; label: string }) {
+/* -------------------------------------------------------------------------- */
+/* Tầng 1                                                                     */
+/* -------------------------------------------------------------------------- */
+
+function NextMatchCard({
+  match,
+  onAttend,
+  pending,
+}: {
+  match: NextMatchView;
+  onAttend: (going: boolean) => void;
+  pending: boolean;
+}) {
+  const squad = match.attendance.going + match.attendance.notGoing + match.attendance.pending;
+  const countdown = daysUntil(match.scheduledAt);
+
   return (
-    <div>
-      <p className="poster-num text-4xl text-ink">{n}</p>
-      <p className="mt-1 text-xs font-semibold tracking-wide text-ink-soft">{label}</p>
+    <article className="surface-ink l-pitchgrid flex flex-col gap-6 p-8">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[13px] font-bold text-paper/70">Trận kế tiếp của bạn</p>
+        {countdown !== null && (
+          <span className="bg-lime px-3 py-1.5 text-xs font-extrabold text-ink">
+            {countdown === 0 ? 'Hôm nay' : countdown === 1 ? 'Ngày mai' : `Còn ${countdown} ngày`}
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-5">
+        <TeamPole team={match.myTeam} caption="Đội của bạn" highlight />
+        <span className="poster-num text-3xl text-lime">VS</span>
+        <TeamPole team={match.opponent} caption="Đối thủ" />
+      </div>
+
+      <p className="flex items-center justify-center gap-2.5 border-t border-paper/20 pt-5 text-center text-[15px] text-paper/80">
+        <CalendarIcon />
+        {formatFullTime(match.scheduledAt)}
+        {match.venueName ? ` · Sân ${match.venueName}` : ''}
+      </p>
+
+      <dl className="grid grid-cols-3 gap-5">
+        <DarkStat n={match.attendance.going} label="Đã báo có mặt" accent />
+        <DarkStat n={match.attendance.pending} label="Chưa trả lời" accent />
+        <DarkStat n={squad} label="Sĩ số đội" />
+      </dl>
+
+      <div className="flex flex-wrap gap-2.5">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onAttend(match.attendance.mine !== 'going')}
+          className="bg-lime px-6 py-3.5 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 disabled:opacity-50"
+        >
+          {match.attendance.mine === 'going' ? 'Đã báo có mặt ✓' : 'Báo có mặt'}
+        </button>
+        <Link
+          to={match.matchRequestId ? `/match-requests/${match.matchRequestId}` : '/teams'}
+          className="border border-paper/35 px-6 py-3.5 text-sm font-semibold text-paper transition hover:bg-paper/10"
+        >
+          Chi tiết trận
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function TeamPole({
+  team,
+  caption,
+  highlight = false,
+}: {
+  team: NextMatchView['myTeam'];
+  caption: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2.5">
+      <span
+        aria-hidden
+        className={`flex size-16 items-center justify-center text-3xl ${
+          highlight ? 'text-white' : 'bg-paper/12 text-paper'
+        }`}
+        style={highlight ? { backgroundColor: 'rgb(var(--color-primary))' } : undefined}
+      >
+        <SportIcon sport={team.sport} className="size-[1em]" />
+      </span>
+      <p className="text-center font-display text-[22px] font-black leading-tight tracking-tight">
+        {team.name}
+      </p>
+      <p className="text-xs font-semibold text-paper/60">{caption}</p>
     </div>
   );
 }
 
-function ShortcutTile({
-  num,
-  title,
-  desc,
-  to,
-  Icon,
+function DarkStat({ n, label, accent = false }: { n: number; label: string; accent?: boolean }) {
+  return (
+    <div>
+      <p className={`poster-num text-[34px] ${accent ? 'text-lime' : 'text-paper'}`}>
+        {String(n).padStart(2, '0')}
+      </p>
+      <p className="mt-1.5 text-xs font-semibold text-paper/70">{label}</p>
+    </div>
+  );
+}
+
+function JoinRequestCard({
+  item,
+  onDecide,
+  pending,
 }: {
-  num: string;
-  title: string;
-  desc: string;
-  to: string;
-  Icon: () => JSX.Element;
+  item: PendingJoinRequestItem;
+  onDecide: (decision: 'accept' | 'reject') => void;
+  pending: boolean;
 }) {
+  const meta = [item.positionNeeded, item.skillLevel ? SKILL_LEVEL_LABELS[item.skillLevel] : null]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <article className="relative border border-ink/12 bg-white p-[18px] shadow-[4px_4px_0_rgba(11,46,34,0.08)]">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-rust" />
+      <div className="flex items-center gap-3">
+        <Avatar name={item.applicant.displayName} src={item.applicant.avatarUrl} size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-bold">
+            {item.applicant.displayName} xin vào {item.team.name}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">
+            {[meta, timeAgo(item.createdAt)].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3.5 flex gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onDecide('accept')}
+          className="bg-ink px-5 py-2.5 text-[13px] font-bold text-paper transition hover:bg-ink/92 disabled:opacity-50"
+        >
+          Duyệt
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onDecide('reject')}
+          className="border border-ink/25 px-5 py-2.5 text-[13px] font-semibold transition hover:border-ink disabled:opacity-50"
+        >
+          Từ chối
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function ChallengeCard({
+  item,
+  onDecide,
+  pending,
+}: {
+  item: IncomingChallengeItem;
+  onDecide: (decision: 'accept' | 'reject') => void;
+  pending: boolean;
+}) {
+  const meta = [
+    item.preferredTime ? formatShortTime(item.preferredTime) : null,
+    item.venueName ? `Sân ${item.venueName}` : null,
+    item.region,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <article className="relative border border-ink/12 bg-white p-[18px] shadow-[4px_4px_0_rgba(11,46,34,0.08)]">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-rust" />
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="sport-block flex size-10 shrink-0 items-center justify-center text-xl"
+        >
+          <SportIcon sport={item.challengerTeam.sport} className="size-[1em]" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-bold">
+            {item.challengerTeam.name} thách đấu {item.myTeam.name}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">{meta || 'Chưa chốt thời gian'}</p>
+        </div>
+      </div>
+      <div className="mt-3.5 flex gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onDecide('accept')}
+          className="bg-ink px-5 py-2.5 text-[13px] font-bold text-paper transition hover:bg-ink/92 disabled:opacity-50"
+        >
+          Nhận lời
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onDecide('reject')}
+          className="border border-ink/25 px-5 py-2.5 text-[13px] font-semibold transition hover:border-ink disabled:opacity-50"
+        >
+          Bỏ qua
+        </button>
+      </div>
+    </article>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tầng 2 — thẻ trận còn khuyết một bên                                       */
+/* -------------------------------------------------------------------------- */
+
+function OpenMatchCard({ req }: { req: MatchRequestSummary }) {
+  const when = req.preferredTime ? new Date(req.preferredTime) : null;
+
   return (
     <Link
-      to={to}
-      className="group relative block overflow-hidden border border-ink/15 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-ink hover:shadow-[6px_6px_0_rgba(15,17,21,0.12)] focus-visible:-translate-y-1 focus-visible:border-ink focus-visible:shadow-[6px_6px_0_rgba(15,17,21,0.12)] focus-visible:outline-none"
+      to={`/match-requests/${req.id}`}
+      className="group relative flex flex-col gap-[18px] border border-ink/12 bg-white p-[22px] transition hover:-translate-y-1 hover:shadow-[6px_6px_0_rgba(11,46,34,0.12)]"
     >
-      {/* Top accent bar — animates in on hover */}
-      <span
-        className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-primary transition-transform duration-300 group-hover:scale-x-100 group-focus-visible:scale-x-100"
-        aria-hidden
-      />
+      <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-primary" />
 
-      <div className="flex items-start justify-between">
-        <span className="poster-num text-5xl text-ink-soft transition-colors duration-200 group-hover:text-primary-dark group-focus-visible:text-primary-dark">
-          {num}
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="poster-num text-3xl">
+          {when
+            ? when.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+            : 'Chưa chốt'}
         </span>
-        <span
-          className="flex size-9 items-center justify-center border border-ink/15 bg-paper-2/40 text-ink-soft transition-colors duration-200 group-hover:border-ink group-hover:bg-ink group-hover:text-paper group-focus-visible:border-ink group-focus-visible:bg-ink group-focus-visible:text-paper"
-          aria-hidden
-        >
-          <Icon />
-        </span>
-      </div>
-
-      <p className="mt-5 font-display text-2xl leading-tight tracking-tight">{title}</p>
-      <p className="mt-1 text-sm leading-snug text-ink-soft">{desc}</p>
-
-      <div className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-ink">
-        <span>Mở</span>
-        <span
-          aria-hidden
-          className="inline-block transition-transform duration-200 group-hover:translate-x-1 group-focus-visible:translate-x-1"
-        >
-          →
+        <span className="text-[13px] font-bold text-ink-soft">
+          {when
+            ? when.toLocaleDateString('vi-VN', {
+                weekday: 'short',
+              }) +
+              ' · ' +
+              when.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+            : 'Thoả thuận sau'}
         </span>
       </div>
+
+      {/* Cặp đấu khuyết một bên: ô gạch đứt chính là chỗ của đội người xem. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+        <div className="flex flex-col items-center gap-2">
+          <span
+            aria-hidden
+            className="sport-block flex size-12 items-center justify-center text-2xl text-white"
+          >
+            <SportIcon sport={req.sport} className="size-[1em]" />
+          </span>
+          <span className="text-center text-[15px] font-extrabold leading-tight tracking-tight">
+            {req.team.name}
+          </span>
+        </div>
+        <span className="poster-num text-lg text-ink-soft">VS</span>
+        <div className="flex flex-col items-center gap-2">
+          <span
+            aria-hidden
+            className="flex size-12 items-center justify-center border-2 border-dashed border-ink/30 text-ink-soft transition group-hover:border-ink"
+          >
+            <PlusIcon />
+          </span>
+          <span className="text-center text-[15px] font-extrabold leading-tight tracking-tight text-ink-soft">
+            Còn trống
+          </span>
+        </div>
+      </div>
+
+      <p className="border-t border-ink/10 pt-3.5 text-[13px] text-ink-soft">
+        {[req.venueName ? `Sân ${req.venueName}` : null, req.region].filter(Boolean).join(' · ') ||
+          'Chưa chốt địa điểm'}
+        <br />
+        {req.skillLevelMin ? `Từ ${SKILL_LEVEL_LABELS[req.skillLevelMin]}` : 'Nhận mọi trình độ'}
+        {req.challengeCount > 0 ? ` · ${req.challengeCount} đội đã xin đấu` : ''}
+      </p>
+
+      <span className="bg-ink px-4 py-3.5 text-center text-sm font-bold text-paper">
+        Gửi lời thách đấu
+      </span>
     </Link>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Inline SVG icons for shortcut tiles                                        */
+/* Tầng 3                                                                     */
 /* -------------------------------------------------------------------------- */
 
-function UsersIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
+function RecruitmentRow({ post }: { post: RecruitmentPostSummary }) {
+  const meta = [
+    post.skillLevelMin ? `từ ${SKILL_LEVEL_LABELS[post.skillLevelMin]}` : null,
+    post.region,
+    timeAgo(post.createdAt),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
-function SwordsIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
-      <line x1="13" y1="19" x2="19" y2="13" />
-      <line x1="16" y1="16" x2="20" y2="20" />
-      <line x1="19" y1="21" x2="21" y2="19" />
-      <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
-      <line x1="5" y1="14" x2="9" y2="18" />
-      <line x1="7" y1="17" x2="4" y2="20" />
-      <line x1="3" y1="19" x2="5" y2="21" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function FeedRow({
-  to,
-  sport,
-  tag,
-  title,
-  meta,
-}: {
-  to: string;
-  sport: SportSlug;
-  tag: string;
-  title: string;
-  meta: string;
-}) {
-  const { sportOf } = useSports();
-  const t = sportOf(sport);
   return (
     <li>
-      <Link to={to} className="group flex items-stretch gap-5 py-5 transition hover:bg-paper-2/60">
-        <div
-          className="flex size-20 shrink-0 items-center justify-center text-3xl"
-          style={{ backgroundColor: t.primary, color: '#fff' }}
-          aria-hidden
-        >
-          <span style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}>
-            <SportIcon sport={t.slug} className="size-[1em]" />
-          </span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold tracking-wide text-ink-soft">
-            {tag} · {t.nameVi}
-          </p>
-          <p className="mt-1 truncate font-display text-2xl font-black leading-tight tracking-tight md:text-3xl">
-            {title}
-          </p>
-          <p className="mt-1 truncate text-sm text-ink-soft">{meta}</p>
-        </div>
+      <Link to={`/posts/${post.id}`} className="group flex items-center gap-4 py-4">
         <span
           aria-hidden
-          className="self-center text-2xl text-ink-soft/60 transition group-hover:translate-x-1 group-hover:text-ink"
+          className="sport-block flex size-14 shrink-0 items-center justify-center text-2xl text-white"
         >
-          →
+          <SportIcon sport={post.sport} className="size-[1em]" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-xl font-black leading-tight tracking-tight">
+            {post.team.name}
+            {post.positionNeeded ? ` · ${post.positionNeeded}` : ''}
+          </p>
+          <p className="mt-1 truncate text-[13px] text-ink-soft">{meta}</p>
+        </div>
+        <span className="shrink-0 border border-ink/25 px-4 py-2.5 text-[13px] font-bold transition group-hover:border-ink">
+          Xin vào đội →
         </span>
       </Link>
     </li>
   );
 }
 
-function RecruitmentRow({ post }: { post: RecruitmentPostSummary }) {
-  const parts: string[] = [];
-  if (post.positionNeeded) parts.push(`Vị trí ${post.positionNeeded}`);
-  if (post.skillLevelMin) parts.push(`≥ ${SKILL_LEVEL_LABELS[post.skillLevelMin]}`);
-  if (post.region) parts.push(post.region);
+function TeamRow({ team }: { team: TeamSummary }) {
+  const roleLabel =
+    team.viewerRole === 'captain'
+      ? 'Đội trưởng'
+      : team.viewerRole === 'co_captain'
+        ? 'Phó đội'
+        : 'Thành viên';
+
   return (
-    <FeedRow
-      to={`/posts/${post.id}`}
-      sport={post.sport}
-      tag="Tuyển thành viên"
-      title={post.team.name}
-      meta={parts.length > 0 ? parts.join(' · ') : 'Đang mở tuyển'}
-    />
+    <Link
+      to={`/teams/${team.id}`}
+      className="flex items-center gap-3.5 border border-ink/12 bg-white p-[18px] transition hover:border-ink"
+    >
+      <span
+        aria-hidden
+        className="sport-block flex size-12 shrink-0 items-center justify-center text-2xl text-white"
+      >
+        <SportIcon sport={team.sport} className="size-[1em]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-display text-xl font-black leading-tight tracking-tight">
+          {team.name}
+        </p>
+        <p className="mt-1 truncate text-[13px] text-ink-soft">
+          {[roleLabel, `${team.memberCount} thành viên`, team.region].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+    </Link>
   );
 }
 
-function MatchRow({ req }: { req: MatchRequestSummary }) {
-  const parts: string[] = [];
-  if (req.preferredTime) {
-    parts.push(
-      new Date(req.preferredTime).toLocaleString('vi-VN', {
-        weekday: 'short',
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    );
-  }
-  if (req.venueName) parts.push(`Sân ${req.venueName}`);
-  if (req.region) parts.push(req.region);
+/** Dải bảy ngày của tuần hiện tại; tô đậm hôm nay và ngày có trận. */
+function WeekStrip({ nextMatchAt }: { nextMatchAt: string | null }) {
+  const days = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const monday = new Date(today);
+    // getDay(): CN = 0. Đẩy về thứ Hai đầu tuần.
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  }, []);
+
+  const matchDay = nextMatchAt ? new Date(nextMatchAt) : null;
+  const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  const today = new Date();
+  const hasMatchThisWeek = matchDay != null && days.some((d) => sameDay(d, matchDay));
+
   return (
-    <FeedRow
-      to={`/match-requests/${req.id}`}
-      sport={req.sport}
-      tag="Thách đấu"
-      title={req.team.name}
-      meta={parts.length > 0 ? parts.join(' · ') : 'Đang tìm đối thủ'}
-    />
+    <div className="border-t border-ink/10 pt-[18px]">
+      <div className="flex items-baseline justify-between">
+        <p className="text-[13px] font-bold text-ink-soft">Tuần này</p>
+        <p className="text-xs text-ink-soft/75">
+          {hasMatchThisWeek ? '1 trận đã chốt' : 'Chưa có trận nào'}
+        </p>
+      </div>
+      <div className="mt-3 grid grid-cols-7 gap-1.5">
+        {days.map((d, i) => {
+          const isToday = sameDay(d, today);
+          const isMatch = matchDay != null && sameDay(d, matchDay);
+          return (
+            <div
+              key={d.toISOString()}
+              className={`flex flex-col items-center gap-1.5 py-2.5 ${
+                isMatch
+                  ? 'sport-block text-white'
+                  : isToday
+                    ? 'border border-ink bg-ink text-paper'
+                    : 'border border-ink/12 bg-white'
+              }`}
+            >
+              <span
+                className={`text-[11px] ${isMatch || isToday ? 'opacity-75' : 'text-ink-soft'}`}
+              >
+                {WEEKDAY_LABELS[i]}
+              </span>
+              <span className="poster-num text-base">{d.getDate()}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tiện ích                                                                   */
+/* -------------------------------------------------------------------------- */
+
+function daysUntil(iso: string | null): number | null {
+  if (!iso) return null;
+  const target = new Date(iso);
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+function formatFullTime(iso: string | null): string {
+  if (!iso) return 'Chưa chốt thời gian';
+  return new Date(iso).toLocaleString('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatShortTime(iso: string): string {
+  return new Date(iso).toLocaleString('vi-VN', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function timeAgo(iso: string): string {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (minutes < 60) return `${Math.max(1, minutes)} phút trước`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return 'hôm qua';
+  return `${days} ngày trước`;
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <rect x="3" y="5" width="18" height="16" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
   );
 }

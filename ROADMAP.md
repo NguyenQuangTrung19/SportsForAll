@@ -5,6 +5,8 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
+_Cập nhật lần cuối: 2026-08-21 — hoàn thành FR-005 (Tìm đối thủ)._
+
 ## Tổng quan
 
 | Nhóm                        | Xong   | Một phần | Chưa   | Tổng   |
@@ -13,19 +15,21 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 | FR-002 Hồ sơ cá nhân        | 11     | 1        | 0      | 12     |
 | FR-003 Môn thể thao & Theme | 6      | 0        | 0      | 6      |
 | FR-004 Trang chủ            | 8      | 0        | 1      | 9      |
-| FR-005 Tìm đối thủ          | 6      | 0        | 5      | 11     |
+| FR-005 Tìm đối thủ          | 11     | 0        | 0      | 11     |
 | FR-006 Tìm thành viên       | 8      | 0        | 1      | 9      |
-| FR-007 Quản lý đội          | 6      | 2        | 0      | 8      |
+| FR-007 Quản lý đội          | 7      | 1        | 0      | 8      |
 | FR-008 Quản lý sân bãi      | 0      | 0        | 9      | 9      |
-| FR-009 Thông báo            | 3      | 0        | 3      | 6      |
+| FR-009 Thông báo            | 4      | 0        | 2      | 6      |
 | FR-010 Quản trị hệ thống    | 1      | 0        | 7      | 8      |
-| **Tổng**                    | **52** | **4**    | **31** | **87** |
+| **Tổng**                    | **59** | **3**    | **25** | **87** |
 
-**FR-002 chỉ còn 1 mục** (điểm uy tín — chặn bởi model `Rating`).
+**FR-003** và **FR-005** đã xong 100%. **FR-007** hết mục `[ ]`, chỉ còn `[~]` 7.6 (lịch sử
+trận theo từng đội). **FR-006** còn đúng 1 mục là 6.8 (đội mời người chơi).
+**FR-002 chỉ còn 1 mục** (điểm uy tín cá nhân — model `Rating` chấm đội, chưa chấm người).
 **FR-004 chỉ còn 1 mục** (sân bãi — chặn bởi trọn bộ FR-008).
 
-Hai nhóm **FR-008** và **FR-010** vẫn chưa có dòng code nào — không model, không route.
-Đây là phần lớn nhất còn lại (17/32 mục chưa làm).
+**FR-008** vẫn chưa có dòng code nào và **FR-010** mới có 1/8 mục.
+Đây là phần lớn nhất còn lại (16/25 mục chưa làm).
 
 ---
 
@@ -56,9 +60,11 @@ Hai nhóm **FR-008** và **FR-010** vẫn chưa có dòng code nào — không m
 - [x] 2.9 Khu vực sinh sống
 - [x] 2.10 Đổi mật khẩu — _thu hồi toàn bộ refresh token đang sống_
 - [x] 2.11 Số điện thoại — _`phone` unique, validate 0xxxxxxxxx / +84xxxxxxxxx_
-- [~] 2.12 Điểm uy tín — _cột `reputation` tồn tại nhưng luôn bằng 0, chưa có nguồn tính_
+- [~] 2.12 Điểm uy tín — _uy tín **đội** đã tính từ `Rating`; uy tín **người** vẫn bằng 0 vì
+  phiếu chấm nhắm vào đội, chưa có quy tắc quy về từng cá nhân_
 
-> **Chặn:** 2.3 cần chỗ lưu file. 2.12 phụ thuộc FR-005.10 (đánh giá sau trận).
+> **Chặn:** 2.3 cần chỗ lưu file. 2.12 cần quyết định: uy tín cá nhân lấy trung bình các đội
+> mình thuộc về, hay cần một phiếu chấm riêng cho người chơi.
 
 ## FR-003 — Môn thể thao & Multi-theme
 
@@ -86,16 +92,25 @@ Hai nhóm **FR-008** và **FR-010** vẫn chưa có dòng code nào — không m
 ## FR-005 — Tìm đối thủ
 
 - [x] 5.1 Danh sách đội đang tìm trận
-- [ ] 5.2 Lọc theo uy tín
+- [x] 5.2 Lọc theo uy tín — _`reputationMin`, mốc sẵn 3.0 / 4.0 / 4.5 sao_
 - [x] 5.3 Lọc theo khu vực
-- [ ] 5.4 Lọc theo sân cụ thể — _phụ thuộc FR-008_
-- [ ] 5.5 Lọc theo buổi (sáng/chiều/tối)
+- [x] 5.4 Lọc theo sân cụ thể — _khớp một phần `venueName`, không phân biệt hoa thường;
+      **không** phải chờ FR-008 vì lời mời đã tự ghi tên sân_
+- [x] 5.5 Lọc theo buổi (sáng/chiều/tối) — _cột `timeSlot` suy ra từ `preferredTime` theo giờ
+      Việt Nam lúc lưu; Prisma không lọc được theo giờ-trong-ngày nên phải lưu sẵn_
 - [x] 5.6 Lọc theo trình độ — _`skillLevelMin`_
 - [x] 5.7 Xem chi tiết đội đối thủ
 - [x] 5.8 Gửi lời thách đấu
 - [x] 5.9 Chấp nhận / từ chối thách đấu — _có transaction, tạo `Match` khi chấp nhận_
-- [ ] 5.10 Đánh giá uy tín sau trận — _chưa có model Rating_
-- [ ] 5.11 Báo cáo đội vi phạm — _chưa có model Report_
+- [x] 5.10 Đánh giá uy tín sau trận — _model `Rating`, `POST /matches/:id/rating`, 1–5 sao,
+      mỗi người một phiếu mỗi trận (sửa được, không cộng dồn); trung bình ghi vào
+      `Team.reputation`_
+- [x] 5.11 Báo cáo đội vi phạm — _model `Report`, `POST /reports`, 5 lý do; mỗi người chỉ giữ
+      một báo cáo đang chờ cho mỗi đội_
+
+> **Mốc đánh giá:** chưa có luồng "kết thúc trận" nên phần chấm điểm mở ra khi giờ đá đã trôi
+> qua (hoặc trận được đánh dấu `completed`). Trận không hẹn giờ thì chưa chấm được — đây là lý
+> do nên làm FR-007.6 (lịch sử trận theo đội) kèm nút kết thúc trận.
 
 ## FR-006 — Tìm thành viên & Đồng đội
 
@@ -117,7 +132,7 @@ Hai nhóm **FR-008** và **FR-010** vẫn chưa có dòng code nào — không m
 - [x] 7.4 Phân quyền captain / co-captain / member — _có kiểm tra quyền đầy đủ, chuyển captain atomic_
 - [x] 7.5 Xem danh sách thành viên
 - [~] 7.6 Lịch sử trận đấu — _`GET /matches/my` trả theo người dùng, chưa có theo từng đội_
-- [~] 7.7 Điểm uy tín đội — _cột có, chưa tính; phụ thuộc FR-005.10_
+- [x] 7.7 Điểm uy tín đội — _trung bình các phiếu `Rating`, cập nhật ngay khi có người chấm_
 - [x] 7.8 Giải tán đội
 
 ## FR-008 — Quản lý sân bãi (Business) — **chưa bắt đầu**
@@ -140,7 +155,8 @@ Hai nhóm **FR-008** và **FR-010** vẫn chưa có dòng code nào — không m
 - [x] 9.2 Thông báo duyệt/từ chối đơn
 - [x] 9.3 Thông báo có người xin gia nhập
 - [ ] 9.4 Nhắc trận sắp diễn ra — _cần bộ hẹn giờ chạy nền_
-- [ ] 9.5 Thông báo khi được đánh giá — _phụ thuộc FR-005.10_
+- [x] 9.5 Thông báo khi được đánh giá — _`rating_received`, chỉ báo lần chấm đầu để sửa điểm
+      không làm phiền lại_
 - [ ] 9.6 Web Push — _ưu tiên Thấp_
 
 > Hiện thông báo lấy bằng polling 30 giây. Socket.IO đã gỡ vì không dùng tới.
@@ -152,13 +168,34 @@ Hai nhóm **FR-008** và **FR-010** vẫn chưa có dòng code nào — không m
 - [ ] 10.3 Duyệt bài đăng
 - [x] 10.4 Quản lý danh mục môn — _admin thêm/sửa/xoá môn và đặt ảnh nền cho từng môn_
 - [ ] 10.5 Quản lý sân đăng ký — _phụ thuộc FR-008_
-- [ ] 10.6 Xử lý báo cáo — _phụ thuộc FR-005.11_
+- [ ] 10.6 Xử lý báo cáo — _bảng `Report` đã có dữ liệu, còn thiếu màn hình duyệt của admin_
 - [ ] 10.7 Khoá / mở khoá tài khoản
 - [ ] 10.8 Xem log hoạt động
 
 > Đã có middleware `requireRole('admin')` — kiểm vai trò từ CSDL chứ không tin token — và
 > trang `/admin/landing`. `Sport` đã chuyển từ enum Postgres sang bảng nên danh mục môn
 > quản lý được lúc chạy. Bảy mục còn lại dùng lại được middleware này.
+
+---
+
+## Ngoài SRS — đã làm thêm
+
+Những thứ Idea.md không liệt kê nhưng đã có trong code. Ghi lại để lần sau
+không dựng lại từ đầu.
+
+- [x] **Trang chủ cá nhân hoá** — `GET /dashboard` gộp ba truy vấn (trận kế tiếp,
+      đơn xin vào đội đang chờ, lời thách đấu đang chờ) vào một lượt gọi vì cả ba
+      đều xuất phát từ cùng danh sách đội của người dùng. Chỉ captain/phó thấy
+      phần đơn và thách đấu — khớp với ràng buộc quyền ở chỗ duyệt.
+- [x] **Điểm danh trận** — model `MatchAttendance` (`going` / `not_going`,
+      unique theo `matchId + userId`), `POST /matches/:id/attendance`. "Chưa trả
+      lời" tính bằng sĩ số đội trừ số người đã trả lời nên thêm/bớt thành viên là
+      con số tự đúng.
+- [x] **Danh mục môn là dữ liệu** — `Sport` chuyển từ enum Postgres sang bảng,
+      admin thêm/sửa/xoá môn kèm icon và ảnh nền (FR-010.4).
+
+> `MatchAttendance` là nền sẵn cho 9.4 (nhắc trận sắp diễn ra): đã biết ai đi,
+> chỉ còn thiếu bộ hẹn giờ.
 
 ---
 
@@ -170,8 +207,9 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 | --------------------------------- | ------------------------------ | ---------------------------------------------------------- |
 | Gửi email                         | 1.6, 1.7                       | Lúc dev có thể in link ra console, không cần dịch vụ ngoài |
 | Lưu file / ảnh                    | 2.3, 8.2                       | Local disk cho đồ án là đủ                                 |
-| Model `Rating`                    | 5.10, 2.12, 7.7, 9.5           | Một model mở khoá 4 mục                                    |
+| ~~Model `Rating`~~                | ~~5.10, 7.7, 9.5~~             | Xong 2026-08-21 — còn 2.12 chờ quyết định quy tắc          |
 | Bộ hẹn giờ chạy nền               | 9.4                            | Cũng dùng được để dọn bài hết hạn                          |
+| Luồng "kết thúc trận"             | 7.6, mốc chấm điểm chặt hơn    | Nhỏ — một cột trạng thái + nút cho captain                 |
 | Middleware `requireRole('admin')` | Toàn bộ FR-010                 | Nhỏ, làm trước khi dựng admin                              |
 | Nhóm model sân bãi                | Toàn bộ FR-008, 4.4, 5.4, 10.5 | Khối lớn nhất                                              |
 
@@ -185,9 +223,25 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 
 ## Thứ tự đề xuất
 
-1. **Model `Rating`** — nhỏ, mở khoá 4 mục, làm cho điểm uy tín (đang luôn bằng 0) có ý nghĩa
-2. **Đổi mật khẩu + quên mật khẩu + xác thực email** — 3 mục Cao của FR-001, dùng lại hạ tầng token đã có
-3. **Phân trang ở web + sắp xếp** — API đã sẵn sàng, chỉ thiếu phía giao diện
-4. **Bài "Tìm đội" của cá nhân** (6.7) + hiển thị ở dashboard (4.3)
-5. **Admin panel** — cần `requireRole('admin')` trước
-6. **Sân bãi** — khối lớn nhất, để cuối
+FR-005 đã xong trọn bộ (2026-08-21), kéo theo 7.7 và 9.5. Còn lại:
+
+1. **Quên mật khẩu + xác thực email** (1.6, 1.7) — hai mục Cao còn lại của FR-001, dùng lại
+   hạ tầng token đã có. Lúc dev in link ra console là đủ, chưa cần dịch vụ gửi mail ngoài.
+2. **Admin panel phần còn lại** (10.1, 10.2, 10.3, 10.7, 10.8) — middleware `requireRole('admin')`
+   đã sẵn. Làm 10.6 trước cũng được vì bảng `Report` đã có dữ liệu thật để duyệt.
+3. **Luồng kết thúc trận + lịch sử theo đội** (7.6) — nhỏ, và làm mốc chấm điểm chặt hơn thay
+   vì chỉ dựa vào "đã qua giờ đá".
+4. **Bộ hẹn giờ chạy nền** (9.4) — dữ liệu điểm danh đã có; cũng dùng lại được để dọn bài
+   tuyển/tìm trận hết hạn.
+5. **Uy tín cá nhân** (2.12) — cần chốt quy tắc trước khi code, xem ghi chú ở FR-002.
+6. **Đội mời người chơi** (6.8) — chiều ngược lại của 6.5, dùng lại luồng `JoinRequest`.
+7. **Sân bãi** (toàn bộ FR-008, kéo theo 4.4, 10.5) — khối lớn nhất, cần 4 model mới, để cuối.
+
+Nợ kỹ thuật nên chen vào sớm: **code-split trang web** (chunk 458 KB đang phá vỡ NFR-001.1)
+và **dựng bộ test đầu tiên** — hiện 0 file test.
+
+## Cách cập nhật file này
+
+Làm xong việc gì thì sửa ngay ở đây: đổi `[ ]` / `[~]` thành `[x]`, cập nhật
+bảng Tổng quan, và viết lại phần "Thứ tự đề xuất" nếu thứ tự đã đổi. Việc nằm
+ngoài Idea.md thì ghi vào mục "Ngoài SRS — đã làm thêm".

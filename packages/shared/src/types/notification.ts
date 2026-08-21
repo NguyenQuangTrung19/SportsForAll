@@ -6,6 +6,7 @@ export const NOTIFICATION_TYPES = [
   'challenge_accepted',
   'challenge_rejected',
   'match_scheduled',
+  'rating_received',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

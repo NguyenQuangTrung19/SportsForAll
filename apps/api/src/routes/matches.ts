@@ -2,20 +2,34 @@ import {
   createMatchRequestSchema,
   matchRequestListQuerySchema,
   sendChallengeSchema,
+  setAttendanceSchema,
+  submitRatingSchema,
   updateMatchRequestSchema,
   type ChallengeView,
   type MatchRequestDetail,
   type MatchRequestListResponse,
   type MatchRequestSummary,
   type MatchView,
+  type RatingResult,
   type RecruitmentTeamRef,
+  type TimeSlot,
 } from '@sfa/shared';
-import type { Challenge, Match, MatchRequest, Prisma, Team, TeamMember } from '@prisma/client';
+import type {
+  Challenge,
+  Match,
+  MatchRequest,
+  Prisma,
+  Rating,
+  Team,
+  TeamMember,
+} from '@prisma/client';
 import { Router } from 'express';
 import { prisma } from '../lib/db.js';
+import { hasBeenPlayed } from '../lib/match-rules.js';
 import { notify } from '../lib/notify.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
+import { summarizeAttendance } from './dashboard.js';
 
 export const matchesRouter = Router();
 
@@ -25,16 +39,38 @@ type ChallengeWithTeam = Challenge & {
   challengerTeam: TeamWithMembers;
 };
 
+type MatchWithContext = Match & {
+  homeTeam: TeamWithMembers;
+  awayTeam: TeamWithMembers;
+  ratings: Pick<Rating, 'raterId' | 'score' | 'comment' | 'createdAt'>[];
+};
+
 type MatchRequestWithRelations = MatchRequest & {
   team: TeamWithMembers;
   challenges: ChallengeWithTeam[];
-  match:
-    | (Match & {
-        homeTeam: Team;
-        awayTeam: Team;
-      })
-    | null;
+  match: MatchWithContext | null;
 };
+
+const MATCH_INCLUDE = {
+  homeTeam: { include: { members: { select: { userId: true, role: true } } } },
+  awayTeam: { include: { members: { select: { userId: true, role: true } } } },
+  ratings: { select: { raterId: true, score: true, comment: true, createdAt: true } },
+} satisfies Prisma.MatchInclude;
+
+/**
+ * Buổi trong ngày theo giờ Việt Nam (FR-005.5). `preferredTime` lưu theo UTC nên
+ * phải cộng bù trước khi cắt khung; Prisma không lọc được theo giờ-trong-ngày
+ * nên kết quả được lưu thành cột để bộ lọc dùng chỉ mục thay vì quét bảng.
+ */
+const VN_OFFSET_HOURS = 7;
+
+function timeSlotOf(at: Date | null): TimeSlot | null {
+  if (!at) return null;
+  const hour = new Date(at.getTime() + VN_OFFSET_HOURS * 3_600_000).getUTCHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 18) return 'afternoon';
+  return 'evening';
+}
 
 function teamRef(team: Team): RecruitmentTeamRef {
   return {
@@ -60,7 +96,15 @@ function toChallengeView(c: ChallengeWithTeam, viewerId: string): ChallengeView 
   };
 }
 
-function toMatchView(m: Match & { homeTeam: Team; awayTeam: Team }): MatchView {
+function toMatchView(m: MatchWithContext, viewerId: string): MatchView {
+  // Người xem về lý thuyết có thể ở cả hai đội; coi như thuộc đội nhà để không
+  // rơi vào trạng thái chấm chính mình.
+  const viewerTeamId = m.homeTeam.members.some((x) => x.userId === viewerId)
+    ? m.homeTeamId
+    : m.awayTeam.members.some((x) => x.userId === viewerId)
+      ? m.awayTeamId
+      : null;
+  const mine = m.ratings.find((r) => r.raterId === viewerId);
   return {
     id: m.id,
     matchRequestId: m.matchRequestId,
@@ -73,6 +117,11 @@ function toMatchView(m: Match & { homeTeam: Team; awayTeam: Team }): MatchView {
     homeScore: m.homeScore,
     awayScore: m.awayScore,
     createdAt: m.createdAt.toISOString(),
+    viewerTeamId,
+    canRate: viewerTeamId !== null && hasBeenPlayed(m),
+    viewerRating: mine
+      ? { score: mine.score, comment: mine.comment, createdAt: mine.createdAt.toISOString() }
+      : null,
   };
 }
 
@@ -92,6 +141,7 @@ function toSummary(req: MatchRequestWithRelations, viewerId: string): MatchReque
     description: req.description,
     status: req.status,
     skillLevelMin: req.skillLevelMin,
+    timeSlot: req.timeSlot,
     expiresAt: req.expiresAt?.toISOString() ?? null,
     challengeCount: req.challenges.length,
     viewerChallenge: viewerChallenge
@@ -114,7 +164,7 @@ function toDetail(req: MatchRequestWithRelations, viewerId: string): MatchReques
       .slice()
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .map((c) => toChallengeView(c, viewerId)),
-    match: req.match ? toMatchView(req.match) : null,
+    match: req.match ? toMatchView(req.match, viewerId) : null,
   };
 }
 
@@ -129,9 +179,7 @@ const REQUEST_INCLUDE = {
       },
     },
   },
-  match: {
-    include: { homeTeam: true, awayTeam: true },
-  },
+  match: { include: MATCH_INCLUDE },
 } satisfies Prisma.MatchRequestInclude;
 
 async function loadRequest(id: string): Promise<MatchRequestWithRelations> {
@@ -161,12 +209,14 @@ matchesRouter.post('/requests', requireAuth, async (req, res, next) => {
     if (!team) throw new HttpError(404, 'Không tìm thấy đội', 'TEAM_NOT_FOUND');
     ensureTeamManager(team, userId);
 
+    const preferredTime = input.preferredTime ? new Date(input.preferredTime) : null;
     const created = await prisma.matchRequest.create({
       data: {
         teamId: team.id,
         sport: team.sport,
         region: input.region ?? team.region,
-        preferredTime: input.preferredTime ? new Date(input.preferredTime) : null,
+        preferredTime,
+        timeSlot: timeSlotOf(preferredTime),
         venueName: input.venueName ?? null,
         description: input.description,
         skillLevelMin: input.skillLevelMin ?? null,
@@ -189,6 +239,9 @@ matchesRouter.get('/requests', requireAuth, async (req, res, next) => {
       ...(q.sport && { sport: q.sport }),
       ...(q.region && { region: { equals: q.region, mode: 'insensitive' } }),
       ...(q.skillLevelMin && { skillLevelMin: q.skillLevelMin }),
+      ...(q.reputationMin !== undefined && { team: { reputation: { gte: q.reputationMin } } }),
+      ...(q.venue && { venueName: { contains: q.venue, mode: 'insensitive' } }),
+      ...(q.timeSlot && { timeSlot: q.timeSlot }),
       ...(q.status ? { status: q.status } : { status: 'open' }),
       ...(q.teamId && { teamId: q.teamId }),
     };
@@ -240,8 +293,10 @@ matchesRouter.patch('/requests/:id', requireAuth, async (req, res, next) => {
       where: { id: r.id },
       data: {
         ...(input.region !== undefined && { region: input.region }),
+        // Buổi luôn suy ra từ giờ hẹn, nên đổi giờ là phải cập nhật kèm.
         ...(input.preferredTime !== undefined && {
           preferredTime: input.preferredTime ? new Date(input.preferredTime) : null,
+          timeSlot: timeSlotOf(input.preferredTime ? new Date(input.preferredTime) : null),
         }),
         ...(input.venueName !== undefined && { venueName: input.venueName }),
         ...(input.description !== undefined && { description: input.description }),
@@ -511,10 +566,150 @@ matchesRouter.get('/my', requireAuth, async (req, res, next) => {
       where: {
         OR: [{ homeTeamId: { in: teamIds } }, { awayTeamId: { in: teamIds } }],
       },
-      include: { homeTeam: true, awayTeam: true },
+      include: MATCH_INCLUDE,
       orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
     });
-    res.json({ matches: matches.map(toMatchView) });
+    res.json({ matches: matches.map((m) => toMatchView(m, userId)) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Báo có mặt cho một trận đã chốt lịch.
+ *
+ * Một dòng cho mỗi lần trả lời, đổi ý thì ghi đè — không lưu "chưa trả lời"
+ * thành dòng riêng, vì sĩ số đội thay đổi được còn dòng đã ghi thì không.
+ */
+matchesRouter.post('/:id/attendance', requireAuth, async (req, res, next) => {
+  try {
+    const { status } = setAttendanceSchema.parse(req.body);
+    const userId = req.user!.sub;
+    const matchId = String(req.params.id);
+
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homeTeam: { include: { members: { select: { userId: true } } } },
+        awayTeam: { include: { members: { select: { userId: true } } } },
+        attendances: { select: { userId: true, status: true } },
+      },
+    });
+    if (!match) throw new HttpError(404, 'Không tìm thấy trận', 'MATCH_NOT_FOUND');
+    if (match.status !== 'scheduled') {
+      throw new HttpError(400, 'Trận đã kết thúc hoặc bị huỷ', 'MATCH_NOT_SCHEDULED');
+    }
+
+    const iAmHome = match.homeTeam.members.some((m) => m.userId === userId);
+    const iAmAway = match.awayTeam.members.some((m) => m.userId === userId);
+    if (!iAmHome && !iAmAway) {
+      throw new HttpError(403, 'Chỉ thành viên hai đội mới được báo có mặt', 'NOT_TEAM_MEMBER');
+    }
+
+    await prisma.matchAttendance.upsert({
+      where: { matchId_userId: { matchId, userId } },
+      create: { matchId, userId, status },
+      update: { status },
+    });
+
+    const myTeam = iAmHome ? match.homeTeam : match.awayTeam;
+    // Dòng vừa ghi chưa có trong `match.attendances` (đọc trước khi ghi) nên
+    // ghép tay vào thay vì đọc lại cả trận.
+    const rows = [...match.attendances.filter((a) => a.userId !== userId), { userId, status }];
+    res.json(
+      summarizeAttendance(
+        rows,
+        myTeam.members.map((m) => m.userId),
+        userId,
+      ),
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Chấm uy tín đối thủ sau trận (FR-005.10).
+ *
+ * Một phiếu cho mỗi người trên mỗi trận, đổi ý thì ghi đè — vì thế điểm đội là
+ * trung bình các phiếu, không phải tổng, và không ai bơm điểm được bằng cách
+ * gửi nhiều lần. Điểm trung bình ghi thẳng vào `Team.reputation` để danh sách
+ * lọc/sắp xếp theo uy tín (FR-005.2, FR-004.7) không phải tính lại mỗi lần đọc.
+ */
+matchesRouter.post('/:id/rating', requireAuth, async (req, res, next) => {
+  try {
+    const { score, comment } = submitRatingSchema.parse(req.body);
+    const userId = req.user!.sub;
+    const matchId = String(req.params.id);
+
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: MATCH_INCLUDE,
+    });
+    if (!match) throw new HttpError(404, 'Không tìm thấy trận', 'MATCH_NOT_FOUND');
+
+    const inHome = match.homeTeam.members.some((m) => m.userId === userId);
+    const inAway = match.awayTeam.members.some((m) => m.userId === userId);
+    if (!inHome && !inAway) {
+      throw new HttpError(403, 'Chỉ thành viên hai đội mới được đánh giá', 'NOT_TEAM_MEMBER');
+    }
+    if (match.status === 'cancelled') {
+      throw new HttpError(400, 'Trận đã huỷ', 'MATCH_CANCELLED');
+    }
+    if (!hasBeenPlayed(match)) {
+      throw new HttpError(400, 'Chỉ đánh giá được sau khi trận diễn ra', 'MATCH_NOT_PLAYED');
+    }
+
+    const myTeam = inHome ? match.homeTeam : match.awayTeam;
+    const ratedTeam = inHome ? match.awayTeam : match.homeTeam;
+    const isFirstTime = !match.ratings.some((r) => r.raterId === userId);
+
+    const { rating, reputation } = await prisma.$transaction(async (tx) => {
+      const saved = await tx.rating.upsert({
+        where: { matchId_raterId: { matchId, raterId: userId } },
+        create: {
+          matchId,
+          raterId: userId,
+          ratedTeamId: ratedTeam.id,
+          score,
+          comment: comment ?? null,
+        },
+        update: { score, comment: comment ?? null },
+      });
+      const agg = await tx.rating.aggregate({
+        where: { ratedTeamId: ratedTeam.id },
+        _avg: { score: true },
+      });
+      const avg = agg._avg.score ?? 0;
+      await tx.team.update({ where: { id: ratedTeam.id }, data: { reputation: avg } });
+
+      // Chỉ báo lần chấm đầu — sửa điểm không đáng làm phiền đối thủ thêm lần nữa.
+      if (isFirstTime) {
+        await notify(tx, {
+          userIds: ratedTeam.members
+            .filter((m) => m.role === 'captain' || m.role === 'co_captain')
+            .map((m) => m.userId),
+          type: 'rating_received',
+          title: `${myTeam.name} đã đánh giá đội bạn`,
+          message: comment ?? `${score}/5 sao`,
+          link: match.matchRequestId
+            ? `/match-requests/${match.matchRequestId}`
+            : `/teams/${ratedTeam.id}`,
+        });
+      }
+      return { rating: saved, reputation: avg };
+    });
+
+    const body: RatingResult = {
+      rating: {
+        score: rating.score,
+        comment: rating.comment,
+        createdAt: rating.createdAt.toISOString(),
+      },
+      ratedTeamId: ratedTeam.id,
+      ratedTeamReputation: reputation,
+    };
+    res.status(isFirstTime ? 201 : 200).json(body);
   } catch (err) {
     next(err);
   }

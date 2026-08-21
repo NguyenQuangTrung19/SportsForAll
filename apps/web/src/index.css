@@ -13,6 +13,11 @@
     --color-ink-soft: 85 96 90; /* #55605A */
     --color-line: 11 46 34; /* dùng kèm /alpha */
 
+    /* Lime điện — chỉ dùng trên nền tối. Trước đây chỉ định nghĩa trong `.landing`
+       nên `text-lime` ở trang khác sinh ra CSS vô hiệu; nâng lên :root để các khối
+       tối trong app (thẻ "Trận kế tiếp" ở Trang chủ) dùng được cùng một màu. */
+    --l-lime: 198 242 78;
+
     /* Sport-dynamic primary; default football */
     --color-primary: 0 168 67; /* #00A843 — slightly muted from raw green for cream readability */
     --color-primary-dark: 0 124 49;
@@ -230,7 +235,6 @@
     --l-pine-2: 18 63 47; /* #123F2F */
     --l-graphite: 16 21 18; /* #101512 */
     --l-graphite-soft: var(--color-ink-soft);
-    --l-lime: 198 242 78; /* #C6F24E điểm nhấn điện: CHỈ trên nền tối */
     --l-clay: 176 58 24; /* #B03A18 nhấn ấm trên nền sáng — 5.42:1, đạt AA */
 
     background-color: rgb(var(--l-chalk));
@@ -295,7 +299,6 @@
       animation: none;
     }
   }
-
 
   /* ---- Băng trượt cho danh sách môn ---- */
   /* Dùng khi số môn vượt quá một hàng: thay vì xuống dòng lởm chởm thì cho

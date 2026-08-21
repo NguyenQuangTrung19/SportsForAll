@@ -1,8 +1,16 @@
 import {
   CHALLENGE_STATUS_LABELS,
+  RATING_MAX,
+  REPORT_REASONS,
+  REPORT_REASON_LABELS,
   SKILL_LEVEL_LABELS,
   type ChallengeView,
   type MatchRequestDetail,
+  type MatchView,
+  type RatingResult,
+  type RecruitmentTeamRef,
+  type ReportReason,
+  type ReportView,
   type TeamSummary,
 } from '@sfa/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -100,6 +108,37 @@ export function MatchRequestDetailPage() {
     onError: (err) => setActionError(extractMessage(err, 'Không rút được thách đấu')),
   });
 
+  const rateMutation = useMutation({
+    mutationFn: async (input: { score: number; comment: string }) => {
+      const matchId = reqQuery.data?.match?.id;
+      if (!matchId) throw new Error('Chưa có trận để đánh giá');
+      const { data } = await api.post<RatingResult>(`/matches/${matchId}/rating`, {
+        score: input.score,
+        comment: input.comment.trim() || undefined,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      // Điểm uy tín của đối thủ vừa đổi, nên tải lại cả lời mời lẫn danh sách.
+      void queryClient.invalidateQueries({ queryKey: ['matches', 'request', id] });
+      void queryClient.invalidateQueries({ queryKey: ['matches', 'requests'] });
+    },
+    onError: (err) => setActionError(extractMessage(err, 'Không gửi được đánh giá')),
+  });
+
+  const reportMutation = useMutation({
+    mutationFn: async (input: { teamId: string; reason: ReportReason; detail: string }) => {
+      const { data } = await api.post<ReportView>('/reports', {
+        reportedTeamId: input.teamId,
+        matchId: reqQuery.data?.match?.id,
+        reason: input.reason,
+        detail: input.detail.trim() || undefined,
+      });
+      return data;
+    },
+    onError: (err) => setActionError(extractMessage(err, 'Không gửi được báo cáo')),
+  });
+
   const cancelMutation = useMutation({
     mutationFn: async () => {
       const { data } = await api.patch<MatchRequestDetail>(`/matches/requests/${id}`, {
@@ -113,6 +152,19 @@ export function MatchRequestDetailPage() {
 
   const req = reqQuery.data;
   const myTeams = myTeamsQuery.data ?? [];
+  // Báo cáo luôn nhắm vào đội đối diện: đã ghép trận thì là đội bên kia, chưa ghép
+  // thì là đội đăng lời mời. Người ngoài cuộc không có gì để báo cáo.
+  const reportTarget: RecruitmentTeamRef | null = !req
+    ? null
+    : req.match
+      ? req.match.viewerTeamId
+        ? req.match.viewerTeamId === req.match.homeTeam.id
+          ? req.match.awayTeam
+          : req.match.homeTeam
+        : null
+      : req.viewerOwns
+        ? null
+        : req.team;
   const eligibleTeams = req
     ? myTeams.filter(
         (t) =>
@@ -170,6 +222,17 @@ export function MatchRequestDetailPage() {
                     {req.match.venueName ? ` · ${req.match.venueName}` : ''}
                   </p>
                 )}
+
+                <RatingPanel
+                  // Đổi khoá khi phiếu chấm đổi để ô nhập tự về trạng thái "đã đánh giá".
+                  key={req.match.viewerRating?.createdAt ?? 'chua-cham'}
+                  match={req.match}
+                  pending={rateMutation.isPending}
+                  onSubmit={(score, comment) => {
+                    setActionError(null);
+                    rateMutation.mutate({ score, comment });
+                  }}
+                />
               </article>
             )}
 
@@ -317,6 +380,18 @@ export function MatchRequestDetailPage() {
                     Xem trang đội <span aria-hidden>→</span>
                   </Link>
                 </article>
+
+                {reportTarget && (
+                  <ReportPanel
+                    team={reportTarget}
+                    pending={reportMutation.isPending}
+                    sent={reportMutation.isSuccess}
+                    onSubmit={(reason, detail) => {
+                      setActionError(null);
+                      reportMutation.mutate({ teamId: reportTarget.id, reason, detail });
+                    }}
+                  />
+                )}
               </aside>
             </section>
           </>
@@ -463,5 +538,191 @@ function ChallengeRow({
         </div>
       )}
     </li>
+  );
+}
+
+/**
+ * Chấm uy tín đối thủ sau trận (FR-005.10). Chỉ hiện khi máy chủ nói được chấm —
+ * điều kiện "đã đá xong" nằm ở một chỗ duy nhất nên giao diện không đoán lại.
+ */
+function RatingPanel({
+  match,
+  pending,
+  onSubmit,
+}: {
+  match: MatchView;
+  pending: boolean;
+  onSubmit: (score: number, comment: string) => void;
+}) {
+  const existing = match.viewerRating;
+  const [score, setScore] = useState(existing?.score ?? 0);
+  const [comment, setComment] = useState(existing?.comment ?? '');
+  const [editing, setEditing] = useState(existing === null);
+
+  if (!match.canRate) return null;
+
+  if (existing && !editing) {
+    return (
+      <div className="mt-5 border-t border-ink/10 pt-4">
+        <p className="text-xs font-bold tracking-wide text-ink-soft">Bạn đã đánh giá</p>
+        <p className="mt-1 font-display text-2xl font-black tracking-tight">
+          {'★'.repeat(existing.score)}
+          <span className="text-ink/20">{'★'.repeat(RATING_MAX - existing.score)}</span>
+        </p>
+        {existing.comment && (
+          <p className="mt-1 text-sm leading-relaxed text-ink-soft">{existing.comment}</p>
+        )}
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="mt-3 text-xs font-semibold text-ink-soft underline transition hover:text-ink"
+        >
+          Sửa đánh giá
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 border-t border-ink/10 pt-4">
+      <p className="text-xs font-bold tracking-wide text-primary-dark">Trận đã đá xong</p>
+      <p className="mt-1 font-display text-xl font-black tracking-tight">Đánh giá đối thủ</p>
+      <p className="mt-1 text-xs text-ink-soft">
+        Điểm của bạn cộng vào uy tín của đội bạn vừa gặp.
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {Array.from({ length: RATING_MAX }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setScore(n)}
+            aria-label={`${n} trên ${RATING_MAX} sao`}
+            aria-pressed={score === n}
+            className={`size-9 border font-display text-lg font-black transition ${
+              n <= score
+                ? 'border-ink bg-ink text-paper'
+                : 'border-ink/15 bg-white text-ink/30 hover:border-ink'
+            }`}
+          >
+            ★
+          </button>
+        ))}
+        <span className="ml-2 text-sm font-semibold text-ink-soft">
+          {score > 0 ? `${score}/${RATING_MAX}` : 'Chọn số sao'}
+        </span>
+      </div>
+
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={2}
+        maxLength={500}
+        placeholder="Đội bạn chơi thế nào? (không bắt buộc)"
+        className="input mt-3 resize-none"
+      />
+
+      <button
+        type="button"
+        onClick={() => onSubmit(score, comment)}
+        disabled={score === 0 || pending}
+        className="btn-primary mt-3 w-full"
+      >
+        {pending ? 'Đang gửi...' : existing ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}
+      </button>
+    </div>
+  );
+}
+
+/** Báo cáo đội vi phạm (FR-005.11). Gửi xong là xong — admin xử lý ở phần quản trị. */
+function ReportPanel({
+  team,
+  pending,
+  sent,
+  onSubmit,
+}: {
+  team: RecruitmentTeamRef;
+  pending: boolean;
+  sent: boolean;
+  onSubmit: (reason: ReportReason, detail: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<ReportReason>('no_show');
+  const [detail, setDetail] = useState('');
+
+  if (sent) {
+    return (
+      <article className="border border-ink/12 bg-white p-6">
+        <p className="text-xs font-bold tracking-wide text-ink-soft">Đã gửi báo cáo</p>
+        <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+          Quản trị viên sẽ xem xét báo cáo về {team.name}. Bạn không cần gửi lại.
+        </p>
+      </article>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full border border-ink/15 px-4 py-3 text-sm font-semibold text-ink-soft transition hover:border-rust hover:text-rust"
+      >
+        Báo cáo {team.name}
+      </button>
+    );
+  }
+
+  return (
+    <article className="border border-rust/40 bg-white p-6">
+      <div className="flex items-baseline justify-between">
+        <p className="text-xs font-bold tracking-wide text-rust">Báo cáo vi phạm</p>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs font-semibold text-ink-soft transition hover:text-ink"
+        >
+          Đóng
+        </button>
+      </div>
+      <h3 className="mt-1 font-display text-xl font-black tracking-tight">{team.name}</h3>
+
+      <div className="mt-4 space-y-3">
+        <label className="block">
+          <span className="mb-2 block text-xs font-semibold tracking-wide text-ink-soft">
+            Lý do
+          </span>
+          <select
+            value={reason}
+            onChange={(e) => setReason(e.target.value as ReportReason)}
+            className="input"
+          >
+            {REPORT_REASONS.map((r) => (
+              <option key={r} value={r}>
+                {REPORT_REASON_LABELS[r]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <textarea
+          value={detail}
+          onChange={(e) => setDetail(e.target.value)}
+          rows={3}
+          maxLength={1000}
+          placeholder="Kể lại chuyện đã xảy ra để quản trị viên có căn cứ..."
+          className="input resize-none"
+        />
+
+        <button
+          type="button"
+          onClick={() => onSubmit(reason, detail)}
+          disabled={pending}
+          className="w-full border border-rust bg-rust/5 px-4 py-2.5 text-sm font-bold text-rust transition hover:bg-rust/10 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {pending ? 'Đang gửi...' : 'Gửi báo cáo'}
+        </button>
+      </div>
+    </article>
   );
 }
