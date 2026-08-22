@@ -4,6 +4,7 @@ import type {
   MatchAttendanceSummary,
   NextMatchView,
   PendingJoinRequestItem,
+  PendingTeamInviteItem,
   RecruitmentTeamRef,
 } from '@sfa/shared';
 import type { Team } from '@prisma/client';
@@ -25,12 +26,26 @@ function teamRef(team: Team): RecruitmentTeamRef {
   };
 }
 
-const EMPTY: DashboardResponse = {
-  nextMatch: null,
-  pendingJoinRequests: [],
-  incomingChallenges: [],
-  actionCount: 0,
-};
+/**
+ * Lời mời vào đội của người xem. Truy vấn này nằm ngoài nhánh "chưa có đội nào"
+ * bên dưới: người được mời thường chính là người chưa thuộc đội nào cả.
+ */
+async function loadTeamInvites(userId: string): Promise<PendingTeamInviteItem[]> {
+  const rows = await prisma.teamInvite.findMany({
+    where: { status: 'pending', userId },
+    // Không cắt trang: mỗi đội chỉ giữ được một lời mời đang chờ cho một người,
+    // nên đây là hộp thư cá nhân vài dòng chứ không phải feed.
+    orderBy: { createdAt: 'desc' },
+    include: { team: true, invitedBy: { select: { displayName: true } } },
+  });
+  return rows.map((i) => ({
+    id: i.id,
+    team: teamRef(i.team),
+    invitedByName: i.invitedBy.displayName,
+    message: i.message,
+    createdAt: i.createdAt.toISOString(),
+  }));
+}
 
 /**
  * Mọi thứ Trang chủ cần mà các endpoint theo tài nguyên chưa trả lời được:
@@ -43,12 +58,18 @@ dashboardRouter.get('/', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user!.sub;
 
-    const memberships = await prisma.teamMember.findMany({
-      where: { userId },
-      select: { teamId: true, role: true },
-    });
+    const [memberships, pendingTeamInvites] = await Promise.all([
+      prisma.teamMember.findMany({ where: { userId }, select: { teamId: true, role: true } }),
+      loadTeamInvites(userId),
+    ]);
     if (memberships.length === 0) {
-      res.json(EMPTY);
+      res.json({
+        nextMatch: null,
+        pendingJoinRequests: [],
+        incomingChallenges: [],
+        pendingTeamInvites,
+        actionCount: pendingTeamInvites.length,
+      } satisfies DashboardResponse);
       return;
     }
 
@@ -196,7 +217,8 @@ dashboardRouter.get('/', requireAuth, async (req, res, next) => {
           createdAt: c.createdAt.toISOString(),
         }),
       ),
-      actionCount: joinRequestCount + challengeCount,
+      pendingTeamInvites,
+      actionCount: joinRequestCount + challengeCount + pendingTeamInvites.length,
     };
 
     res.json(payload);

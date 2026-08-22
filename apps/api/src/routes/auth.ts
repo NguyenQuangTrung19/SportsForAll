@@ -17,6 +17,21 @@ import { loginLimiter, refreshLimiter, registerLimiter } from '../middleware/rat
 
 export const authRouter = Router();
 
+/**
+ * Chan tai khoan bi khoa (FR-010.7) o hai cua duy nhat cap token moi: dang nhap
+ * va refresh. Khoa xong con thu hoi refresh token, nen phien dang mo chet khi
+ * access token het han.
+ */
+function assertNotDisabled(user: User): void {
+  if (user.disabledAt) {
+    throw new HttpError(
+      403,
+      'Tài khoản đã bị khoá. Liên hệ quản trị viên nếu bạn cho rằng đây là nhầm lẫn.',
+      'ACCOUNT_DISABLED',
+    );
+  }
+}
+
 function toAuthUser(u: User): AuthUser {
   return {
     id: u.id,
@@ -59,6 +74,9 @@ authRouter.post('/register', registerLimiter, async (req, res, next) => {
           email: input.email.toLowerCase(),
           passwordHash,
           displayName: input.displayName,
+          // Chỉ 'user' hoặc 'business' — schema không cho phép 'admin', nên không
+          // có đường nào tự đăng ký thành quản trị viên (FR-008.1).
+          role: input.accountType,
         },
       });
     } catch (err) {
@@ -84,6 +102,9 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
     if (!user?.passwordHash || !(await verifyPassword(user.passwordHash, input.password))) {
       throw new HttpError(401, 'Email hoặc mật khẩu không đúng', 'INVALID_CREDENTIALS');
     }
+    // Kiểm sau khi đã xác thực mật khẩu: báo "tài khoản bị khoá" cho người gõ sai
+    // mật khẩu là tự khai người này có tồn tại trong hệ thống.
+    assertNotDisabled(user);
     const tokens = await issueSession(user.id, user.role);
     const body: AuthResponse = { user: toAuthUser(user), tokens };
     res.json(body);
@@ -103,6 +124,7 @@ authRouter.post('/refresh', refreshLimiter, async (req, res, next) => {
     if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
       throw new HttpError(401, 'Refresh token không hợp lệ', 'INVALID_REFRESH');
     }
+    assertNotDisabled(stored.user);
     // Rotate: revoke old, issue new
     await prisma.refreshToken.update({
       where: { id: stored.id },

@@ -8,3 +8,5 @@ export * from './looking-for-team.js';
 export * from './sort.js';
 export * from './sport.js';
 export * from './dashboard.js';
+export * from './admin.js';
+export * from './venue.js';

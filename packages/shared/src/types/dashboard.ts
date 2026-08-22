@@ -60,6 +60,19 @@ export interface IncomingChallengeItem {
 }
 
 /**
+ * Lời mời vào đội đang chờ người xem trả lời (FR-006.8) — chiều ngược lại của
+ * `PendingJoinRequestItem`.
+ */
+export interface PendingTeamInviteItem {
+  id: string;
+  team: RecruitmentTeamRef;
+  /** Tên người bấm mời, để lời mời có mặt người thật thay vì chỉ tên đội. */
+  invitedByName: string;
+  message: string | null;
+  createdAt: string;
+}
+
+/**
  * Tất cả những gì khối "Cần bạn xử lý" và "Trận kế tiếp" trên Trang chủ cần.
  *
  * Gom vào một endpoint thay vì bốn: cả bốn phần đều bắt đầu bằng cùng một truy
@@ -69,6 +82,7 @@ export interface DashboardResponse {
   nextMatch: NextMatchView | null;
   pendingJoinRequests: PendingJoinRequestItem[];
   incomingChallenges: IncomingChallengeItem[];
+  pendingTeamInvites: PendingTeamInviteItem[];
   /** Tổng số việc cần xử lý — dùng cho con số trên tiêu đề khối. */
   actionCount: number;
 }

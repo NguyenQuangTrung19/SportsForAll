@@ -34,6 +34,13 @@ export const addMemberSchema = z
   });
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
 
+/** Đội mời một người chơi (FR-006.8). Người nhận phải tự bấm đồng ý mới vào đội. */
+export const createTeamInviteSchema = z.object({
+  userId: z.string().cuid(),
+  message: z.string().trim().max(500).optional(),
+});
+export type CreateTeamInviteInput = z.infer<typeof createTeamInviteSchema>;
+
 export const updateMemberRoleSchema = z.object({
   role: z.enum(TEAM_ROLES),
 });

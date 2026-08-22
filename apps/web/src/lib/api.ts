@@ -1,6 +1,19 @@
 import type { AuthResponse } from '@sfa/shared';
-import axios, { type AxiosError, type AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/auth-store';
+
+/**
+ * Lấy câu lỗi API đã viết sẵn bằng tiếng Việt, lùi về `fallback` khi lỗi không
+ * đến từ server (mất mạng, huỷ request). Mọi endpoint đều trả cùng một hình
+ * dạng `{ error: { code, message } }` — xem `middleware/error.ts` phía API.
+ */
+export function apiMessage(err: unknown, fallback: string): string {
+  if (err instanceof AxiosError) {
+    const message = (err.response?.data as { error?: { message?: string } })?.error?.message;
+    if (message) return message;
+  }
+  return fallback;
+}
 
 const baseURL = import.meta.env.VITE_API_URL ?? '';
 

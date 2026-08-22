@@ -7,6 +7,13 @@ export const NOTIFICATION_TYPES = [
   'challenge_rejected',
   'match_scheduled',
   'rating_received',
+  'team_invite_received',
+  'team_invite_accepted',
+  'team_invite_rejected',
+  'booking_requested',
+  'booking_confirmed',
+  'booking_rejected',
+  'booking_cancelled',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

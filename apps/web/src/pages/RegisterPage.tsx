@@ -1,5 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, type RegisterInput } from '@sfa/shared';
+import {
+  SIGNUP_ACCOUNT_TYPES,
+  SIGNUP_ACCOUNT_TYPE_LABELS,
+  registerSchema,
+  type RegisterInput,
+} from '@sfa/shared';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,8 +20,14 @@ export function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { accountType: 'user' },
+  });
+
+  const accountType = watch('accountType');
 
   const onSubmit = async (values: RegisterInput) => {
     setServerError(null);
@@ -74,6 +85,33 @@ export function RegisterPage() {
             </header>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5" noValidate>
+              {/* FR-008.1 — chủ sân đăng ký ngay từ đây, không cần admin nâng quyền hộ. */}
+              <fieldset>
+                <legend className="mb-2 text-xs font-semibold tracking-wide text-ink-soft">
+                  Bạn là
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {SIGNUP_ACCOUNT_TYPES.map((t) => (
+                    <label
+                      key={t}
+                      className={`inline-flex cursor-pointer items-center border px-4 py-2 text-sm font-semibold transition ${
+                        accountType === t
+                          ? 'border-ink bg-ink text-paper'
+                          : 'border-ink/15 bg-white text-ink hover:border-ink'
+                      }`}
+                    >
+                      <input type="radio" value={t} className="sr-only" {...register('accountType')} />
+                      {SIGNUP_ACCOUNT_TYPE_LABELS[t]}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-ink-soft">
+                  {accountType === 'business'
+                    ? 'Tài khoản chủ sân đăng được sân bãi và nhận đơn đặt sân.'
+                    : 'Tài khoản người chơi: lập đội, tìm đối, thuê sân.'}
+                </p>
+              </fieldset>
+
               <Field label="Tên hiển thị" error={errors.displayName?.message}>
                 <input
                   type="text"

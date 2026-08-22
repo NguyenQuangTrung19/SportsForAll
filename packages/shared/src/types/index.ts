@@ -11,3 +11,5 @@ export * from './report.js';
 export * from './looking-for-team.js';
 export * from './landing.js';
 export * from './dashboard.js';
+export * from './admin.js';
+export * from './venue.js';

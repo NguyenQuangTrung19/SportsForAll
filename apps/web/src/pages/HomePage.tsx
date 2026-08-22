@@ -6,6 +6,9 @@ import {
   type MatchRequestSummary,
   type NextMatchView,
   type PendingJoinRequestItem,
+  type OpenSlotItem,
+  type OpenSlotListResponse,
+  type PendingTeamInviteItem,
   type ProfileResponse,
   type RecruitmentListResponse,
   type RecruitmentPostSummary,
@@ -19,6 +22,7 @@ import { Avatar } from '@/components/Avatar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
+import { formatSlotRange, formatVnd } from '@/lib/format';
 import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
@@ -72,6 +76,17 @@ export function HomePage() {
     queryFn: async () => {
       const { data } = await api.get<MatchRequestListResponse>(
         `/matches/requests?sport=${current}&limit=6`,
+      );
+      return data.items;
+    },
+  });
+
+  /** FR-004.4 — khung sân chủ sân mở cho đội lẻ vào ghép. */
+  const openSlotsQuery = useQuery({
+    queryKey: ['venues', 'slots', 'open', current],
+    queryFn: async () => {
+      const { data } = await api.get<OpenSlotListResponse>(
+        `/venues/slots/open?sport=${current}&limit=3`,
       );
       return data.items;
     },
@@ -138,6 +153,16 @@ export function HomePage() {
     },
   });
 
+  const teamInviteMutation = useMutation({
+    mutationFn: async ({ id, decision }: { id: string; decision: 'accept' | 'reject' }) => {
+      await api.post(`/teams/invites/${id}/${decision}`);
+    },
+    onSuccess: () => {
+      invalidateActions();
+      void queryClient.invalidateQueries({ queryKey: ['teams'] });
+    },
+  });
+
   const attendanceMutation = useMutation({
     mutationFn: async ({ matchId, going }: { matchId: string; going: boolean }) => {
       await api.post(`/matches/${matchId}/attendance`, { status: going ? 'going' : 'not_going' });
@@ -168,6 +193,20 @@ export function HomePage() {
           </Link>
 
           <div className="flex items-center gap-2">
+            <Link
+              to="/venues"
+              className="hidden border border-ink/15 px-3 py-2 text-xs font-semibold text-ink-soft transition hover:border-ink hover:text-ink sm:inline-flex"
+            >
+              Sân bãi
+            </Link>
+            {user?.role === 'admin' && (
+              <Link
+                to="/admin"
+                className="border border-ink/15 px-3 py-2 text-xs font-semibold text-ink-soft transition hover:border-ink hover:text-ink"
+              >
+                Quản trị
+              </Link>
+            )}
             <NotificationBell />
             <Link
               to="/profile"
@@ -261,6 +300,15 @@ export function HomePage() {
                 />
               ))}
 
+              {dashboard?.pendingTeamInvites.map((i) => (
+                <TeamInviteCard
+                  key={i.id}
+                  item={i}
+                  onDecide={(decision) => teamInviteMutation.mutate({ id: i.id, decision })}
+                  pending={teamInviteMutation.isPending}
+                />
+              ))}
+
               {dashboard?.incomingChallenges.map((c) => (
                 <ChallengeCard
                   key={c.id}
@@ -348,6 +396,37 @@ export function HomePage() {
               Đăng tin tìm đối <span aria-hidden>→</span>
             </Link>
           </div>
+        </section>
+
+        {/* Tầng 2b — sân trống đang cần đội (FR-004.4) */}
+        <section className="mt-14">
+          <header className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3">
+            <div>
+              <p className="text-[13px] font-bold text-ink-soft">
+                Chủ sân mở khung cho đội lẻ · {theme.nameVi}
+              </p>
+              <h2 className="mt-1.5 font-display text-3xl font-black leading-none tracking-tight md:text-[34px]">
+                Sân đang cần đội
+              </h2>
+            </div>
+            <Link to="/venues" className="text-sm font-bold hover:underline">
+              Tất cả sân →
+            </Link>
+          </header>
+
+          {openSlotsQuery.isLoading ? (
+            <p className="mt-6 text-sm text-ink-soft">Đang tải...</p>
+          ) : (openSlotsQuery.data ?? []).length === 0 ? (
+            <p className="mt-5 border border-dashed border-ink/25 bg-white p-10 text-center text-sm text-ink-soft">
+              Chưa có chủ sân nào mở khung cần ghép đội ở môn {theme.nameVi}.
+            </p>
+          ) : (
+            <div className="mt-5 grid gap-6 md:grid-cols-3">
+              {(openSlotsQuery.data ?? []).map((slot) => (
+                <OpenSlotCard key={slot.slotId} slot={slot} />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Tầng 3 — tuyển quân + đội của tôi */}
@@ -590,6 +669,65 @@ function JoinRequestCard({
   );
 }
 
+/** Lời mời đội gửi tới mình (FR-006.8) — chiều ngược lại của JoinRequestCard. */
+function TeamInviteCard({
+  item,
+  onDecide,
+  pending,
+}: {
+  item: PendingTeamInviteItem;
+  onDecide: (decision: 'accept' | 'reject') => void;
+  pending: boolean;
+}) {
+  return (
+    <article className="relative border border-ink/12 bg-white p-[18px] shadow-[4px_4px_0_rgba(11,46,34,0.08)]">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-rust" />
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="sport-block flex size-10 shrink-0 items-center justify-center text-xl"
+        >
+          <SportIcon sport={item.team.sport} className="size-[1em]" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-bold">
+            <Link to={`/teams/${item.team.id}`} className="hover:underline">
+              {item.team.name}
+            </Link>{' '}
+            mời bạn gia nhập
+          </p>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">
+            {[item.invitedByName, item.team.region, timeAgo(item.createdAt)]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        </div>
+      </div>
+      {item.message && (
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink-soft">{item.message}</p>
+      )}
+      <div className="mt-3.5 flex gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onDecide('accept')}
+          className="bg-ink px-5 py-2.5 text-[13px] font-bold text-paper transition hover:bg-ink/92 disabled:opacity-50"
+        >
+          Gia nhập
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onDecide('reject')}
+          className="border border-ink/25 px-5 py-2.5 text-[13px] font-semibold transition hover:border-ink disabled:opacity-50"
+        >
+          Từ chối
+        </button>
+      </div>
+    </article>
+  );
+}
+
 function ChallengeCard({
   item,
   onDecide,
@@ -715,6 +853,43 @@ function OpenMatchCard({ req }: { req: MatchRequestSummary }) {
       <span className="bg-ink px-4 py-3.5 text-center text-sm font-bold text-paper">
         Gửi lời thách đấu
       </span>
+    </Link>
+  );
+}
+
+/** Khung sân còn trống, chủ sân đang cần đội vào đá (FR-004.4 + FR-008.7). */
+function OpenSlotCard({ slot }: { slot: OpenSlotItem }) {
+  return (
+    <Link
+      to={`/venues/${slot.venueId}`}
+      className="group flex flex-col gap-3 border border-ink/12 bg-white p-[22px] transition hover:-translate-y-1 hover:shadow-[6px_6px_0_rgba(11,46,34,0.12)]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-display text-lg font-black leading-tight tracking-tight">
+            {slot.venueName}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">
+            <SportIcon sport={slot.sport} className="size-[1em]" /> {slot.address}
+          </p>
+        </div>
+        <span className="shrink-0 border border-ink/20 bg-paper-2/40 px-2 py-1 text-[10px] font-bold tracking-wide text-ink-soft">
+          CẦN ĐỘI
+        </span>
+      </div>
+
+      <p className="text-[15px] font-extrabold tracking-tight">
+        {formatSlotRange(slot.startsAt, slot.endsAt)}
+      </p>
+
+      {slot.note && <p className="line-clamp-2 text-xs text-ink-soft">{slot.note}</p>}
+
+      <div className="mt-auto flex items-end justify-between border-t border-ink/10 pt-3">
+        <p className="poster-num text-xl text-primary-dark">{formatVnd(slot.price)}</p>
+        <span className="text-[13px] font-bold group-hover:underline">
+          Đặt khung <span aria-hidden>→</span>
+        </span>
+      </div>
     </Link>
   );
 }

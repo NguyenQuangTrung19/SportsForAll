@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { adminRouter } from './admin.js';
 import { authRouter } from './auth.js';
 import { dashboardRouter } from './dashboard.js';
 import { healthRouter } from './health.js';
@@ -11,6 +12,7 @@ import { sportsRouter } from './sports.js';
 import { recruitmentRouter } from './recruitment.js';
 import { reportsRouter } from './reports.js';
 import { teamsRouter } from './teams.js';
+import { venuesRouter } from './venues.js';
 
 export const apiRouter = Router();
 
@@ -26,3 +28,5 @@ apiRouter.use('/sports', sportsRouter);
 apiRouter.use('/matches', matchesRouter);
 apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/reports', reportsRouter);
+apiRouter.use('/venues', venuesRouter);
+apiRouter.use('/admin', adminRouter);

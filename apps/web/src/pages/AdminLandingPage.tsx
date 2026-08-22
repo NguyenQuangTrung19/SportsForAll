@@ -5,22 +5,15 @@ import type {
   SportSlug,
 } from '@sfa/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { AdminShell } from '@/components/AdminShell';
 import { AddSportForm } from '@/components/AddSportForm';
 import { EditSportForm } from '@/components/EditSportForm';
 import { SportIcon } from '@/components/SportIcon';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { LANDING_IMAGES_KEY } from '@/lib/use-landing-images';
 import { SPORTS_KEY, useSports } from '@/lib/use-sports';
 import { SPORT_IMAGES } from '@/lib/sport-images';
-
-function messageOf(err: unknown, fallback: string): string {
-  return err instanceof AxiosError
-    ? ((err.response?.data as { error?: { message?: string } })?.error?.message ?? fallback)
-    : fallback;
-}
 
 /** Quản lý ảnh nền trang giới thiệu (FR-010, phần quản trị nội dung). */
 export function AdminLandingPage() {
@@ -39,39 +32,18 @@ export function AdminLandingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-ink/10">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
-          <Link
-            to="/dashboard"
-            className="font-display text-2xl font-black leading-none tracking-tight"
-          >
-            SportsForAll<span className="text-primary-dark">.</span>
-          </Link>
-          <Link to="/dashboard" className="text-sm font-semibold text-ink-soft hover:text-ink">
-            ← Bảng điều khiển
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
-        <div className="mb-8">
-          <p className="text-xs font-bold tracking-wide text-ink-soft">Quản trị</p>
-          <h1 className="mt-2 font-display text-4xl font-black leading-[0.9] tracking-tight md:text-5xl">
-            Môn thể thao &amp; ảnh.
-          </h1>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink-soft">
-            Thêm môn mới, và đặt ảnh nền cho từng môn. Ảnh tải lên được tự cắt thành ba bản: hai cỡ
-            ngang cho phần đầu trang và một bản dọc cho thẻ môn.
-          </p>
-
-          {!adding && (
-            <button type="button" onClick={() => setAdding(true)} className="btn-primary mt-6">
-              Thêm môn thể thao
-            </button>
-          )}
-        </div>
-
+    <AdminShell
+      title="Môn & ảnh nền"
+      subtitle="Thêm môn mới, và đặt ảnh nền cho từng môn. Ảnh tải lên được tự cắt thành ba bản: hai cỡ ngang cho phần đầu trang và một bản dọc cho thẻ môn."
+      actions={
+        !adding && (
+          <button type="button" onClick={() => setAdding(true)} className="btn-primary">
+            Thêm môn thể thao
+          </button>
+        )
+      }
+    >
+      <>
         {adding && <AddSportForm onDone={() => setAdding(false)} />}
 
         <div className="mb-8 border border-ink/15 bg-white p-5">
@@ -119,8 +91,8 @@ export function AdminLandingPage() {
             <SportRow key={item.slug} item={item} current={bySport.get(item.slug) ?? null} />
           ))}
         </ul>
-      </main>
-    </div>
+      </>
+    </AdminShell>
   );
 }
 
@@ -144,7 +116,7 @@ function SportRow({ item, current }: { item: SportCatalogItem; current: LandingI
       await api.put(`/landing/images/${sport}`, form);
     },
     onSuccess: invalidate,
-    onError: (err) => setError(messageOf(err, 'Không tải được ảnh lên')),
+    onError: (err) => setError(apiMessage(err, 'Không tải được ảnh lên')),
   });
 
   const reset = useMutation({
@@ -152,7 +124,7 @@ function SportRow({ item, current }: { item: SportCatalogItem; current: LandingI
       await api.delete(`/landing/images/${sport}`);
     },
     onSuccess: invalidate,
-    onError: (err) => setError(messageOf(err, 'Không gỡ được ảnh')),
+    onError: (err) => setError(apiMessage(err, 'Không gỡ được ảnh')),
   });
 
   const removeSport = useMutation({
@@ -164,7 +136,7 @@ function SportRow({ item, current }: { item: SportCatalogItem; current: LandingI
       void queryClient.invalidateQueries({ queryKey: SPORTS_KEY });
       void queryClient.invalidateQueries({ queryKey: LANDING_IMAGES_KEY });
     },
-    onError: (err) => setError(messageOf(err, 'Không xoá được môn')),
+    onError: (err) => setError(apiMessage(err, 'Không xoá được môn')),
   });
 
   const busy = upload.isPending || reset.isPending || removeSport.isPending;

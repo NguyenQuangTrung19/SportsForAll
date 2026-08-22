@@ -7,8 +7,9 @@ import {
   type LookingForTeamPostSummary,
   type SkillLevel,
   type SportSlug,
+  type TeamSummary,
 } from '@sfa/shared';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -64,6 +65,15 @@ export function LookingForTeamPage() {
     });
 
   const items = data?.pages.flatMap((p) => p.items) ?? [];
+
+  /** Đội mình làm captain/phó — chỉ những đội này mới mời người khác được (FR-006.8). */
+  const { data: managedTeams = [] } = useQuery({
+    queryKey: ['teams', 'me'],
+    queryFn: async () => {
+      const { data } = await api.get<{ teams: TeamSummary[] }>('/teams/me');
+      return data.teams.filter((t) => t.viewerRole === 'captain' || t.viewerRole === 'co_captain');
+    },
+  });
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
@@ -220,6 +230,7 @@ export function LookingForTeamPage() {
                 <PlayerCard
                   key={post.id}
                   post={post}
+                  managedTeams={managedTeams}
                   onDelete={() => remove.mutate(post.id)}
                   deleting={remove.isPending}
                 />
@@ -395,10 +406,12 @@ function ComposeForm({
 
 function PlayerCard({
   post,
+  managedTeams,
   onDelete,
   deleting,
 }: {
   post: LookingForTeamPostSummary;
+  managedTeams: TeamSummary[];
   onDelete: () => void;
   deleting: boolean;
 }) {
@@ -423,11 +436,11 @@ function PlayerCard({
 
       <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-ink-soft">{post.description}</p>
 
-      <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 pt-3">
         <span className="text-[11px] text-ink-soft/70">
           {new Date(post.createdAt).toLocaleDateString('vi-VN')}
         </span>
-        {post.viewerIsAuthor && (
+        {post.viewerIsAuthor ? (
           <button
             type="button"
             onClick={onDelete}
@@ -436,9 +449,108 @@ function PlayerCard({
           >
             Gỡ bài
           </button>
+        ) : (
+          <InviteControl post={post} teams={managedTeams.filter((t) => t.sport === post.sport)} />
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * Mời tác giả bài "Tìm đội" vào một đội mình quản lý (FR-006.8).
+ *
+ * Chỉ liệt kê đội cùng môn với bài — mời người chơi cầu lông vào đội bóng đá là
+ * nhiễu chứ không phải tính năng. Không có đội nào hợp thì không hiện gì cả.
+ */
+function InviteControl({ post, teams }: { post: LookingForTeamPostSummary; teams: TeamSummary[] }) {
+  const [open, setOpen] = useState(false);
+  const [teamId, setTeamId] = useState(teams[0]?.id ?? '');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const invite = useMutation({
+    mutationFn: async () => {
+      await api.post(`/teams/${teamId}/invites`, {
+        userId: post.author.id,
+        message: message.trim() || undefined,
+      });
+    },
+    onSuccess: () => setOpen(false),
+    onError: (err: unknown) => {
+      setError(
+        err instanceof AxiosError
+          ? ((err.response?.data as { error?: { message?: string } })?.error?.message ??
+              'Không gửi được lời mời')
+          : 'Không gửi được lời mời',
+      );
+    },
+  });
+
+  if (teams.length === 0) return null;
+
+  if (invite.isSuccess) {
+    return <span className="text-xs font-semibold text-primary-dark">Đã gửi lời mời</span>;
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-xs font-bold text-ink transition hover:underline"
+      >
+        Mời vào đội →
+      </button>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-2 pt-1">
+      {teams.length > 1 && (
+        <select
+          value={teamId}
+          onChange={(e) => setTeamId(e.target.value)}
+          className="input !py-2 text-sm"
+        >
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <input
+        type="text"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder={`Lời nhắn cho ${post.author.displayName} (không bắt buộc)`}
+        maxLength={500}
+        className="input !py-2 text-sm"
+      />
+      {error && <p className="text-xs font-medium text-rust">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          disabled={invite.isPending}
+          className="text-xs font-semibold text-ink-soft transition hover:text-ink disabled:opacity-50"
+        >
+          Huỷ
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            invite.mutate();
+          }}
+          disabled={invite.isPending || !teamId}
+          className="bg-ink px-4 py-2 text-xs font-bold text-paper transition hover:bg-ink/92 disabled:opacity-50"
+        >
+          {invite.isPending ? 'Đang gửi...' : 'Gửi lời mời'}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -170,8 +170,65 @@ async function main() {
     });
   }
 
+  // Tài khoản chủ sân + một sân có sẵn lịch, để thử luồng FR-008 mà không phải
+  // tự dựng từ đầu mỗi lần reset CSDL.
+  const owner = await prisma.user.upsert({
+    where: { email: 'sanbong@demo.vn' },
+    update: { role: 'business' },
+    create: {
+      email: 'sanbong@demo.vn',
+      passwordHash,
+      displayName: 'Sân Mỹ Đình',
+      role: 'business',
+      region: REGION,
+      emailVerified: true,
+      onboardedAt: new Date(),
+    },
+  });
+
+  const venue = await prisma.venue.upsert({
+    where: { id: 'cseedvenue0000000000001' },
+    update: {},
+    create: {
+      id: 'cseedvenue0000000000001',
+      ownerId: owner.id,
+      name: 'Sân bóng Mỹ Đình A',
+      sport: SPORT,
+      address: 'Số 1 Lê Đức Thọ, Nam Từ Liêm, Hà Nội',
+      region: REGION,
+      description: 'Cỏ nhân tạo, có đèn, chỗ gửi xe miễn phí. Cho thuê áo bib và bóng.',
+      pricePerHour: 300_000,
+    },
+  });
+
+  // Ba khung tối trong ba ngày tới; khung đầu mở cho đội lẻ vào ghép (FR-008.7).
+  const startOfTomorrow = new Date();
+  startOfTomorrow.setHours(19, 0, 0, 0);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+  for (let i = 0; i < 3; i += 1) {
+    const startsAt = new Date(startOfTomorrow);
+    startsAt.setDate(startsAt.getDate() + i);
+    const endsAt = new Date(startsAt);
+    endsAt.setHours(endsAt.getHours() + 2);
+
+    await prisma.venueSlot.upsert({
+      where: { id: `cseedslot${i}00000000000001` },
+      update: {},
+      create: {
+        id: `cseedslot${i}00000000000001`,
+        venueId: venue.id,
+        startsAt,
+        endsAt,
+        price: 300_000,
+        openForTeams: i === 0,
+        note: i === 0 ? 'Còn thiếu một đội, ai vào ghép thì nhắn' : null,
+      },
+    });
+  }
+
   console.log(
-    `Seed xong: ${users.length} người dùng + 1 admin, 2 đội, 1 bài tuyển, 1 kèo, ${seekers.length} bài tìm đội.`,
+    `Seed xong: ${users.length} người dùng + 1 admin + 1 chủ sân, 2 đội, 1 bài tuyển, 1 kèo, ${seekers.length} bài tìm đội, 1 sân với 3 khung giờ.`,
   );
   console.log(`Đăng nhập thử: ${PEOPLE[0]!.email} / ${DEMO_PASSWORD}`);
 }

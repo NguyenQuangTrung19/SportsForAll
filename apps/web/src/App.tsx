@@ -4,22 +4,33 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AdminRoute, OnboardingGate, ProtectedRoute } from '@/components/ProtectedRoute';
 import { queryClient } from '@/lib/query-client';
 import { AdminLandingPage } from '@/pages/AdminLandingPage';
+import { AdminLogsPage } from '@/pages/AdminLogsPage';
+import { AdminOverviewPage } from '@/pages/AdminOverviewPage';
+import { AdminPostsPage } from '@/pages/AdminPostsPage';
+import { AdminReportsPage } from '@/pages/AdminReportsPage';
+import { AdminUsersPage } from '@/pages/AdminUsersPage';
+import { AdminVenuesPage } from '@/pages/AdminVenuesPage';
+import { FindOpponentsPage } from '@/pages/FindOpponentsPage';
+import { FindTeammatesPage } from '@/pages/FindTeammatesPage';
 import { HomePage } from '@/pages/HomePage';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
-import { OnboardingPage } from '@/pages/OnboardingPage';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { RegisterPage } from '@/pages/RegisterPage';
-import { FindOpponentsPage } from '@/pages/FindOpponentsPage';
-import { FindTeammatesPage } from '@/pages/FindTeammatesPage';
 import { LookingForTeamPage } from '@/pages/LookingForTeamPage';
 import { MatchRequestCreatePage } from '@/pages/MatchRequestCreatePage';
 import { MatchRequestDetailPage } from '@/pages/MatchRequestDetailPage';
+import { MyBookingsPage } from '@/pages/MyBookingsPage';
+import { OnboardingPage } from '@/pages/OnboardingPage';
 import { PostCreatePage } from '@/pages/PostCreatePage';
 import { PostDetailPage } from '@/pages/PostDetailPage';
+import { ProfilePage } from '@/pages/ProfilePage';
+import { RegisterPage } from '@/pages/RegisterPage';
 import { TeamCreatePage } from '@/pages/TeamCreatePage';
 import { TeamDetailPage } from '@/pages/TeamDetailPage';
 import { TeamsPage } from '@/pages/TeamsPage';
+import { VenueCreatePage } from '@/pages/VenueCreatePage';
+import { VenueDetailPage } from '@/pages/VenueDetailPage';
+import { VenueManagePage } from '@/pages/VenueManagePage';
+import { VenuesPage } from '@/pages/VenuesPage';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
 
 function ThemeBridge({ children }: { children: React.ReactNode }) {
@@ -69,6 +80,54 @@ export function App() {
                 <ProtectedRoute>
                   <TeamsPage />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminOverviewPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsersPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/posts"
+              element={
+                <AdminRoute>
+                  <AdminPostsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <AdminRoute>
+                  <AdminReportsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/venues"
+              element={
+                <AdminRoute>
+                  <AdminVenuesPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/logs"
+              element={
+                <AdminRoute>
+                  <AdminLogsPage />
+                </AdminRoute>
               }
             />
             <Route
@@ -140,6 +199,46 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <FindOpponentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/venues"
+              element={
+                <ProtectedRoute>
+                  <VenuesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/venues/new"
+              element={
+                <ProtectedRoute>
+                  <VenueCreatePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/venues/:id"
+              element={
+                <ProtectedRoute>
+                  <VenueDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/venues/:id/manage"
+              element={
+                <ProtectedRoute>
+                  <VenueManagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute>
+                  <MyBookingsPage />
                 </ProtectedRoute>
               }
             />

@@ -5,6 +5,7 @@ import {
   addMemberSchema,
   type AddMemberInput,
   type TeamDetail,
+  type TeamInviteView,
   type TeamRole,
 } from '@sfa/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -77,6 +78,15 @@ export function TeamDetailPage() {
       else void queryClient.invalidateQueries({ queryKey: ['teams', id] });
     },
     onError: (err) => setActionError(extractMessage(err, 'Không xoá được thành viên')),
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      const { data } = await api.post<TeamDetail>(`/teams/invites/${inviteId}/cancel`);
+      return data;
+    },
+    onSuccess: setTeam,
+    onError: (err) => setActionError(extractMessage(err, 'Không rút được lời mời')),
   });
 
   const disbandMutation = useMutation({
@@ -232,6 +242,17 @@ export function TeamDetailPage() {
                   </article>
                 )}
 
+                {canManage && team.pendingInvites.length > 0 && (
+                  <PendingInvitesCard
+                    invites={team.pendingInvites}
+                    onCancel={(inviteId) => {
+                      setActionError(null);
+                      cancelInviteMutation.mutate(inviteId);
+                    }}
+                    pending={cancelInviteMutation.isPending}
+                  />
+                )}
+
                 {canManage && (
                   <AddMemberCard
                     onSubmit={(input) => {
@@ -329,6 +350,46 @@ function Tag({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Lời mời đội đã gửi và còn đang chờ trả lời (FR-006.8). */
+function PendingInvitesCard({
+  invites,
+  onCancel,
+  pending,
+}: {
+  invites: TeamInviteView[];
+  onCancel: (inviteId: string) => void;
+  pending: boolean;
+}) {
+  return (
+    <article className="border border-ink/15 bg-white p-6">
+      <p className="text-xs font-bold tracking-wide text-ink-soft">Đang chờ trả lời</p>
+      <h3 className="mt-1 font-display text-lg font-black tracking-tight">
+        Lời mời đã gửi · {invites.length}
+      </h3>
+      <ul className="mt-4 divide-y divide-ink/10">
+        {invites.map((i) => (
+          <li key={i.id} className="flex items-center gap-3 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold">{i.displayName}</p>
+              <p className="mt-0.5 text-xs text-ink-soft">
+                Mời ngày {new Date(i.createdAt).toLocaleDateString('vi-VN')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onCancel(i.id)}
+              disabled={pending}
+              className="shrink-0 border border-ink/25 px-3 py-1.5 text-xs font-semibold transition hover:border-ink disabled:opacity-50"
+            >
+              Rút lại
+            </button>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
 function AddMemberCard({
   onSubmit,
   pending,
@@ -348,8 +409,15 @@ function AddMemberCard({
 
   return (
     <article className="border border-ink/15 bg-white p-6">
-      <p className="text-xs font-bold tracking-wide text-ink-soft">Mời thành viên</p>
+      <p className="text-xs font-bold tracking-wide text-ink-soft">Thêm thẳng</p>
       <h3 className="mt-1 font-display text-lg font-black tracking-tight">Thêm bằng email</h3>
+      <p className="mt-2 text-sm text-ink-soft">
+        Người này vào đội ngay, không cần bấm đồng ý. Muốn hỏi ý trước thì mời họ từ trang{' '}
+        <Link to="/looking-for-team" className="font-semibold text-ink hover:underline">
+          Tìm đội
+        </Link>
+        .
+      </p>
       <form
         onSubmit={handleSubmit((values) => {
           onSubmit({

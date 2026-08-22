@@ -92,6 +92,27 @@ enum ReportStatus {
   dismissed
 }
 
+/// Trang thai mot san (FR-008.2, FR-010.5). `suspended` la admin tam dinh chi:
+/// san bien khoi danh sach cong khai nhung du lieu dat san cu van con nguyen.
+enum VenueStatus {
+  active
+  suspended
+}
+
+/// Mot khung gio cua san (FR-008.3). `blocked` la chu san tu chan (bao tri, giai dau).
+enum SlotStatus {
+  open
+  booked
+  blocked
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  rejected
+  cancelled
+}
+
 enum NotificationType {
   join_request_received
   join_request_accepted
@@ -101,6 +122,13 @@ enum NotificationType {
   challenge_rejected
   match_scheduled
   rating_received
+  team_invite_received
+  team_invite_accepted
+  team_invite_rejected
+  booking_requested
+  booking_confirmed
+  booking_rejected
+  booking_cancelled
 }
 
 /// Danh muc mon the thao. Truoc day la enum Postgres nen admin khong them duoc
@@ -120,6 +148,7 @@ model Sport {
 
   sportPreferences SportPreference[]
   teams            Team[]
+  venues           Venue[]
   recruitmentPosts RecruitmentPost[]
   matchRequests    MatchRequest[]
   matches          Match[]
@@ -130,45 +159,54 @@ model Sport {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  phone         String?    @unique
+  id            String    @id @default(cuid())
+  email         String    @unique
+  phone         String?   @unique
   passwordHash  String?
   displayName   String
   avatarUrl     String?
   bio           String?
   birthYear     Int?
   region        String?
-  role          UserRole   @default(user)
-  reputation    Float      @default(0)
-  emailVerified Boolean    @default(false)
+  role          UserRole  @default(user)
+  reputation    Float     @default(0)
+  emailVerified Boolean   @default(false)
+  /// Khac null = tai khoan bi khoa (FR-010.7). Dung timestamp thay vi co boolean
+  /// vi admin luon phai tra loi duoc cau "khoa tu bao gio".
+  disabledAt    DateTime?
   onboardedAt   DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  refreshTokens     RefreshToken[]
-  sportPreferences  SportPreference[]
-  teamMemberships   TeamMember[]
-  joinRequests      JoinRequest[]
-  notifications     Notification[]
-  lookingForPosts   LookingForTeamPost[]
-  landingImages     LandingImage[]
-  attendances       MatchAttendance[]
-  ratingsGiven      Rating[]
-  reportsFiled      Report[]
+  refreshTokens    RefreshToken[]
+  sportPreferences SportPreference[]
+  teamMemberships  TeamMember[]
+  joinRequests     JoinRequest[]
+  invitesReceived  TeamInvite[]         @relation("InviteTarget")
+  invitesSent      TeamInvite[]         @relation("InviteSender")
+  venues           Venue[]
+  bookings         Booking[]
+  venueReviews     VenueReview[]
+  notifications    Notification[]
+  lookingForPosts  LookingForTeamPost[]
+  landingImages    LandingImage[]
+  attendances      MatchAttendance[]
+  ratingsGiven     Rating[]
+  reportsFiled     Report[]
 
   @@index([region])
+  @@index([disabledAt])
 }
 
 model SportPreference {
-  id          String      @id @default(cuid())
-  userId      String
-  sport       String
-  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
-  skillLevel  SkillLevel
-  position    String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id         String     @id @default(cuid())
+  userId     String
+  sport      String
+  sportRef   Sport      @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  skillLevel SkillLevel
+  position   String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -180,7 +218,7 @@ model Team {
   id          String      @id @default(cuid())
   name        String
   sport       String
-  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  sportRef    Sport       @relation(fields: [sport], references: [slug], onDelete: Restrict)
   region      String?
   description String?
   logoUrl     String?
@@ -190,6 +228,7 @@ model Team {
   updatedAt   DateTime    @updatedAt
 
   members          TeamMember[]
+  invites          TeamInvite[]
   recruitmentPosts RecruitmentPost[]
   matchRequests    MatchRequest[]
   challenges       Challenge[]
@@ -197,6 +236,7 @@ model Team {
   matchesAsAway    Match[]           @relation("AwayTeam")
   ratingsReceived  Rating[]
   reportsAgainst   Report[]
+  bookings         Booking[]
 
   @@index([sport, region])
   @@index([sport, skillLevel])
@@ -206,7 +246,7 @@ model RecruitmentPost {
   id             String            @id @default(cuid())
   teamId         String
   sport          String
-  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  sportRef       Sport             @relation(fields: [sport], references: [slug], onDelete: Restrict)
   region         String?
   positionNeeded String?
   skillLevelMin  SkillLevel?
@@ -225,13 +265,13 @@ model RecruitmentPost {
 }
 
 model JoinRequest {
-  id         String            @id @default(cuid())
-  postId     String
-  userId     String
-  status     JoinRequestStatus @default(pending)
-  message    String?
-  createdAt  DateTime          @default(now())
-  decidedAt  DateTime?
+  id        String            @id @default(cuid())
+  postId    String
+  userId    String
+  status    JoinRequestStatus @default(pending)
+  message   String?
+  createdAt DateTime          @default(now())
+  decidedAt DateTime?
 
   post RecruitmentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -240,11 +280,35 @@ model JoinRequest {
   @@index([userId, status])
 }
 
+/// Chieu nguoc lai cua JoinRequest (FR-006.8): doi chu dong moi nguoi choi.
+/// Khong dung chung bang voi JoinRequest vi loi moi khong gan voi bai tuyen nao
+/// — postId se phai nullable va @@unique([postId, userId]) mat tac dung.
+/// Dung lai JoinRequestStatus: vong doi hai ben giong het nhau.
+model TeamInvite {
+  id          String            @id @default(cuid())
+  teamId      String
+  userId      String
+  /// Ai bam moi — de hien "X da moi ban vao doi Y" va truy nguoc khi co tranh cai.
+  invitedById String
+  status      JoinRequestStatus @default(pending)
+  message     String?
+  createdAt   DateTime          @default(now())
+  decidedAt   DateTime?
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User @relation("InviteTarget", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId, status])
+  @@index([teamId, status])
+}
+
 model MatchRequest {
   id            String             @id @default(cuid())
   teamId        String
   sport         String
-  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  sportRef      Sport              @relation(fields: [sport], references: [slug], onDelete: Restrict)
   region        String?
   preferredTime DateTime?
   venueName     String?
@@ -275,8 +339,8 @@ model Challenge {
   createdAt        DateTime        @default(now())
   decidedAt        DateTime?
 
-  matchRequest    MatchRequest @relation(fields: [matchRequestId], references: [id], onDelete: Cascade)
-  challengerTeam  Team         @relation(fields: [challengerTeamId], references: [id], onDelete: Cascade)
+  matchRequest   MatchRequest @relation(fields: [matchRequestId], references: [id], onDelete: Cascade)
+  challengerTeam Team         @relation(fields: [challengerTeamId], references: [id], onDelete: Cascade)
 
   @@unique([matchRequestId, challengerTeamId])
   @@index([challengerTeamId, status])
@@ -299,23 +363,23 @@ model Notification {
 }
 
 model Match {
-  id              String      @id @default(cuid())
-  matchRequestId  String?     @unique
-  homeTeamId      String
-  awayTeamId      String
-  sport           String
-  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
-  scheduledAt     DateTime?
-  venueName       String?
-  status          MatchStatus @default(scheduled)
-  homeScore       Int?
-  awayScore       Int?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id             String      @id @default(cuid())
+  matchRequestId String?     @unique
+  homeTeamId     String
+  awayTeamId     String
+  sport          String
+  sportRef       Sport       @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  scheduledAt    DateTime?
+  venueName      String?
+  status         MatchStatus @default(scheduled)
+  homeScore      Int?
+  awayScore      Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  matchRequest MatchRequest? @relation(fields: [matchRequestId], references: [id], onDelete: SetNull)
-  homeTeam     Team          @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
-  awayTeam     Team          @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  matchRequest MatchRequest?     @relation(fields: [matchRequestId], references: [id], onDelete: SetNull)
+  homeTeam     Team              @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam     Team              @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
   attendances  MatchAttendance[]
   ratings      Rating[]
   reports      Report[]
@@ -347,7 +411,7 @@ model LookingForTeamPost {
   id          String            @id @default(cuid())
   userId      String
   sport       String
-  sportRef    Sport    @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  sportRef    Sport             @relation(fields: [sport], references: [slug], onDelete: Restrict)
   region      String?
   position    String?
   skillLevel  SkillLevel?
@@ -381,11 +445,11 @@ model LandingImage {
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
-  teamId    String
-  userId    String
-  role      TeamRole @default(member)
-  joinedAt  DateTime @default(now())
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     TeamRole @default(member)
+  joinedAt DateTime @default(now())
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -395,16 +459,35 @@ model TeamMember {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Nhat ky thao tac quan tri (FR-010.8). Chi ghi thao tac lam doi du lieu —
+/// ghi ca luot doc thi log tu no thanh feed rac khong ai xem.
+///
+/// `adminId` / `adminName` la anh chup, khong phai khoa ngoai: xoa tai khoan
+/// admin khong duoc phep xoa mat dau vet ho da lam gi.
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  adminName  String
+  action     String
+  targetType String
+  targetId   String
+  detail     String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([adminId, createdAt])
 }
 
 /// Danh gia uy tin sau tran (FR-005.10). Moi nguoi mot phieu cho moi tran, cham
@@ -447,4 +530,104 @@ model Report {
 
   @@index([status, createdAt])
   @@index([reportedTeamId, status])
+}
+
+/// San bai do tai khoan doanh nghiep dang (FR-008.2).
+///
+/// `rating` la trung binh cac phieu trong VenueReview, ghi san vao day de danh
+/// sach loc/sap xep khong phai tinh lai moi lan doc — dung cach da lam voi
+/// Team.reputation.
+model Venue {
+  id           String      @id @default(cuid())
+  ownerId      String
+  name         String
+  sport        String
+  sportRef     Sport       @relation(fields: [sport], references: [slug], onDelete: Restrict)
+  address      String
+  region       String?
+  description  String?
+  photoUrl     String?
+  /// Gia niem yet moi gio, don vi VND. Int vi tien VND khong co phan le.
+  pricePerHour Int
+  rating       Float       @default(0)
+  status       VenueStatus @default(active)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  slots   VenueSlot[]
+  reviews VenueReview[]
+
+  @@index([sport, region, status])
+  @@index([ownerId])
+  @@index([status, rating])
+}
+
+/// Mot khung gio cho thue (FR-008.3).
+///
+/// Gia nam o tung khung chu khong chi o san: gio vang dat hon gio trua la
+/// chuyen binh thuong, va gia da chot cua khung khong duoc doi theo khi chu san
+/// sua gia niem yet (FR-008.4).
+model VenueSlot {
+  id           String     @id @default(cuid())
+  venueId      String
+  startsAt     DateTime
+  endsAt       DateTime
+  price        Int
+  status       SlotStatus @default(open)
+  /// Chu san mo khung nay cho ca doi le vao ghep (FR-008.7, FR-004.4).
+  openForTeams Boolean    @default(false)
+  note         String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  venue    Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([venueId, startsAt])
+  @@index([status, startsAt])
+  @@index([openForTeams, status, startsAt])
+}
+
+/// Yeu cau dat san (FR-008.5).
+///
+/// Nhieu nguoi cung xin mot khung la binh thuong — chu san chon mot, phan con
+/// lai tu dong bi tu choi, dung nhu cach Challenge lam voi mot loi moi tim tran.
+/// Khoa duy nhat theo (slot, user) de mot nguoi khong spam mot khung; xin lai
+/// sau khi bi tu choi la lam moi chinh ban ghi cu.
+model Booking {
+  id        String        @id @default(cuid())
+  slotId    String
+  userId    String
+  teamId    String?
+  status    BookingStatus @default(pending)
+  note      String?
+  createdAt DateTime      @default(now())
+  decidedAt DateTime?
+
+  slot VenueSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@unique([slotId, userId])
+  @@index([slotId, status])
+  @@index([userId, status])
+}
+
+/// Danh gia san (FR-008.8). Mot phieu moi nguoi moi san, sua duoc — giong het
+/// Rating cham doi, nen diem san khong bom len duoc bang cach gui nhieu lan.
+model VenueReview {
+  id        String   @id @default(cuid())
+  venueId   String
+  userId    String
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, userId])
+  @@index([venueId])
 }
