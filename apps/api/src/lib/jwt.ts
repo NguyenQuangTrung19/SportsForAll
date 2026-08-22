@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env.js';
+import { ttlToDate } from './ttl.js';
 
 export interface AccessPayload {
   sub: string;
@@ -26,26 +27,10 @@ export interface RefreshTokenIssued {
 export function issueRefreshToken(): RefreshTokenIssued {
   const token = crypto.randomBytes(48).toString('base64url');
   const tokenHash = hashRefreshToken(token);
-  const expiresAt = parseTtlToDate(env.JWT_REFRESH_TTL);
+  const expiresAt = ttlToDate(env.JWT_REFRESH_TTL);
   return { token, tokenHash, expiresAt };
 }
 
 export function hashRefreshToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
-}
-
-function parseTtlToDate(ttl: string): Date {
-  const match = /^(\d+)([smhd])$/.exec(ttl);
-  if (!match) throw new Error(`Invalid TTL: ${ttl}`);
-  const n = Number(match[1]);
-  const unit = match[2];
-  const ms =
-    unit === 's'
-      ? n * 1000
-      : unit === 'm'
-        ? n * 60_000
-        : unit === 'h'
-          ? n * 3_600_000
-          : n * 86_400_000;
-  return new Date(Date.now() + ms);
 }

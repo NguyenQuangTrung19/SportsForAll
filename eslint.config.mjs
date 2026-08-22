@@ -69,6 +69,18 @@ export default tseslint.config(
     },
   },
 
+  // Tests: node:test's describe/it return promises that the runner itself awaits.
+  // Flagging every call as a floating promise says nothing true about the code.
+  {
+    files: ['**/*.test.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+    },
+  },
+
   // Config files live outside the tsconfig projects — no type information available.
   {
     files: ['**/*.config.{js,mjs,cjs,ts}', 'eslint.config.mjs'],

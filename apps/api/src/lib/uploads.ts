@@ -3,10 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import multer from 'multer';
 import { HttpError } from '../middleware/error.js';
+import { UPLOAD_ROUTE, uploadedFileName } from './upload-path.js';
 
 /** Ảnh lưu trên đĩa cạnh API. Đủ cho quy mô đồ án; lên production nên đổi sang object storage. */
 export const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads');
-export const UPLOAD_ROUTE = '/uploads';
+export { UPLOAD_ROUTE };
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const ALLOWED = new Map([
@@ -39,22 +40,14 @@ export const avatarUpload = multer({
 
 /**
  * Xoá ảnh cũ khi người dùng thay ảnh mới, tránh rác tồn đọng.
- * avatarUrl được lưu dạng tuyệt đối (http://host/uploads/x.png) nên phải tách
- * pathname ra trước khi so — so thẳng cả chuỗi sẽ không bao giờ khớp.
+ *
+ * Quy tắc "URL này có phải ảnh của ta không" nằm ở `upload-path.ts` và có test
+ * riêng — đây chỉ là phần chạm đĩa.
  */
 export function removeUploadedFile(fileUrl: string | null): void {
-  if (!fileUrl) return;
+  const name = uploadedFileName(fileUrl);
+  if (!name) return;
 
-  let pathname: string;
-  try {
-    pathname = fileUrl.startsWith('/') ? fileUrl : new URL(fileUrl).pathname;
-  } catch {
-    return; // không phải URL hợp lệ — chắc chắn không phải ảnh do ta lưu
-  }
-  if (!pathname.startsWith(`${UPLOAD_ROUTE}/`)) return;
-
-  // basename chặn mọi mưu đồ ../ trong đường dẫn.
-  const name = path.basename(pathname);
   fs.rm(path.join(UPLOAD_DIR, name), { force: true }, () => {
     // Xoá được hay không cũng không nên làm hỏng request đang chạy.
   });
