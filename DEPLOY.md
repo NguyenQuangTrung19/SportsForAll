@@ -97,6 +97,26 @@ Mục **Environment** → **Add Environment Variable**:
 **Create Web Service.** Lần build đầu mất 3–5 phút. Xong sẽ có URL dạng
 `https://sportsforall-api.onrender.com` — copy lại.
 
+> **Build hỏng với `P1012 ... the URL must start with the protocol postgresql://`?**
+> `DATABASE_URL` tồn tại nhưng giá trị rỗng hoặc sai định dạng — hầu như luôn là một
+> trong ba lỗi dán:
+>
+> - Bấm **Create Web Service** trước khi kịp **Save** biến môi trường → lần build đầu chạy
+>   với giá trị rỗng. Thêm biến rồi **Manual Deploy → Deploy latest commit**.
+> - Copy nguyên khối lệnh của Neon: `psql 'postgresql://...'`. Chỉ lấy phần trong nháy đơn.
+> - Có nháy `"` `'` bao ngoài, hoặc thừa khoảng trắng/xuống dòng ở cuối. Render lưu
+>   nguyên văn, không tự bóc nháy.
+>
+> Giá trị đúng bắt đầu bằng đúng 11 ký tự `postgresql://`. Muốn xem Render thực sự nhận
+> được gì mà không lộ mật khẩu, chèn tạm vào đầu **Build Command**:
+>
+> ```bash
+> node -e "const u=process.env.DATABASE_URL||'';console.log('len',u.length,'head',JSON.stringify(u.slice(0,13)))" &&
+> ```
+>
+> Log phải in `head "postgresql://"`. Ra `len 0` là biến chưa lưu; ra `head "psql 'postg"`
+> là dán dư lệnh `psql`.
+
 ### 2.4 Kiểm tra ngay
 
 ```bash
@@ -115,8 +135,15 @@ Repo đã có sẵn [`vercel.json`](./vercel.json) khai báo build command và o
 nên Vercel tự nhận. Không cần chỉnh gì trong phần Build Settings.
 
 1. [vercel.com](https://vercel.com) → **Add New** → **Project** → import repo `SportsForAll`.
-2. **Root Directory:** để trống (mặc định repo root).
-3. Mở **Environment Variables**, thêm:
+2. **Root Directory:** để trống (mặc định repo root). Trỏ nhầm vào `apps/api` là hỏng kép:
+   Vercel cài nhầm dependency của API, và bỏ qua luôn `vercel.json` ở gốc (nó chỉ đọc file
+   này bên trong Root Directory).
+3. **Framework Preset:** `Vite`. Nếu bước 2 từng trỏ nhầm vào `apps/api`, Vercel đã thấy
+   `express` và tự đặt preset thành Node — sửa Root Directory **không** gỡ preset đó, build
+   vẫn chết ở `No entrypoint found in output directory: "apps/web/dist"` (nó đi tìm
+   `server.js` để chạy thay vì phục vụ file tĩnh). `vercel.json` đã khai `"framework": "vite"`
+   và khai báo trong file thắng cấu hình dashboard, nên chỉ cần deploy lại là xong.
+4. Mở **Environment Variables**, thêm:
 
    | Key            | Value                                     |
    | -------------- | ----------------------------------------- |
@@ -125,7 +152,7 @@ nên Vercel tự nhận. Không cần chỉnh gì trong phần Build Settings.
    **Không có dấu `/` ở cuối.** Axios ghép chuỗi thành `${VITE_API_URL}/api`, thừa một dấu
    gạch là mọi request thành `//api/...`.
 
-4. **Deploy.** Xong sẽ có URL dạng `https://sportsforall.vercel.app`.
+5. **Deploy.** Xong sẽ có URL dạng `https://sportsforall.vercel.app`.
 
 > `vercel.json` có `rewrites` trỏ mọi đường dẫn về `index.html`. Web dùng `BrowserRouter`,
 > thiếu dòng này thì trang chủ vào được nhưng mở thẳng `/teams` hay F5 giữa chừng là **404**.
