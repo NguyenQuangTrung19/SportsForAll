@@ -30,3 +30,7 @@ apps/web/src/assets/sports/*.png
 apps/web/src/assets/sports/*.jpg
 apps/web/src/assets/sports/*.jpeg
 *.tsbuildinfo
+
+# Hồ sơ cá nhân — không thuộc về repo công khai này.
+NguyenQuangTrung*.txt
+BAOCAO.html

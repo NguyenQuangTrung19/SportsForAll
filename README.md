@@ -5,6 +5,7 @@ Nền tảng kết nối cộng đồng thể thao - tìm đồng đội, đối
 Yêu cầu chi tiết: xem [Idea.md](./Idea.md).
 Quy trình chạy thử từ đầu: xem [RUNBOOK.md](./RUNBOOK.md).
 Tiến độ chức năng: xem [ROADMAP.md](./ROADMAP.md).
+Triển khai lên mạng: xem [DEPLOY.md](./DEPLOY.md).
 
 ## Cấu trúc monorepo
 
