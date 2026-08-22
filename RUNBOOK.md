@@ -80,7 +80,8 @@ Cả 4 tài khoản dùng chung mật khẩu **`Demo1234!`**
 | `binh@demo.vn`  | Thành viên FC Ba Đình                                                        |
 | `cuong@demo.vn` | Đội trưởng **Cầu Giấy United** — đang có kèo tìm đối                         |
 | `dung@demo.vn`  | Chưa vào đội nào — dùng để thử luồng xin gia nhập                            |
-| `admin@demo.vn` | **Quản trị viên** — vào `/admin/landing` để thêm môn thể thao và đặt ảnh nền |
+| `admin@demo.vn` | **Quản trị viên** — vào `/admin` để xem thống kê, người dùng, báo cáo, sân bãi |
+| `sanbong@demo.vn` | **Chủ sân** — sở hữu Sân bóng Mỹ Đình A với 3 khung giờ đã mở sẵn |
 
 ## 5. Chạy
 
@@ -142,5 +143,15 @@ foreach ($p in 4000,5173) {
 ## 9. Kiểm tra sức khoẻ trước khi commit
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm build
+pnpm lint && pnpm typecheck && pnpm test && pnpm build
+```
+
+`pnpm test` chạy `node --test` sẵn có trong Node — không cần cài thêm gì và
+**không cần CSDL**. Bộ test hiện chỉ phủ phần logic thuần: phân trang cursor,
+phân tích TTL, quy tắc đường dẫn ảnh tải lên, mốc "trận đã đá xong", và toàn bộ
+schema xác thực dữ liệu vào. Chạy riêng một gói:
+
+```bash
+pnpm --filter @sfa/api test
+pnpm --filter @sfa/shared test
 ```
