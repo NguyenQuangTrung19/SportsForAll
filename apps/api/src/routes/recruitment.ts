@@ -303,6 +303,21 @@ recruitmentRouter.post('/posts/:id/requests', requireAuth, async (req, res, next
   }
 });
 
+/** Đổi trạng thái đơn — chỉ khi nó vẫn đang chờ lúc ghi, không phải lúc đọc. */
+async function claimPending(
+  client: Prisma.TransactionClient,
+  id: string,
+  status: 'accepted' | 'rejected' | 'cancelled',
+): Promise<void> {
+  const { count } = await client.joinRequest.updateMany({
+    where: { id, status: 'pending' },
+    data: { status, decidedAt: new Date() },
+  });
+  if (count === 0) {
+    throw new HttpError(409, 'Đơn vừa được xử lý', 'REQUEST_CONFLICT');
+  }
+}
+
 recruitmentRouter.post('/requests/:requestId/accept', requireAuth, async (req, res, next) => {
   try {
     const request = await prisma.joinRequest.findUnique({
@@ -316,18 +331,15 @@ recruitmentRouter.post('/requests/:requestId/accept', requireAuth, async (req, r
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.joinRequest.update({
-        where: { id: request.id },
-        data: { status: 'accepted', decidedAt: new Date() },
+      // Chốt đơn bằng điều kiện `pending` ngay trong câu UPDATE: nhận đúng lúc người
+      // xin huỷ, hay captain nhận lúc phó từ chối, thì chỉ một bên thắng — nếu không
+      // người chơi vào đội mà đơn lại ghi "đã huỷ"/"từ chối".
+      await claimPending(tx, request.id, 'accepted');
+      // Có thể đã vào đội bằng đường khác (lời mời 6.8) trong lúc đơn còn chờ.
+      await tx.teamMember.createMany({
+        data: { teamId: request.post.teamId, userId: request.userId, role: 'member' },
+        skipDuplicates: true,
       });
-      const existing = await tx.teamMember.findUnique({
-        where: { teamId_userId: { teamId: request.post.teamId, userId: request.userId } },
-      });
-      if (!existing) {
-        await tx.teamMember.create({
-          data: { teamId: request.post.teamId, userId: request.userId, role: 'member' },
-        });
-      }
       await notify(tx, {
         userIds: [request.userId],
         type: 'join_request_accepted',
@@ -355,10 +367,7 @@ recruitmentRouter.post('/requests/:requestId/reject', requireAuth, async (req, r
       throw new HttpError(400, 'Đơn không còn ở trạng thái chờ', 'REQUEST_NOT_PENDING');
     }
 
-    await prisma.joinRequest.update({
-      where: { id: request.id },
-      data: { status: 'rejected', decidedAt: new Date() },
-    });
+    await claimPending(prisma, request.id, 'rejected');
     await notify(prisma, {
       userIds: [request.userId],
       type: 'join_request_rejected',
@@ -385,10 +394,7 @@ recruitmentRouter.post('/requests/:requestId/cancel', requireAuth, async (req, r
     if (request.status !== 'pending') {
       throw new HttpError(400, 'Đơn không còn ở trạng thái chờ', 'REQUEST_NOT_PENDING');
     }
-    await prisma.joinRequest.update({
-      where: { id: request.id },
-      data: { status: 'cancelled', decidedAt: new Date() },
-    });
+    await claimPending(prisma, request.id, 'cancelled');
 
     const refreshed = await loadPostOrFail(request.postId);
     res.json(toDetail(refreshed, req.user!.sub));
