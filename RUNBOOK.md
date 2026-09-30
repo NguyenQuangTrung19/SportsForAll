@@ -268,8 +268,11 @@ ai trên máy cũng vào được CSDL không cần mật khẩu.
 Kiểm tra trước khi commit, thư mục gốc:
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
+
+CI (`.github/workflows/ci.yml`) chạy đúng chuỗi này trên mỗi lần push/PR vào `main`, kèm
+một Postgres riêng để test CSDL chạy thật. Push xong xem kết quả ở tab **Actions** trên GitHub.
 
 `pnpm test` dùng `node --test` sẵn có trong Node, **không cần CSDL**. Chạy riêng một
 gói: `pnpm --filter @sfa/api test`.

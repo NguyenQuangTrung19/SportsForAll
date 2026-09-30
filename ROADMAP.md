@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — test CSDL cho lời mời vào đội bắt 3 lỗi đua, rà lại đặt sân bắt thêm 2 (khung kẹt `booked` vĩnh viễn); đã sửa hết. **87/87 mục SRS xong.**_
+_Cập nhật lần cuối: 2026-09-30 — CI trên GitHub Actions: format, lint, typecheck, 64 test API (kể cả 22 test CSDL trên Postgres thật), build — mỗi lần push/PR vào `main`. **87/87 mục SRS xong.**_
 
 ## Tổng quan
 
@@ -381,8 +381,9 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
   (`recruitment.db.test.ts`), lời mời vào đội (`teams.db.test.ts`). Khung dùng chung ở
   `src/test/db-app.ts`; cần `TEST_DATABASE_URL`, xem RUNBOOK mục 6. Còn kiểm bằng tay theo
   `TEST_PLAN.md`: khoá tài khoản
-- [ ] **Chưa có CI** — 22 test CSDL chỉ chạy khi ai đó nhớ dựng DB rồi chạy tay; `pnpm lint`,
-      `typecheck`, `format:check` cũng vậy
+- [x] ~~Chưa có CI~~ — `.github/workflows/ci.yml`: `format:check` → lint → typecheck →
+      `migrate deploy` → test (kèm service Postgres 17 nên 22 test CSDL chạy thật) → build.
+      Đã chạy thử đúng chuỗi bước trên một bản clone sạch không có `.env`
 - [ ] Hai admin xử lý cùng một báo cáo cùng lúc: bên sau ghi đè trạng thái, nhật ký có hai dòng
       — cùng dạng lỗi đua như bên dưới, nhưng chỉ admin chạm tới và không làm hỏng dữ liệu người dùng
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
@@ -391,7 +392,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       thì vòng quét ngủ theo, nhắc trễ hoặc mất. Sửa rẻ nhất: cron ngoài (cron-job.org) gọi
       `/api/health` mỗi 10 phút
 - [x] ~~Repo chưa sạch Prettier toàn bộ~~ — đã format cả repo, ép LF qua `.gitattributes`,
-      kiểm bằng `pnpm format:check` (chưa gắn vào CI / pre-commit)
+      kiểm bằng `pnpm format:check`, chạy trong CI
 - [ ] Còn 4 bản chép tay của đuôi phân trang cursor và 12 chỗ bóc message lỗi axios inline —
       helper dùng chung đã có (`paginate()`, `apiMessage()`), chỉ còn việc thay thế
 
@@ -465,9 +466,9 @@ luồng nhiều bước). Bốn luồng đã test thì cả bốn đều dính c
 rồi mới ghi" — tổng cộng 10 lỗi, đã sửa hết. Mọi chỗ đổi trạng thái trong `routes/` giờ đều ghi
 có điều kiện (trừ báo cáo admin, xem nợ kỹ thuật).
 
-Món tiếp theo nên làm: **CI trên GitHub Actions** — lint, typecheck, `format:check`, test,
-kèm một service Postgres để 22 test CSDL chạy trên mỗi lần push. Không có nó thì các test vừa
-viết sẽ âm thầm mục đi.
+CI chạy mọi kiểm tra trên mỗi lần push, nên các test trên sẽ không âm thầm mục đi. Nợ còn lại
+đều nhỏ; rẻ nhất trước: **báo cáo admin ghi có điều kiện** (vài dòng, cùng cách với bốn luồng
+kia), rồi **thay 4 bản chép tay phân trang + 12 chỗ bóc lỗi axios** bằng helper đã có.
 
 ## Cách cập nhật file này
 

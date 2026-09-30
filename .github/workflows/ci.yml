@@ -1,0 +1,64 @@
+# Chạy mọi kiểm tra trên mỗi lần push/PR vào main — kể cả 22 test CSDL, vốn
+# chỉ chạy khi có TEST_DATABASE_URL (RUNBOOK mục 6).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sfa_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Không có file .env trên máy CI: `config/env.ts` đòi đủ các biến bắt buộc.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sfa_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sfa_test
+      JWT_ACCESS_SECRET: ci-access-secret-not-for-production
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Phiên bản pnpm lấy từ `packageManager` trong package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Lint và typecheck cần kiểu của @sfa/shared (dist) và Prisma Client.
+      - run: pnpm build:shared
+      - run: pnpm --filter @sfa/api db:generate
+
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+
+      - run: pnpm --filter @sfa/api exec prisma migrate deploy
+      - run: pnpm test
+
+      - run: pnpm build
