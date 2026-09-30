@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — **87/87 mục SRS xong.** 9.6 Web Push (bật trong chuông thông báo, cần khoá VAPID); 9.4 nhắc trận; 7.6 lịch sử trận._
+_Cập nhật lần cuối: 2026-09-30 — test CSDL đầu tiên (luồng đặt sân) bắt được lỗi bán một khung cho hai người, đã sửa. **87/87 mục SRS xong.**_
 
 ## Tổng quan
 
@@ -376,8 +376,11 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       tách vì `import()` động là điểm cắt.
 - [~] Bộ test đầu tiên — **89 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
   không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
-- [ ] Chưa có test nào chạm CSDL hay HTTP — mọi luồng nhiều bước (đặt sân, duyệt đơn, khoá
-      tài khoản) vẫn chỉ kiểm bằng tay theo `TEST_PLAN.md`
+- [~] Test chạm CSDL + HTTP — **luồng đặt sân xong** (`venues.db.test.ts`, 4 test, cần
+  `TEST_DATABASE_URL`, xem RUNBOOK mục 6). Còn lại vẫn kiểm bằng tay theo `TEST_PLAN.md`:
+  thách đấu → ghép trận, duyệt đơn vào đội, khoá tài khoản
+- [ ] Nhận hai lời thách đấu cùng lúc: CSDL chặn được (`Match.matchRequestId` unique) nhưng
+      người bấm sau nhận 500 thay vì 409 — cùng dạng lỗi vừa sửa ở đặt sân
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
 - [ ] Rate limit dùng MemoryStore — sai số khi chạy nhiều instance
 - [ ] Nhắc trận (9.4) chạy trong process API — Render free ngủ sau 15 phút không có request
@@ -406,6 +409,12 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 > qua nguyên vẹn, và trên Windows `path.join` lại coi `\` là dấu phân cách — tức là thoát
 > được ra ngoài `UPLOAD_DIR`. Đã chặn mọi tên còn dấu phân cách.
 >
+> **Test CSDL đầu tiên cũng bắt được một lỗi thật.** Xác nhận đơn đặt sân kiểm tra "khung
+> còn `open`" **ngoài** giao dịch, nên hai lần xác nhận chạy song song (hai tab, bấm đúp) đều
+> qua, và một khung được chốt cho hai người. Giờ khung được giữ bằng
+> `updateMany where status: 'open'` ngay trong giao dịch — Postgres khoá dòng, chỉ một bên thắng,
+> bên kia nhận 409.
+>
 > **Hai chỗ phải tách ra mới test được**, cả hai đều đáng tách vì lý do riêng: `ttlToMs` rời
 > `jwt.ts` (file đó nạp `config/env.ts`, mà file đó `process.exit(1)` khi thiếu `.env` — một
 > hàm phân tích chuỗi không nên đòi cả file cấu hình mới chạy), và `uploadedFileName` rời
@@ -422,10 +431,9 @@ Cả mười nhóm đã xong 100% — không còn mục SRS nào.
 Vòng quét của 9.4 (`startMatchReminders`) dùng lại được khi cần dọn bài tuyển/tìm trận hết hạn
 hoặc nhắc chủ sân đơn đặt sắp tới giờ — thêm một hàm vào `tick`, chưa làm vì chưa ai cần.
 
-Hai món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên). Món tiếp theo nên
-làm: **test chạm CSDL cho luồng đặt sân** — đó là chỗ nhiều nhánh
-trạng thái nhất trong repo (open → pending → confirmed, kèm nhánh tự động từ chối các đơn còn
-lại và nhánh huỷ mở khung ra lại), và hiện chỉ được kiểm bằng tay.
+Ba món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên, test CSDL cho đặt
+sân). Món tiếp theo nên làm: **test CSDL cho thách đấu → ghép trận**, kèm sửa 500 → 409 khi
+nhận hai lời thách đấu cùng lúc — dựng sẵn khung trong `venues.db.test.ts` rồi, chép theo.
 
 ## Cách cập nhật file này
 

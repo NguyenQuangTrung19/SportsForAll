@@ -274,6 +274,18 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 `pnpm test` dùng `node --test` sẵn có trong Node, **không cần CSDL**. Chạy riêng một
 gói: `pnpm --filter @sfa/api test`.
 
+Test chạm CSDL (`*.db.test.ts`) tự bỏ qua khi thiếu `TEST_DATABASE_URL`. Muốn chạy thì
+dùng **một database riêng** — test tự dọn dữ liệu nó tạo, nhưng đừng trỏ vào DB đang dùng:
+
+```bash
+psql -U postgres -c "CREATE DATABASE sfa_test"          # một lần
+cd apps/api
+DATABASE_URL=postgresql://postgres:<mật-khẩu>@localhost:5432/sfa_test npx prisma migrate deploy
+TEST_DATABASE_URL=postgresql://postgres:<mật-khẩu>@localhost:5432/sfa_test pnpm test
+```
+
+Có migration mới thì chạy lại dòng `migrate deploy`.
+
 Chạy riêng từng phần (hiếm khi cần): `pnpm dev:api` (chỉ API, cổng 4000) hoặc
 `pnpm dev:web` (chỉ web, cổng 5173). Sửa file trong `packages/shared` thì phải dùng
 `pnpm dev` — hai lệnh riêng lẻ không theo dõi thay đổi của `shared`.

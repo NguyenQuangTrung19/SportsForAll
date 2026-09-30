@@ -234,21 +234,30 @@ venuesRouter.post('/bookings/:id/confirm', requireAuth, async (req, res, next) =
     }
 
     const now = new Date();
-    const losers = await prisma.booking.findMany({
-      where: { slotId: booking.slotId, status: 'pending', id: { not: booking.id } },
-      select: { userId: true },
-    });
-
     await prisma.$transaction(async (tx) => {
-      await tx.booking.update({
-        where: { id: booking.id },
+      // Giữ khung bằng điều kiện `status: 'open'` ngay trong câu UPDATE: hai lần
+      // xác nhận chạy song song (hai tab, bấm đúp) thì Postgres khoá dòng, chỉ một
+      // bên thấy khung còn `open`. Kiểm tra ở trên chỉ để báo lỗi sớm, không đủ.
+      const { count: slotClaimed } = await tx.venueSlot.updateMany({
+        where: { id: booking.slotId, status: 'open' },
+        data: { status: 'booked' },
+      });
+      const { count: bookingClaimed } = await tx.booking.updateMany({
+        where: { id: booking.id, status: 'pending' },
         data: { status: 'confirmed', decidedAt: now },
       });
+      if (slotClaimed === 0 || bookingClaimed === 0) {
+        throw new HttpError(409, 'Khung giờ này vừa được chốt cho người khác', 'SLOT_NOT_OPEN');
+      }
+
+      const losers = await tx.booking.findMany({
+        where: { slotId: booking.slotId, status: 'pending' },
+        select: { userId: true },
+      });
       await tx.booking.updateMany({
-        where: { slotId: booking.slotId, status: 'pending', id: { not: booking.id } },
+        where: { slotId: booking.slotId, status: 'pending' },
         data: { status: 'rejected', decidedAt: now },
       });
-      await tx.venueSlot.update({ where: { id: booking.slotId }, data: { status: 'booked' } });
 
       const label = slotLabel(booking.slot.startsAt, booking.slot.venue.name);
       await notify(tx, {
