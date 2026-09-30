@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — FR-007 xong 100% với 7.6 (chốt tỉ số + lịch sử trận theo đội); toàn repo đã chạy Prettier, ép LF qua `.gitattributes`._
+_Cập nhật lần cuối: 2026-09-30 — 9.4 nhắc trận sắp diễn ra (hẹn giờ trong process, nhắc trước 24 giờ); FR-007 xong 100% với 7.6._
 
 ## Tổng quan
 
@@ -19,9 +19,9 @@ _Cập nhật lần cuối: 2026-09-30 — FR-007 xong 100% với 7.6 (chốt t�
 | FR-006 Tìm thành viên       | 9      | 0        | 0     | 9      |
 | FR-007 Quản lý đội          | 8      | 0        | 0     | 8      |
 | FR-008 Quản lý sân bãi      | 9      | 0        | 0     | 9      |
-| FR-009 Thông báo            | 4      | 0        | 2     | 6      |
+| FR-009 Thông báo            | 5      | 0        | 1     | 6      |
 | FR-010 Quản trị hệ thống    | 8      | 0        | 0     | 8      |
-| **Tổng**                    | **85** | **0**    | **2** | **87** |
+| **Tổng**                    | **86** | **0**    | **1** | **87** |
 
 **Chín nhóm đã xong 100%: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-010.** FR-008 khép lại kéo theo
 hai mục cuối cùng bị nó chặn: 4.4 (sân đang cần đội trên Trang chủ) và 10.5 (admin quản lý sân).
@@ -29,7 +29,7 @@ hai mục cuối cùng bị nó chặn: 4.4 (sân đang cần đội trên Trang
 **FR-007** khép lại với 7.6 — captain/phó chốt tỉ số, trang đội có lịch sử trận.
 **FR-002** khép lại với 2.12 (uy tín cá nhân) — xem ghi chú công thức ở mục FR-002.
 
-Hai mục còn lại đều thuộc **FR-009**: 9.4 nhắc trận (cần bộ hẹn giờ chạy nền) và 9.6 Web Push. Không còn mục nào bị chặn bởi một FR khác hay bởi
+Chỉ còn một mục: **FR-009.6** Web Push (ưu tiên Thấp). Không còn mục nào bị chặn bởi một FR khác hay bởi
 dịch vụ ngoài.
 
 ---
@@ -278,7 +278,9 @@ dịch vụ ngoài.
 - [x] 9.1 Thông báo thách đấu mới
 - [x] 9.2 Thông báo duyệt/từ chối đơn
 - [x] 9.3 Thông báo có người xin gia nhập
-- [ ] 9.4 Nhắc trận sắp diễn ra — _cần bộ hẹn giờ chạy nền_
+- [x] 9.4 Nhắc trận sắp diễn ra — _`match_reminder` gửi mọi thành viên hai đội trong vòng 24
+      giờ trước giờ đá; vòng quét 5 phút trong process API (`lib/match-reminders.ts`), cột
+      `Match.reminderSentAt` giữ mỗi trận chỉ nhắc một lần kể cả nhiều instance_
 - [x] 9.5 Thông báo khi được đánh giá — _`rating_received`, chỉ báo lần chấm đầu để sửa điểm
       không làm phiền lại_
 - [ ] 9.6 Web Push — _ưu tiên Thấp_
@@ -348,9 +350,6 @@ không dựng lại từ đầu.
       một dòng) trước khi viết code mới. Lệnh: `/ponytail [lite|full|ultra|off]`,
       `/ponytail-review`, `/ponytail-audit`.
 
-> `MatchAttendance` là nền sẵn cho 9.4 (nhắc trận sắp diễn ra): đã biết ai đi,
-> chỉ còn thiếu bộ hẹn giờ.
-
 ---
 
 ## Hạ tầng phải dựng trước
@@ -362,7 +361,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 | ~~Gửi email~~                         | ~~1.6, 1.7~~             | Xong 2026-09-30 — Resend qua `fetch`, dev in ra terminal         |
 | ~~Lưu file / ảnh~~                    | ~~2.3, 8.2~~             | Xong — local disk, `lib/uploads.ts`                              |
 | ~~Model `Rating`~~                    | ~~5.10, 7.7, 9.5, 2.12~~ | Xong 2026-08-21; 2.12 xong 2026-09-30                            |
-| Bộ hẹn giờ chạy nền                   | 9.4                      | Cũng dùng được để dọn bài hết hạn                                |
+| ~~Bộ hẹn giờ chạy nền~~               | ~~9.4~~                  | Xong 2026-09-30 — `setInterval` trong process, xem nợ kỹ thuật   |
 | ~~Luồng "kết thúc trận"~~             | ~~7.6~~                  | Xong 2026-09-30 — không cần migration, cột đã có sẵn             |
 | ~~Middleware `requireRole('admin')`~~ | ~~Toàn bộ FR-010~~       | Xong — chỉ còn 10.5 chờ FR-008                                   |
 | ~~Nhóm model sân bãi~~                | ~~FR-008, 4.4, 10.5~~    | Xong 2026-08-22 — `Venue`, `VenueSlot`, `Booking`, `VenueReview` |
@@ -378,6 +377,9 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       tài khoản) vẫn chỉ kiểm bằng tay theo `TEST_PLAN.md`
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
 - [ ] Rate limit dùng MemoryStore — sai số khi chạy nhiều instance
+- [ ] Nhắc trận (9.4) chạy trong process API — Render free ngủ sau 15 phút không có request
+      thì vòng quét ngủ theo, nhắc trễ hoặc mất. Sửa rẻ nhất: cron ngoài (cron-job.org) gọi
+      `/api/health` mỗi 10 phút
 - [x] ~~Repo chưa sạch Prettier toàn bộ~~ — đã format cả repo, ép LF qua `.gitattributes`,
       kiểm bằng `pnpm format:check` (chưa gắn vào CI / pre-commit)
 - [ ] Còn 4 bản chép tay của đuôi phân trang cursor và 12 chỗ bóc message lỗi axios inline —
@@ -412,11 +414,10 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 
 ## Thứ tự đề xuất
 
-Chín nhóm đã xong 100%. Hai mục còn lại, xếp theo thứ tự nên làm:
+Chín nhóm đã xong 100%, chỉ còn **Web Push** (9.6, ưu tiên Thấp).
 
-1. **Bộ hẹn giờ chạy nền** (9.4) — dữ liệu điểm danh đã có; cũng dùng lại được để dọn bài
-   tuyển/tìm trận hết hạn **và nhắc chủ sân đơn đặt sắp tới giờ**.
-2. **Web Push** (9.6) — ưu tiên Thấp, để cuối.
+Vòng quét của 9.4 (`startMatchReminders`) dùng lại được khi cần dọn bài tuyển/tìm trận hết hạn
+hoặc nhắc chủ sân đơn đặt sắp tới giờ — thêm một hàm vào `tick`, chưa làm vì chưa ai cần.
 
 Hai món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên). Món tiếp theo đáng
 chen vào giữa danh sách trên: **test chạm CSDL cho luồng đặt sân** — đó là chỗ nhiều nhánh

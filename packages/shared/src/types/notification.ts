@@ -6,6 +6,7 @@ export const NOTIFICATION_TYPES = [
   'challenge_accepted',
   'challenge_rejected',
   'match_scheduled',
+  'match_reminder',
   'rating_received',
   'team_invite_received',
   'team_invite_accepted',

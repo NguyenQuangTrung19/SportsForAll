@@ -121,6 +121,7 @@ enum NotificationType {
   challenge_accepted
   challenge_rejected
   match_scheduled
+  match_reminder
   rating_received
   team_invite_received
   team_invite_accepted
@@ -388,6 +389,9 @@ model Match {
   status         MatchStatus @default(scheduled)
   homeScore      Int?
   awayScore      Int?
+  /// Da gui nhac tran sap dien ra (FR-009.4). Dat truoc khi gui de moi tran chi
+  /// nhac mot lan, ke ca khi chay nhieu instance.
+  reminderSentAt DateTime?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -401,6 +405,7 @@ model Match {
   @@index([homeTeamId, status])
   @@index([awayTeamId, status])
   @@index([sport, scheduledAt])
+  @@index([status, reminderSentAt, scheduledAt])
 }
 
 /// Mot dong = mot thanh vien tra loi cho mot tran. Khong co dong = chua tra loi,
