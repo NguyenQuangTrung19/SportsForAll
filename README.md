@@ -3,7 +3,7 @@
 Nền tảng kết nối cộng đồng thể thao - tìm đồng đội, đối thủ, sân bãi.
 
 Yêu cầu chi tiết: xem [Idea.md](./Idea.md).
-Quy trình chạy thử từ đầu: xem [RUNBOOK.md](./RUNBOOK.md).
+Cách chạy trên máy: xem [RUNBOOK.md](./RUNBOOK.md).
 Tiến độ chức năng: xem [ROADMAP.md](./ROADMAP.md).
 Triển khai lên mạng: xem [DEPLOY.md](./DEPLOY.md).
 
@@ -21,32 +21,10 @@ packages/
 nên `apps/api` chạy được bằng `node dist/index.js` ở production. Các script `dev`
 đã tự build `shared` trước, không cần chạy tay.
 
-## Yêu cầu môi trường
-
-- Node.js >= 20
-- pnpm >= 10
-- PostgreSQL >= 14 (local hoặc Docker)
-
 ## Khởi động
 
-```bash
-# Cài deps
-pnpm install
-
-# Chuẩn bị env
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
-
-# Migrate DB (lần đầu)
-pnpm --filter @sfa/api db:migrate
-
-# Chạy cả FE + BE
-pnpm dev
-
-# Hoặc tách riêng
-pnpm dev:api    # http://localhost:4000
-pnpm dev:web    # http://localhost:5173
-```
+Xem [RUNBOOK.md](./RUNBOOK.md) — chia rõ việc làm **một lần** (cài đặt, tạo `.env`),
+việc làm **mỗi ngày** (`pnpm dev`), và việc chỉ làm **khi code thay đổi** (migration).
 
 ## Scripts
 
