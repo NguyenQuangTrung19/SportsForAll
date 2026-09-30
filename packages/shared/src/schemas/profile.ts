@@ -5,11 +5,19 @@ import { SPORTS } from '../types/sport.js';
 
 const currentYear = new Date().getFullYear();
 
-/** Số điện thoại VN: 0xxxxxxxxx (10 số) hoặc +84xxxxxxxxx. */
+/** `+84912345678` → `0912345678`. Một số chỉ có một cách viết trong CSDL. */
+export function normalizePhone(phone: string): string {
+  return phone.startsWith('+84') ? `0${phone.slice(3)}` : phone;
+}
+
+export const PHONE_RE = /^(0\d{9}|\+84\d{9})$/;
+
+/** Số điện thoại VN: 0xxxxxxxxx (10 số) hoặc +84xxxxxxxxx, lưu dạng 0xxxxxxxxx. */
 export const phoneSchema = z
   .string()
   .trim()
-  .regex(/^(0\d{9}|\+84\d{9})$/, 'Số điện thoại không hợp lệ');
+  .regex(PHONE_RE, 'Số điện thoại không hợp lệ')
+  .transform(normalizePhone);
 
 export const sportPreferenceSchema = z.object({
   sport: sportSlugSchema,

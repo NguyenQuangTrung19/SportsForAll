@@ -14,7 +14,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AvatarUploader } from '@/components/AvatarUploader';
 import { ChangePasswordCard } from '@/components/ChangePasswordCard';
+import { LinkedAccountsCard } from '@/components/LinkedAccountsCard';
 import { SportIcon } from '@/components/SportIcon';
+import { VerifyEmailBanner } from '@/components/VerifyEmailBanner';
 import { api } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
@@ -193,6 +195,8 @@ export function ProfilePage() {
           </p>
         )}
 
+        <VerifyEmailBanner />
+
         {profile && state && (
           <div className="grid gap-6 lg:grid-cols-12">
             <article className="border border-ink/12 bg-white p-6 md:p-8 lg:col-span-5">
@@ -200,13 +204,16 @@ export function ProfilePage() {
 
               <div className="mt-5 border-t border-ink/10 pt-5">
                 <p className="truncate text-xs font-semibold tracking-wide text-ink-soft">
-                  {profile.email}
+                  {profile.email ?? 'Chưa có email'}
                 </p>
                 <p className="mt-1 text-xs text-ink-soft/70">
                   Tham gia · {new Date(profile.createdAt).toLocaleDateString('vi-VN')}
                 </p>
                 {profile.phone && (
-                  <p className="mt-1 text-xs text-ink-soft/70">SĐT · {profile.phone}</p>
+                  <p className="mt-1 text-xs text-ink-soft/70">
+                    SĐT · {profile.phone}
+                    {profile.phoneVerified && ' · đã xác thực'}
+                  </p>
                 )}
               </div>
 
@@ -240,6 +247,7 @@ export function ProfilePage() {
                 <ViewMode profile={profile} />
               ) : (
                 <EditMode
+                  phoneLocked={profile.phoneVerified}
                   state={state}
                   setState={setState}
                   togglePref={togglePref}
@@ -278,7 +286,8 @@ export function ProfilePage() {
           </div>
         )}
 
-        {profile && <ChangePasswordCard />}
+        {profile && <ChangePasswordCard hasPassword={profile.hasPassword} />}
+        {profile && <LinkedAccountsCard profile={profile} />}
       </main>
     </div>
   );
@@ -337,12 +346,14 @@ function ViewMode({ profile }: { profile: ProfileResponse }) {
 }
 
 function EditMode({
+  phoneLocked,
   state,
   setState,
   togglePref,
   setPrefSkill,
   setPrefPosition,
 }: {
+  phoneLocked: boolean;
   state: EditState;
   setState: (s: EditState) => void;
   togglePref: (sport: SportSlug) => void;
@@ -402,9 +413,15 @@ function EditMode({
               placeholder="0912345678"
               value={state.phone}
               onChange={(e) => setState({ ...state, phone: e.target.value })}
-              className="input"
+              className="input disabled:opacity-60"
               maxLength={12}
+              disabled={phoneLocked}
             />
+            {phoneLocked && (
+              <span className="mt-1.5 block text-xs text-ink-soft">
+                Số đã xác thực bằng OTP và dùng để đăng nhập, nên không sửa ở đây.
+              </span>
+            )}
           </label>
 
           <label className="block md:col-span-2">

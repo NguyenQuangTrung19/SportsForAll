@@ -163,7 +163,8 @@ export function AdminUsersPage() {
                   toggleDisabled.mutate({ id: u.id, disabled: Boolean(u.disabledAt) });
                 }}
                 onDelete={() => {
-                  if (!window.confirm(`Xoá vĩnh viễn tài khoản ${u.email}?`)) return;
+                  if (!window.confirm(`Xoá vĩnh viễn tài khoản ${u.email ?? u.displayName}?`))
+                    return;
                   setError(null);
                   remove.mutate(u.id);
                 }}
@@ -222,7 +223,7 @@ function UserRow({
             </span>
           )}
         </p>
-        <p className="mt-0.5 truncate text-xs text-ink-soft">{user.email}</p>
+        <p className="mt-0.5 truncate text-xs text-ink-soft">{user.email ?? 'Chưa có email'}</p>
         {meta && <p className="mt-0.5 truncate text-xs text-ink-soft/70">{meta}</p>}
         {user.captainOf.length > 0 && (
           <p className="mt-0.5 truncate text-xs text-ink-soft/70">

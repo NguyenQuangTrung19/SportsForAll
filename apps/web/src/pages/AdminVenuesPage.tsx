@@ -1,8 +1,4 @@
-import {
-  VENUE_STATUS_LABELS,
-  type AdminVenueItem,
-  type AdminVenueListResponse,
-} from '@sfa/shared';
+import { VENUE_STATUS_LABELS, type AdminVenueItem, type AdminVenueListResponse } from '@sfa/shared';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -136,7 +132,8 @@ export function AdminVenuesPage() {
                       {sportOf(v.sport).nameVi} · {v.address}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-ink-soft/70">
-                      {v.ownerName} ({v.ownerEmail}) · {formatVnd(v.pricePerHour)}/giờ ·{' '}
+                      {v.ownerName}
+                      {v.ownerEmail && ` (${v.ownerEmail})`} · {formatVnd(v.pricePerHour)}/giờ ·{' '}
                       {v.slotCount} khung · {v.bookingsConfirmed} đơn đã xác nhận
                     </p>
                   </div>

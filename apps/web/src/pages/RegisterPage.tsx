@@ -9,6 +9,7 @@ import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { AltSignIn } from '@/components/AuthLayout';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function RegisterPage() {
@@ -100,7 +101,12 @@ export function RegisterPage() {
                           : 'border-ink/15 bg-white text-ink hover:border-ink'
                       }`}
                     >
-                      <input type="radio" value={t} className="sr-only" {...register('accountType')} />
+                      <input
+                        type="radio"
+                        value={t}
+                        className="sr-only"
+                        {...register('accountType')}
+                      />
                       {SIGNUP_ACCOUNT_TYPE_LABELS[t]}
                     </label>
                   ))}
@@ -167,6 +173,14 @@ export function RegisterPage() {
                 )}
               </button>
             </form>
+
+            <div className="my-7 flex items-center gap-4 text-ink-soft/40">
+              <span className="h-px flex-1 bg-ink/10" />
+              <span className="text-xs font-semibold">hoặc</span>
+              <span className="h-px flex-1 bg-ink/10" />
+            </div>
+
+            <AltSignIn />
 
             <p className="mt-6 text-center text-xs text-ink-soft">
               Đăng ký đồng nghĩa bạn đồng ý với điều khoản & quyền riêng tư.

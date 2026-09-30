@@ -160,8 +160,14 @@ model Sport {
 
 model User {
   id            String    @id @default(cuid())
-  email         String    @unique
+  /// Null khi dang ky bang so dien thoai (FR-001.2). Postgres cho nhieu NULL
+  /// cung ton tai duoi rang buoc unique.
+  email         String?   @unique
+  /// Luon luu dang 0xxxxxxxxx (xem normalizePhone o @sfa/shared).
   phone         String?   @unique
+  /// Da chung minh so hu `phone` bang OTP. Chi so da xac thuc moi dang nhap
+  /// duoc bang OTP — so tu go vao ho so thi chua.
+  phoneVerified Boolean   @default(false)
   passwordHash  String?
   displayName   String
   avatarUrl     String?
@@ -182,6 +188,8 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   refreshTokens    RefreshToken[]
+  authTokens       AuthToken[]
+  oauthAccounts    OAuthAccount[]
   sportPreferences SportPreference[]
   teamMemberships  TeamMember[]
   joinRequests     JoinRequest[]
@@ -467,6 +475,54 @@ model TeamMember {
 
   @@unique([teamId, userId])
   @@index([userId])
+}
+
+enum OAuthProvider {
+  google
+  facebook
+}
+
+/// Lien ket tai khoan voi Google/Facebook (FR-001.1, 1.4, 1.5). Khoa theo id
+/// phia nha cung cap, khong theo email — email ben ho doi duoc.
+model OAuthAccount {
+  id             String        @id @default(cuid())
+  userId         String
+  provider       OAuthProvider
+  providerUserId String
+  createdAt      DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+enum AuthTokenPurpose {
+  email_verify
+  password_reset
+  phone_otp
+  oauth_login
+  oauth_link
+}
+
+/// Ma dung mot lan: link trong email (1.6, 1.7), OTP (1.2), ma doi phien sau
+/// OAuth. Chi luu hash. `target` la email/so dien thoai luc phat ma — OTP dang
+/// ky chua co user nen phai tra theo target.
+model AuthToken {
+  id        String           @id @default(cuid())
+  purpose   AuthTokenPurpose
+  userId    String?
+  target    String
+  tokenHash String
+  attempts  Int              @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([purpose, target])
 }
 
 model RefreshToken {

@@ -269,7 +269,7 @@ adminRouter.post('/users/:id/disable', async (req, res, next) => {
       }),
     ]);
 
-    await logAdmin(me, 'user.disable', 'user', target.id, input.reason ?? target.email);
+    await logAdmin(me, 'user.disable', 'user', target.id, input.reason ?? target.email ?? target.phone ?? target.id);
     res.json(toUserItem(updated));
   } catch (err) {
     next(err);
@@ -290,7 +290,7 @@ adminRouter.post('/users/:id/enable', async (req, res, next) => {
       include: USER_LIST_INCLUDE,
     });
 
-    await logAdmin(me, 'user.enable', 'user', target.id, target.email);
+    await logAdmin(me, 'user.enable', 'user', target.id, target.email ?? target.phone ?? target.id);
     res.json(toUserItem(updated));
   } catch (err) {
     next(err);
@@ -318,7 +318,7 @@ adminRouter.delete('/users/:id', async (req, res, next) => {
     }
 
     await prisma.user.delete({ where: { id: target.id } });
-    await logAdmin(me, 'user.delete', 'user', target.id, target.email);
+    await logAdmin(me, 'user.delete', 'user', target.id, target.email ?? target.phone ?? target.id);
     res.status(204).send();
   } catch (err) {
     next(err);

@@ -111,6 +111,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Các biến còn lại để nguyên. Thiếu hay sai biến nào thì API **thoát ngay lúc khởi
 động** và in ra tên biến đó — không phải đoán.
 
+Cuối file có nhóm biến Google / Facebook / email / SMS — **để trống cũng chạy được**,
+xem mục 7 khi nào muốn bật.
+
 ### 1.5 Tạo database và bảng
 
 Postgres phải đang chạy (bước 1.2 hoặc 2.1). Thư mục gốc:
@@ -159,6 +162,10 @@ pnpm dev
 
 **Giữ nguyên cửa sổ terminal này** — đóng nó là app tắt. Đợi tới khi thấy dòng
 `Local: http://localhost:5173/` (~10 giây).
+
+Cửa sổ này cũng là **hộp thư giả** khi chưa cấu hình email/SMS (mục 7): link xác thực
+email, link quên mật khẩu và mã OTP đều in ra ở đây, dòng bắt đầu bằng `📧 EMAIL` hoặc
+`📱 SMS`. Copy link dán vào trình duyệt / gõ mã vào form là dùng được.
 
 ### 2.3 Mở trình duyệt
 
@@ -275,3 +282,72 @@ Xem/sửa dữ liệu trực tiếp bằng giao diện: `pnpm --filter @sfa/api 
 (mở http://localhost:5555).
 
 Đưa lên mạng: xem [DEPLOY.md](./DEPLOY.md).
+
+---
+
+## 7. Bật email, SMS, Google, Facebook — tuỳ chọn, làm một lần
+
+Không bật gì thì app vẫn chạy đủ: email và mã OTP in ra terminal (mục 2.2), nút Google /
+Facebook tự ẩn. Chỉ cần làm mục này khi muốn gửi **thật** — ví dụ trước khi deploy.
+
+Mọi khoá đều điền vào `apps/api/.env` (đã có sẵn dòng trống cho từng biến ở cuối file),
+xong thì **Ctrl+C rồi `pnpm dev` lại**. Mở http://localhost:4000/api/auth/providers để
+xem cái nào đã bật (`true`).
+
+### 7.1 Gửi email — Resend (quên mật khẩu, xác thực email)
+
+1. Đăng ký https://resend.com (miễn phí 3.000 email/tháng).
+2. **API Keys** → **Create API Key** → copy chuỗi `re_...` vào `RESEND_API_KEY`.
+
+> **Giới hạn khi chưa có tên miền:** Resend chỉ cho gửi tới **chính email bạn dùng để
+> đăng ký Resend**, người khác không nhận được. Muốn gửi cho ai cũng được: **Domains** →
+> thêm tên miền của bạn → khai các bản ghi DNS họ đưa → khi xác minh xong thì đặt
+> `MAIL_FROM=SportsForAll <no-reply@ten-mien-cua-ban.vn>`.
+
+### 7.2 Gửi SMS — Twilio (đăng ký bằng số điện thoại)
+
+1. Đăng ký https://twilio.com, xác minh số điện thoại của bạn.
+2. Trang **Console** → copy **Account SID** vào `TWILIO_ACCOUNT_SID`, **Auth Token** vào
+   `TWILIO_AUTH_TOKEN`.
+3. **Phone Numbers** → lấy một số gửi → điền vào `TWILIO_FROM` (dạng `+1...`).
+
+> **Tài khoản dùng thử** chỉ gửi được tới những số đã xác minh trong Twilio
+> (**Verified Caller IDs**) và tin nhắn có kèm dòng "Sent from a Twilio trial account".
+> Gửi cho người lạ phải nạp tiền; SMS về Việt Nam tính phí theo tin.
+
+### 7.3 Đăng nhập Google
+
+1. Vào https://console.cloud.google.com → tạo project mới (tên tuỳ ý).
+2. **APIs & Services → OAuth consent screen** → chọn **External** → điền tên app, email
+   hỗ trợ → lưu. Ở mục **Test users**, thêm các Gmail sẽ dùng thử (lúc app còn ở chế
+   độ Testing, chỉ những Gmail này đăng nhập được).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
+   - Application type: **Web application**
+   - **Authorized redirect URIs** → thêm đúng dòng này (không dấu `/` cuối):
+     ```
+     http://localhost:4000/api/auth/oauth/google/callback
+     ```
+4. Copy **Client ID** vào `GOOGLE_CLIENT_ID`, **Client secret** vào `GOOGLE_CLIENT_SECRET`.
+
+### 7.4 Đăng nhập Facebook
+
+1. Vào https://developers.facebook.com → **My Apps → Create App** → chọn use case
+   **Authenticate and request data from users with Facebook Login**.
+2. Trong app → **Facebook Login → Settings** → **Valid OAuth Redirect URIs**:
+   ```
+   http://localhost:4000/api/auth/oauth/facebook/callback
+   ```
+3. **App settings → Basic** → copy **App ID** vào `FACEBOOK_APP_ID`, **App Secret** vào
+   `FACEBOOK_APP_SECRET`.
+4. Lúc app ở chế độ **Development**, chỉ tài khoản Facebook có vai trò trong app
+   (**App roles → Roles**) đăng nhập được.
+
+### 7.5 Lỗi hay gặp
+
+| Hiện tượng | Nguyên nhân |
+| --- | --- |
+| Google báo `redirect_uri_mismatch` | Redirect URI ở bước 7.3 lệch một ký tự với `API_URL` + `/api/auth/oauth/google/callback` |
+| Facebook báo "URL blocked" | Tương tự, ở bước 7.4 |
+| Bấm Google xong quay về trang đăng nhập, báo "Email này đã có tài khoản" | Google chưa xác nhận email đó — đăng nhập bằng mật khẩu |
+| Không nhận được email | Xem giới hạn ở 7.1; kiểm tra cả Spam |
+| Log API có dòng `send verification email failed` | `RESEND_API_KEY` sai hoặc `MAIL_FROM` dùng tên miền chưa xác minh |

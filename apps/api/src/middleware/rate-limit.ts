@@ -45,3 +45,25 @@ export const refreshLimiter = createLimiter({
   limit: 60,
   skipSuccessfulRequests: true,
 });
+
+// Mỗi lần gọi là một email thật gửi đi — chặn dùng form "quên mật khẩu" để spam
+// hộp thư người khác. Đếm cả lần thành công.
+export const emailLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+});
+
+// SMS tốn tiền thật. Cộng với khoảng chờ 60 giây mỗi số (lib/auth-tokens.ts).
+export const otpLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+});
+
+// Nhập OTP. Tách khỏi loginLimiter: bước "số mới, cần nhập tên" trả 400 và bị đếm
+// là thất bại — dùng chung bộ đếm thì vài lần nhập sai OTP khoá luôn đăng nhập
+// bằng mật khẩu. Đoán mò đã bị chặn chính ở mỗi mã (5 lần, lib/auth-tokens.ts).
+export const otpVerifyLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+});

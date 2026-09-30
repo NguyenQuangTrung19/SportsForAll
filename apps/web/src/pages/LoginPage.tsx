@@ -3,13 +3,16 @@ import { loginSchema, type LoginInput } from '@sfa/shared';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AltSignIn } from '@/components/AuthLayout';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const [serverError, setServerError] = useState<string | null>(null);
+  // OAuth hỏng thì API chuyển về đây kèm ?error=... (xem routes/auth.ts).
+  const [params] = useSearchParams();
+  const [serverError, setServerError] = useState<string | null>(params.get('error'));
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -75,13 +78,13 @@ export function LoginPage() {
             </header>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5" noValidate>
-              <Field label="Email" error={errors.email?.message}>
+              <Field label="Email hoặc số điện thoại" error={errors.identifier?.message}>
                 <input
-                  type="email"
+                  type="text"
                   autoComplete="username"
-                  placeholder="ban@example.com"
+                  placeholder="ban@example.com hoặc 0912345678"
                   className="input"
-                  {...register('email')}
+                  {...register('identifier')}
                 />
               </Field>
               <Field label="Mật khẩu" error={errors.password?.message}>
@@ -103,6 +106,14 @@ export function LoginPage() {
                   </button>
                 </div>
               </Field>
+              <p className="-mt-2 text-right">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-semibold text-ink-soft underline-offset-2 hover:text-ink hover:underline"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </p>
 
               {serverError && (
                 <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
@@ -126,9 +137,12 @@ export function LoginPage() {
               <span className="h-px flex-1 bg-ink/10" />
             </div>
 
-            <Link to="/register" className="btn-ghost w-full">
-              Tạo tài khoản mới <span aria-hidden>→</span>
-            </Link>
+            <div className="space-y-3">
+              <AltSignIn />
+              <Link to="/register" className="btn-ghost w-full">
+                Tạo tài khoản mới <span aria-hidden>→</span>
+              </Link>
+            </div>
 
             <p className="mt-7 border-t border-ink/10 pt-5 text-center text-xs text-ink-soft">
               Bảo mật bằng argon2 · không lưu mật khẩu thô

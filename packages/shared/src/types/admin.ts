@@ -25,7 +25,7 @@ export interface AdminStats {
 /** Một dòng trong danh sách người dùng của admin (FR-010.2). */
 export interface AdminUserItem {
   id: string;
-  email: string;
+  email: string | null;
   displayName: string;
   avatarUrl: string | null;
   role: UserRole;
@@ -106,7 +106,7 @@ export interface AdminVenueItem {
   rating: number;
   status: VenueStatus;
   ownerName: string;
-  ownerEmail: string;
+  ownerEmail: string | null;
   slotCount: number;
   bookingsConfirmed: number;
   createdAt: string;

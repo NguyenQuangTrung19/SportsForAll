@@ -1,13 +1,19 @@
-import { changePasswordSchema, type AuthResponse } from '@sfa/shared';
-import { useMutation } from '@tanstack/react-query';
+import { changePasswordSchema, setPasswordSchema, type AuthResponse } from '@sfa/shared';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 
-/** Đổi mật khẩu (FR-002.10). Server thu hồi mọi phiên cũ và cấp phiên mới. */
-export function ChangePasswordCard() {
+/**
+ * Đổi mật khẩu (FR-002.10). Server thu hồi mọi phiên cũ và cấp phiên mới.
+ *
+ * Tài khoản tạo bằng Google/Facebook/OTP chưa có mật khẩu (`hasPassword = false`):
+ * thẻ thành "Đặt mật khẩu", không hỏi mật khẩu hiện tại.
+ */
+export function ChangePasswordCard({ hasPassword }: { hasPassword: boolean }) {
   const setSession = useAuthStore((s) => s.setSession);
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -24,6 +30,10 @@ export function ChangePasswordCard() {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!hasPassword) {
+        await api.post('/auth/set-password', { newPassword: next });
+        return null;
+      }
       const { data } = await api.post<AuthResponse>('/auth/change-password', {
         currentPassword: current,
         newPassword: next,
@@ -31,7 +41,9 @@ export function ChangePasswordCard() {
       return data;
     },
     onSuccess: (data) => {
-      setSession(data); // phiên cũ đã bị thu hồi, phải thay token ngay
+      if (data)
+        setSession(data); // phiên cũ đã bị thu hồi, phải thay token ngay
+      else void queryClient.invalidateQueries({ queryKey: ['profile', 'me'] });
       reset();
       setOpen(false);
       setDone(true);
@@ -52,10 +64,9 @@ export function ChangePasswordCard() {
       setError('Hai ô mật khẩu mới không khớp');
       return;
     }
-    const parsed = changePasswordSchema.safeParse({
-      currentPassword: current,
-      newPassword: next,
-    });
+    const parsed = hasPassword
+      ? changePasswordSchema.safeParse({ currentPassword: current, newPassword: next })
+      : setPasswordSchema.safeParse({ newPassword: next });
     if (!parsed.success) {
       const first = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
       setError(first ?? 'Dữ liệu không hợp lệ');
@@ -70,7 +81,9 @@ export function ChangePasswordCard() {
         <div>
           <h2 className="font-display text-xl font-black tracking-tight">Mật khẩu</h2>
           <p className="mt-1 text-sm text-ink-soft">
-            Đổi mật khẩu sẽ đăng xuất toàn bộ thiết bị khác.
+            {hasPassword
+              ? 'Đổi mật khẩu sẽ đăng xuất toàn bộ thiết bị khác.'
+              : 'Tài khoản đang đăng nhập bằng Google, Facebook hoặc mã SMS. Đặt thêm mật khẩu để đăng nhập bằng email / số điện thoại.'}
           </p>
         </div>
         {!open && (
@@ -82,21 +95,23 @@ export function ChangePasswordCard() {
             }}
             className="btn-ghost"
           >
-            Đổi mật khẩu
+            {hasPassword ? 'Đổi mật khẩu' : 'Đặt mật khẩu'}
           </button>
         )}
       </div>
 
       {done && !open && (
         <p className="mt-4 border border-ink/15 bg-paper-2 px-3 py-2 text-sm font-medium text-ink">
-          Đã đổi mật khẩu.
+          Đã lưu mật khẩu.
         </p>
       )}
 
       {open && (
         <div className="mt-6 space-y-4 border-t border-ink/10 pt-6">
-          <Field label="Mật khẩu hiện tại" value={current} onChange={setCurrent} autoFocus />
-          <Field label="Mật khẩu mới" value={next} onChange={setNext} />
+          {hasPassword && (
+            <Field label="Mật khẩu hiện tại" value={current} onChange={setCurrent} autoFocus />
+          )}
+          <Field label="Mật khẩu mới" value={next} onChange={setNext} autoFocus={!hasPassword} />
           <Field label="Nhập lại mật khẩu mới" value={confirm} onChange={setConfirm} />
 
           {error && (

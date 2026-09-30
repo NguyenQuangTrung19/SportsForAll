@@ -5,13 +5,13 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — uy tín cá nhân (FR-002.12), FR-002 xong 100%; uy tín đội tính từ sổ điểm trận; viết lại RUNBOOK theo tần suất (một lần / mỗi ngày / khi code đổi)._
+_Cập nhật lần cuối: 2026-09-30 — FR-001 xong 100%, thêm đặt mật khẩu lần đầu, đăng nhập bằng SĐT + mật khẩu, liên kết / gỡ Google & Facebook ở trang hồ sơ._
 
 ## Tổng quan
 
 | Nhóm                        | Xong   | Một phần | Chưa   | Tổng   |
 | --------------------------- | ------ | -------- | ------ | ------ |
-| FR-001 Đăng ký & Xác thực   | 3      | 1        | 5      | 9      |
+| FR-001 Đăng ký & Xác thực   | 9      | 0        | 0      | 9      |
 | FR-002 Hồ sơ cá nhân        | 12     | 0        | 0      | 12     |
 | FR-003 Môn thể thao & Theme | 6      | 0        | 0      | 6      |
 | FR-004 Trang chủ            | 9      | 0        | 0      | 9      |
@@ -21,33 +21,99 @@ _Cập nhật lần cuối: 2026-09-30 — uy tín cá nhân (FR-002.12), FR-002
 | FR-008 Quản lý sân bãi      | 9      | 0        | 0      | 9      |
 | FR-009 Thông báo            | 4      | 0        | 2      | 6      |
 | FR-010 Quản trị hệ thống    | 8      | 0        | 0      | 8      |
-| **Tổng**                    | **78** | **2**    | **7**  | **87** |
+| **Tổng**                    | **84** | **1**    | **2**  | **87** |
 
-**FR-002, FR-003, FR-004, FR-005, FR-006, FR-008 và FR-010 đã xong 100%.** FR-008 khép lại kéo theo
+**Tám nhóm đã xong 100%: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-008, FR-010.** FR-008 khép lại kéo theo
 hai mục cuối cùng bị nó chặn: 4.4 (sân đang cần đội trên Trang chủ) và 10.5 (admin quản lý sân).
 
 **FR-007** hết mục `[ ]`, chỉ còn `[~]` 7.6 (lịch sử trận theo từng đội).
 **FR-002** khép lại với 2.12 (uy tín cá nhân) — xem ghi chú công thức ở mục FR-002.
 
-Bảy mục còn lại nằm gọn ở hai chỗ: **FR-001** (5 mục — OAuth và gửi email, đều chờ hạ tầng
-ngoài) và **FR-009** (2 mục — bộ hẹn giờ chạy nền, Web Push). Không còn mục nào bị chặn bởi
-một FR khác trong repo.
+Ba mục còn lại: **FR-007.6** (lịch sử trận theo đội, `[~]`) và **FR-009** (9.4 nhắc trận —
+cần bộ hẹn giờ chạy nền; 9.6 Web Push). Không còn mục nào bị chặn bởi một FR khác hay bởi
+dịch vụ ngoài.
 
 ---
 
 ## FR-001 — Đăng ký & Xác thực
 
-- [~] 1.1 Đăng ký bằng Email/Gmail (OAuth 2.0) — _email/mật khẩu xong, OAuth chưa_
-- [ ] 1.2 Đăng ký bằng số điện thoại (OTP) — _User model chưa có trường phone_
-- [x] 1.3 Đăng nhập Email/Password
-- [ ] 1.4 Đăng nhập Google OAuth
-- [ ] 1.5 Đăng nhập Facebook OAuth
-- [ ] 1.6 Quên mật khẩu / Đặt lại mật khẩu
-- [ ] 1.7 Xác thực email sau đăng ký — _cột `emailVerified` có sẵn nhưng không luồng nào set `true`_
+- [x] 1.1 Đăng ký bằng Email/Gmail (OAuth 2.0) — _form email/mật khẩu, hoặc "Tiếp tục với
+      Google" tạo tài khoản ngay lần đầu_
+- [x] 1.2 Đăng ký bằng số điện thoại (OTP) — _`/phone-login`, một luồng cho cả đăng ký lẫn
+      đăng nhập; mã 6 số, 5 phút, sai 5 lần là chết, 60 giây mới gửi lại_
+- [x] 1.3 Đăng nhập Email/Password — _ô đăng nhập nhận cả **số điện thoại đã xác thực**_
+- [x] 1.4 Đăng nhập Google OAuth
+- [x] 1.5 Đăng nhập Facebook OAuth
+- [x] 1.6 Quên mật khẩu / Đặt lại mật khẩu — _link 30 phút, dùng một lần; đặt lại xong thu
+      hồi mọi phiên_
+- [x] 1.7 Xác thực email sau đăng ký — _link 24 giờ; banner nhắc ở Trang chủ + Hồ sơ, không
+      chặn dùng app_
 - [x] 1.8 Đăng xuất — _thu hồi refresh token_
 - [x] 1.9 Phiên tự động — _refresh token 30 ngày, xoay vòng khi refresh_
 
-> **Chặn:** 1.6 và 1.7 cần hạ tầng gửi email. 1.1/1.4/1.5 cần đăng ký OAuth app.
+> **Không thêm thư viện nào.** Resend (email), Twilio (SMS), Google, Facebook đều gọi thẳng
+> HTTP bằng `fetch` có sẵn của Node — `lib/outbox.ts`, `lib/oauth.ts`. Cả bốn là **tuỳ
+> chọn**: thiếu khoá thì lúc dev email/OTP in ra terminal, còn production tắt chức năng đó
+> và giao diện ẩn nút (`GET /auth/providers`). Cách lấy khoá: RUNBOOK mục 7.
+>
+> **Một bảng cho mọi mã dùng một lần** — `AuthToken` (link email, OTP, mã đổi phiên OAuth),
+> chỉ lưu SHA-256. Phát mã mới là vô hiệu mã cũ cùng mục đích; tiêu mã bằng `updateMany`
+> có điều kiện `usedAt: null` để hai request cùng lúc chỉ một cái thắng.
+>
+> **`User.email` thành không bắt buộc** — tài khoản tạo bằng số điện thoại không có email.
+> Số điện thoại chuẩn hoá về `0xxxxxxxxx` (migration đổi luôn dữ liệu cũ dạng `+84`), để
+> `+84912...` và `0912...` không thành hai tài khoản.
+>
+> **Các quyết định bảo mật:**
+> - **Quên mật khẩu luôn trả 204**, có tài khoản hay không, và không chờ gửi mail xong mới
+>   trả — trả lời khác nhau hay chậm khác nhau đều là cách dò email nào đã đăng ký.
+> - **Số tự gõ vào hồ sơ không đăng nhập được bằng OTP.** Ai cũng gõ được số người khác vào
+>   hồ sơ mình; nếu OTP mở tài khoản đó thì người cầm SIM vào được tài khoản của người gõ.
+>   Chỉ số tạo qua OTP (`phoneVerified`) mới đăng nhập được. Số bị người khác gõ nhầm thì
+>   người cầm SIM được tài khoản mới, số bị gỡ khỏi hồ sơ kia. Số đã xác thực bị khoá ở form
+>   hồ sơ — đổi ở đó là mất đường vào.
+> - **Google/Facebook gộp vào tài khoản cũ cùng email chỉ khi nhà cung cấp xác nhận email.**
+>   Nếu tài khoản cũ chưa từng xác thực email thì **xoá mật khẩu và thu hồi phiên** của nó:
+>   rất có thể ai đó đã đăng ký trước bằng email của chủ thật (chiếm trước tài khoản).
+> - **OAuth có `state` trong cookie httpOnly** — callback không mang đúng cookie là bị từ chối,
+>   nên không ép được người khác đăng nhập vào tài khoản của mình.
+> - **Token không đi trên URL.** Callback OAuth trả một mã dùng một lần sống 60 giây, đặt
+>   sau dấu `#` (không gửi lên server, không lọt vào log hay Referer); trang web đổi mã lấy
+>   phiên qua `POST /auth/oauth/exchange`.
+> - **Rate limit riêng cho từng loại:** gửi email 5 lần / 15 phút, gửi OTP 5 lần / giờ,
+>   nhập OTP 10 lần sai / 15 phút — tách khỏi đăng nhập mật khẩu để nhập sai OTP không khoá
+>   luôn đăng nhập thường.
+>
+> **Kiểm bằng HTTP thật trên Postgres tạm:** 37 bước cho email / quên mật khẩu / OTP /
+> OAuth start, và 10 bước cho luồng Google đầy đủ (giả lập hai endpoint của Google) — gồm
+> cả kịch bản chiếm trước tài khoản. Script không nằm trong repo vì cần CSDL; kịch bản tay
+> nằm ở TEST_PLAN mục 5A.
+>
+> **Mọi tài khoản đều quản lý được cách đăng nhập của mình** (trang Hồ sơ):
+> - **Đặt mật khẩu lần đầu** (`POST /auth/set-password`) cho tài khoản tạo bằng
+>   Google/Facebook/OTP — thẻ Mật khẩu tự đổi thành "Đặt mật khẩu", không hỏi mật khẩu cũ.
+>   Từ chối nếu tài khoản không có email hay số đã xác thực: mật khẩu không có gì đi kèm để
+>   gõ vào ô đăng nhập thì vô dụng.
+> - **Đăng nhập bằng số điện thoại + mật khẩu** — cần cho tài khoản OTP (không có email).
+>   Chỉ số `phoneVerified`; số tự gõ vào hồ sơ không phải định danh đăng nhập.
+> - **Liên kết / gỡ Google, Facebook** — thẻ "Tài khoản liên kết". Liên kết vào tài khoản
+>   chưa có email thì tài khoản nhận luôn email đã được nhà cung cấp xác nhận (nếu chưa ai
+>   dùng), nhờ đó mở được "Quên mật khẩu". Mỗi nhà cung cấp một tài khoản; Google đã gắn với
+>   người khác thì từ chối.
+> - **Không gỡ được đường vào cuối cùng** (`LAST_LOGIN_METHOD`): phải còn mật khẩu (kèm
+>   email / số để gõ), số đã xác thực, hoặc nhà cung cấp khác.
+> - **Mã liên kết đi bằng form POST, không trên URL.** Trình duyệt phải chuyển cả trang sang
+>   Google nên không gửi được header đăng nhập; mã (sống 10 phút, dùng một lần, gắn đúng
+>   người + đúng nhà cung cấp) thay cho header. Để trên URL thì mã nằm trong log truy cập, và
+>   ai đọc được log là gắn được Google **của họ** vào tài khoản người khác. GET `/start` bỏ
+>   qua tham số `link` hoàn toàn.
+>
+> Kiểm bằng HTTP thật: thêm 24 bước (đặt mật khẩu, đăng nhập SĐT, liên kết, liên kết trùng,
+> dùng lại mã, gỡ đường vào cuối).
+>
+> **Trần đã biết:** đặt mật khẩu lần đầu chỉ cần phiên đang đăng nhập, không bắt đăng nhập
+> lại — ai cầm được phiên của tài khoản chưa có mật khẩu thì đặt được mật khẩu cho nó. Thêm
+> bước xác nhận lại (OTP / đăng nhập lại Google) nếu thấy cần.
 
 ## FR-002 — Hồ sơ cá nhân
 
@@ -296,7 +362,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 
 | Hạ tầng                           | Mở khoá                        | Ghi chú                                                    |
 | --------------------------------- | ------------------------------ | ---------------------------------------------------------- |
-| Gửi email                         | 1.6, 1.7                       | Lúc dev có thể in link ra console, không cần dịch vụ ngoài |
+| ~~Gửi email~~                     | ~~1.6, 1.7~~                   | Xong 2026-09-30 — Resend qua `fetch`, dev in ra terminal   |
 | Lưu file / ảnh                    | 2.3, 8.2                       | Local disk cho đồ án là đủ                                 |
 | ~~Model `Rating`~~                | ~~5.10, 7.7, 9.5, 2.12~~       | Xong 2026-08-21; 2.12 xong 2026-09-30                      |
 | Bộ hẹn giờ chạy nền               | 9.4                            | Cũng dùng được để dọn bài hết hạn                          |
@@ -309,7 +375,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 - [x] ~~Web chưa code-split~~ — mỗi trang một chunk qua `React.lazy`, chunk vào cổng còn
       **315 KB / 98,5 KB gzip** (trước: 614 KB một cục). Không thêm dependency nào; Vite tự
       tách vì `import()` động là điểm cắt.
-- [~] Bộ test đầu tiên — **74 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
+- [~] Bộ test đầu tiên — **84 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
       không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
 - [ ] Chưa có test nào chạm CSDL hay HTTP — mọi luồng nhiều bước (đặt sân, duyệt đơn, khoá
       tài khoản) vẫn chỉ kiểm bằng tay theo `TEST_PLAN.md`
@@ -348,17 +414,13 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 
 ## Thứ tự đề xuất
 
-Bảy nhóm đã xong 100%. Bảy mục còn lại, xếp theo thứ tự nên làm:
+Tám nhóm đã xong 100%. Ba mục còn lại, xếp theo thứ tự nên làm:
 
-1. **Quên mật khẩu + xác thực email** (1.6, 1.7) — hai mục Cao còn lại, dùng lại hạ tầng token
-   đã có. Lúc dev in link ra console là đủ, chưa cần dịch vụ gửi mail ngoài.
-2. **Luồng kết thúc trận + lịch sử theo đội** (7.6) — nhỏ, và làm mốc chấm điểm chặt hơn thay
+1. **Luồng kết thúc trận + lịch sử theo đội** (7.6) — nhỏ, và làm mốc chấm điểm chặt hơn thay
    vì chỉ dựa vào "đã qua giờ đá".
-3. **Bộ hẹn giờ chạy nền** (9.4) — dữ liệu điểm danh đã có; cũng dùng lại được để dọn bài
+2. **Bộ hẹn giờ chạy nền** (9.4) — dữ liệu điểm danh đã có; cũng dùng lại được để dọn bài
    tuyển/tìm trận hết hạn **và nhắc chủ sân đơn đặt sắp tới giờ**.
-4. **OAuth Google/Facebook** (1.1, 1.4, 1.5) và **OTP điện thoại** (1.2) — chờ đăng ký app bên
-   thứ ba, không phải việc trong repo.
-5. **Web Push** (9.6) — ưu tiên Thấp, để cuối.
+3. **Web Push** (9.6) — ưu tiên Thấp, để cuối.
 
 Hai món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên). Món tiếp theo đáng
 chen vào giữa danh sách trên: **test chạm CSDL cho luồng đặt sân** — đó là chỗ nhiều nhánh

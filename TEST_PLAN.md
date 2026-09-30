@@ -238,6 +238,89 @@ Mô phỏng access token hết hạn bằng cách xóa nó khỏi localStorage:
 
 ---
 
+## 5A. Test đăng ký & xác thực mở rộng (FR-001)
+
+Không cần cấu hình gì: chưa có `RESEND_API_KEY` / Twilio thì link và mã **in ra terminal
+đang chạy `pnpm dev`** (dòng `📧 EMAIL` / `📱 SMS`).
+
+### 5A.1 Xác thực email (1.7)
+
+1. Đăng ký một tài khoản mới bằng email.
+
+✅ Terminal in `📧 EMAIL` kèm link `/verify-email?token=...`.
+✅ Trang chủ hiện banner "Xác thực email ..." kèm nút **Gửi lại link**.
+
+2. Mở link trong terminal.
+
+✅ Trang báo "Email đã được xác thực", banner biến mất.
+✅ Mở lại đúng link đó lần nữa → báo link đã hết hạn / đã dùng.
+
+### 5A.2 Quên mật khẩu (1.6)
+
+1. Đăng xuất → **Đăng nhập** → **Quên mật khẩu?** → nhập email vừa đăng ký.
+
+✅ Trang báo "Nếu ... có tài khoản, link đã được gửi" — **nhập email không tồn tại cũng
+báo y hệt** (không lộ email nào đã đăng ký).
+
+2. Mở link `/reset-password?token=...` trong terminal → đặt mật khẩu mới.
+
+✅ Đăng nhập bằng mật khẩu cũ → 401. Mật khẩu mới → vào được.
+✅ Thiết bị khác đang đăng nhập tài khoản này bị đăng xuất ở lần refresh kế tiếp.
+
+### 5A.3 Số điện thoại + OTP (1.2)
+
+1. **Đăng nhập** → **Dùng số điện thoại** → nhập `0912345678` → **Gửi mã**.
+
+✅ Terminal in `📱 SMS` kèm mã 6 số. Nút **Gửi lại mã** bị khoá 60 giây.
+
+2. Nhập sai mã một lần.
+
+✅ Báo "Mã không đúng, còn 4 lần thử". Sai đủ 5 lần thì mã chết, phải gửi lại.
+
+3. Nhập đúng mã.
+
+✅ Số chưa có tài khoản → form hỏi thêm **Tên hiển thị** và **Loại tài khoản** → tạo
+xong vào thẳng onboarding.
+✅ Đăng xuất, làm lại với cùng số → vào thẳng tài khoản cũ, không hỏi tên.
+✅ Trang hồ sơ: SĐT ghi "đã xác thực", ô SĐT trong form sửa bị khoá.
+
+### 5A.4 Google / Facebook (1.1, 1.4, 1.5)
+
+Cần khoá thật (RUNBOOK mục 7). Chưa có thì nút không hiện — đó là kết quả đúng.
+
+✅ Bấm **Tiếp tục với Google** → chọn tài khoản → về `/dashboard` (tài khoản mới thì qua
+onboarding trước).
+✅ Bấm **Cancel** ở màn hình Google → về trang đăng nhập, báo "Bạn đã huỷ đăng nhập".
+✅ Gmail trùng email một tài khoản đã có → đăng nhập vào **đúng tài khoản đó**, không tạo
+tài khoản thứ hai.
+
+### 5A.5 Đặt mật khẩu lần đầu + đăng nhập bằng SĐT
+
+1. Đăng nhập bằng số điện thoại (5A.3) → **Hồ sơ**.
+
+✅ Thẻ Mật khẩu ghi "Đặt mật khẩu", chỉ có ô mật khẩu mới (không hỏi mật khẩu cũ).
+
+2. Đặt mật khẩu → đăng xuất → **Đăng nhập** bằng số điện thoại + mật khẩu vừa đặt.
+
+✅ Vào được. Gõ dạng `+84...` cũng vào được.
+✅ Số chỉ gõ vào hồ sơ (chưa qua OTP) + đúng mật khẩu → báo sai thông tin đăng nhập.
+
+### 5A.6 Liên kết / gỡ Google (cần khoá thật)
+
+1. **Hồ sơ** → thẻ **Tài khoản liên kết** → Google → **Liên kết** → chọn Gmail.
+
+✅ Quay về Hồ sơ, báo "Đã liên kết Google". Đăng xuất → Tiếp tục với Google → vào đúng tài
+khoản này.
+✅ Tài khoản tạo bằng SĐT: sau khi liên kết, dòng email ở Hồ sơ hiện Gmail vừa liên kết.
+✅ Liên kết một Gmail đang thuộc tài khoản khác → báo "đã gắn với một tài khoản SportsForAll khác".
+
+2. **Gỡ liên kết** trên tài khoản chỉ đăng nhập bằng Google.
+
+✅ Báo "Đây là cách đăng nhập duy nhất — đặt mật khẩu trước rồi mới gỡ". Đặt mật khẩu xong
+thì gỡ được.
+
+---
+
 ## 6. Test Teams (CRUD)
 
 User Alice đang đăng nhập.
@@ -953,6 +1036,20 @@ Hữu ích khi test thủ công bằng curl/Postman. **Tất cả endpoint dư�
 | POST   | `/api/auth/refresh`                            | — | Refresh access token |
 | POST   | `/api/auth/logout`                             | ✓ | Đăng xuất |
 | GET    | `/api/auth/me`                                 | ✓ | User hiện tại |
+| GET    | `/api/auth/providers`                          | — | Cách đăng nhập nào đang bật |
+| POST   | `/api/auth/verify-email`                       | — | Xác thực email bằng mã trong link |
+| POST   | `/api/auth/resend-verification`                | ✓ | Gửi lại link xác thực |
+| POST   | `/api/auth/forgot-password`                    | — | Xin link đặt lại mật khẩu (luôn 204) |
+| POST   | `/api/auth/reset-password`                     | — | Đặt mật khẩu mới bằng mã trong link |
+| POST   | `/api/auth/phone/start`                        | — | Gửi OTP |
+| POST   | `/api/auth/phone/verify`                       | — | Nhập OTP → đăng nhập / tạo tài khoản |
+| GET    | `/api/auth/oauth/:provider/start`              | — | Chuyển sang Google/Facebook |
+| GET    | `/api/auth/oauth/:provider/callback`           | — | Google/Facebook chuyển về |
+| POST   | `/api/auth/oauth/exchange`                     | — | Đổi mã một lần lấy phiên |
+| POST   | `/api/auth/set-password`                       | ✓ | Đặt mật khẩu lần đầu |
+| POST   | `/api/auth/oauth/:provider/link`               | ✓ | Xin mã liên kết Google/Facebook |
+| POST   | `/api/auth/oauth/:provider/start`              | — | Form POST kèm mã liên kết → sang nhà cung cấp |
+| DELETE | `/api/auth/oauth/:provider`                    | ✓ | Gỡ liên kết (chặn nếu là đường vào cuối) |
 | GET    | `/api/profile/me`                              | ✓ | Hồ sơ + sport prefs |
 | PUT    | `/api/profile/me`                              | ✓ | Sửa hồ sơ |
 | POST   | `/api/profile/me/onboarding`                   | ✓ | Hoàn tất onboarding |

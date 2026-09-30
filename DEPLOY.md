@@ -88,6 +88,16 @@ Mục **Environment** → **Add Environment Variable**:
 | `TRUST_PROXY`        | `1`                                                       |
 | `LOG_LEVEL`          | `info`                                                    |
 | `CORS_ORIGINS`       | `http://localhost:5173` _(tạm, sửa ở bước 4)_             |
+| `API_URL`            | URL Render của chính service này _(điền sau khi tạo xong)_ |
+| `WEB_URL`            | URL Vercel _(điền ở bước 4)_                              |
+
+> **`API_URL` và `WEB_URL` phải đúng** nếu dùng email hay Google/Facebook: link trong email
+> trỏ về `WEB_URL`, còn Google/Facebook trả người dùng về `API_URL`. Để mặc định thì link
+> trỏ về `localhost` — người dùng bấm vào là trắng trang.
+>
+> Email, SMS, Google, Facebook là **tuỳ chọn** — thêm các biến ở mục 8 khi muốn bật (cách
+> lấy khoá: RUNBOOK mục 7). Không thêm thì nút tương ứng tự ẩn; quên mật khẩu và xác thực
+> email cũng tắt vì production không có terminal để in link ra.
 
 > **`TRUST_PROXY=1` là bắt buộc**, không phải tuỳ chọn. Render đặt một proxy trước service.
 > Để `0` thì `req.ip` của mọi người dùng đều ra IP của proxy, nên rate limiter gộp cả thế
@@ -170,7 +180,8 @@ URL thật của bạn lấy ở **Vercel → project → Domains**, dòng trên
 thường dạng `sportsforall-xxxx.vercel.app` hoặc kèm tên tài khoản. Cách chắc chắn nhất:
 mở web lên, copy nguyên phần domain trên thanh địa chỉ.
 
-**Render** → service API → **Environment** → sửa `CORS_ORIGINS` thành đúng domain đó:
+**Render** → service API → **Environment** → sửa `CORS_ORIGINS` **và `WEB_URL`** thành
+đúng domain đó:
 
 ```
 https://<domain-vercel-cua-ban>.vercel.app
@@ -379,6 +390,25 @@ Nghĩa là sửa biến này trên Vercel **không có tác dụng gì** cho t�
 | `CORS_ORIGINS`       |    ✓     | URL Vercel, **không** `/` | Nhiều URL cách nhau bằng dấu phẩy        |
 | `TRUST_PROXY`        |    ✓     | `1`                       | Sai là rate limit tính nhầm IP           |
 | `LOG_LEVEL`          |          | `info`                    |                                          |
+| `API_URL`            |   (✓)    | URL Render, **không** `/` | Bắt buộc nếu bật Google/Facebook         |
+| `WEB_URL`            |   (✓)    | URL Vercel, **không** `/` | Bắt buộc nếu bật email hay Google/Facebook |
+| `RESEND_API_KEY`     |          | `re_...`                  | Bật quên mật khẩu + xác thực email       |
+| `MAIL_FROM`          |          | `Tên <no-reply@miền>`     | Miền phải đã xác minh trên Resend        |
+| `TWILIO_ACCOUNT_SID` |          |                           | Ba biến Twilio đủ cả mới bật SMS         |
+| `TWILIO_AUTH_TOKEN`  |          |                           |                                          |
+| `TWILIO_FROM`        |          | `+1...`                   |                                          |
+| `GOOGLE_CLIENT_ID`   |          |                           | Thêm Redirect URI production (dưới đây)  |
+| `GOOGLE_CLIENT_SECRET` |        |                           |                                          |
+| `FACEBOOK_APP_ID`    |          |                           | Thêm Redirect URI production (dưới đây)  |
+| `FACEBOOK_APP_SECRET` |         |                           |                                          |
+
+Bật Google/Facebook trên production thì thêm Redirect URI thứ hai (giữ dòng `localhost` để
+vẫn chạy được ở máy), thay đúng URL Render của bạn:
+
+```
+https://<ten-service>.onrender.com/api/auth/oauth/google/callback
+https://<ten-service>.onrender.com/api/auth/oauth/facebook/callback
+```
 
 ### Web (Vercel)
 

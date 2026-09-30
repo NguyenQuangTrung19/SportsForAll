@@ -13,7 +13,15 @@ import { HttpError } from '../middleware/error.js';
 
 export const profileRouter = Router();
 
-type UserWithPreferences = User & { sportPreferences: SportPreference[] };
+const PROFILE_INCLUDE = {
+  sportPreferences: { orderBy: { createdAt: 'asc' } },
+  oauthAccounts: { select: { provider: true } },
+} satisfies Prisma.UserInclude;
+
+type UserWithPreferences = User & {
+  sportPreferences: SportPreference[];
+  oauthAccounts: { provider: 'google' | 'facebook' }[];
+};
 
 function toSportPreference(p: SportPreference): SharedSportPreference {
   return {
@@ -33,7 +41,10 @@ function toProfileResponse(u: UserWithPreferences): ProfileResponse {
     birthYear: u.birthYear,
     region: u.region,
     phone: u.phone,
+    phoneVerified: u.phoneVerified,
     reputation: u.reputation,
+    hasPassword: u.passwordHash !== null,
+    linkedProviders: u.oauthAccounts.map((a) => a.provider),
     ratedMatches: u.ratedMatches,
     emailVerified: u.emailVerified,
     onboardedAt: u.onboardedAt?.toISOString() ?? null,
@@ -45,7 +56,7 @@ function toProfileResponse(u: UserWithPreferences): ProfileResponse {
 async function loadProfile(userId: string): Promise<UserWithPreferences> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { sportPreferences: { orderBy: { createdAt: 'asc' } } },
+    include: PROFILE_INCLUDE,
   });
   if (!user) throw new HttpError(404, 'Không tìm thấy người dùng', 'USER_NOT_FOUND');
   return user;
@@ -68,6 +79,23 @@ profileRouter.put('/me', requireAuth, async (req, res, next) => {
     const { sportPreferences, ...basic } = input;
 
     const updated = await prisma.$transaction(async (tx) => {
+      if (basic.phone !== undefined) {
+        const current = await tx.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: { phone: true, phoneVerified: true },
+        });
+        if (basic.phone !== current.phone) {
+          // Số đã chứng minh bằng OTP là cách đăng nhập (FR-001.2) — đổi ở form hồ sơ
+          // là mất đường vào mà số mới chưa ai xác thực.
+          if (current.phoneVerified) {
+            throw new HttpError(
+              400,
+              'Số điện thoại đã xác thực dùng để đăng nhập, không đổi được ở đây',
+              'PHONE_LOCKED',
+            );
+          }
+        }
+      }
       if (Object.keys(basic).length > 0) {
         await tx.user.update({ where: { id: userId }, data: basic });
       }
@@ -86,7 +114,7 @@ profileRouter.put('/me', requireAuth, async (req, res, next) => {
       }
       return tx.user.findUniqueOrThrow({
         where: { id: userId },
-        include: { sportPreferences: { orderBy: { createdAt: 'asc' } } },
+        include: PROFILE_INCLUDE,
       });
     });
 
@@ -135,7 +163,7 @@ profileRouter.post('/me/onboarding', requireAuth, async (req, res, next) => {
       });
       return tx.user.findUniqueOrThrow({
         where: { id: userId },
-        include: { sportPreferences: { orderBy: { createdAt: 'asc' } } },
+        include: PROFILE_INCLUDE,
       });
     });
 

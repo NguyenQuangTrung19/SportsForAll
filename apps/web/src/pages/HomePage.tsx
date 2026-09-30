@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/Avatar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { SportIcon } from '@/components/SportIcon';
+import { VerifyEmailBanner } from '@/components/VerifyEmailBanner';
 import { api } from '@/lib/api';
 import { formatSlotRange, formatVnd } from '@/lib/format';
 import { useSports } from '@/lib/use-sports';
@@ -227,6 +228,8 @@ export function HomePage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+        <VerifyEmailBanner />
+
         {/* Tiêu đề ngày */}
         <section className="fade-up flex flex-wrap items-end justify-between gap-6">
           <div>
