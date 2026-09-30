@@ -55,3 +55,16 @@ export const submitRatingSchema = z.object({
   comment: z.string().trim().max(500).optional(),
 });
 export type SubmitRatingInput = z.infer<typeof submitRatingSchema>;
+
+/** Kết thúc trận (FR-007.6): captain/phó của một trong hai đội chốt tỉ số. */
+export const completeMatchSchema = z.object({
+  homeScore: z.coerce.number().int().min(0).max(999),
+  awayScore: z.coerce.number().int().min(0).max(999),
+});
+export type CompleteMatchInput = z.infer<typeof completeMatchSchema>;
+
+export const teamMatchListQuerySchema = z.object({
+  cursor: z.string().cuid().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+export type TeamMatchListQuery = z.infer<typeof teamMatchListQuerySchema>;

@@ -108,6 +108,19 @@ export function MatchRequestDetailPage() {
     onError: (err) => setActionError(extractMessage(err, 'Không rút được thách đấu')),
   });
 
+  const completeMutation = useMutation({
+    mutationFn: async (input: { homeScore: number; awayScore: number }) => {
+      const matchId = reqQuery.data?.match?.id;
+      if (!matchId) throw new Error('Chưa có trận để chốt');
+      await api.post(`/matches/${matchId}/complete`, input);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['matches', 'request', id] });
+      void queryClient.invalidateQueries({ queryKey: ['matches', 'team'] });
+    },
+    onError: (err) => setActionError(extractMessage(err, 'Không chốt được tỉ số')),
+  });
+
   const rateMutation = useMutation({
     mutationFn: async (input: { score: number; comment: string }) => {
       const matchId = reqQuery.data?.match?.id;
@@ -221,6 +234,28 @@ export function MatchRequestDetailPage() {
                     {new Date(req.match.scheduledAt).toLocaleString('vi-VN')}
                     {req.match.venueName ? ` · ${req.match.venueName}` : ''}
                   </p>
+                )}
+                {req.match.status === 'completed' && req.match.homeScore !== null && (
+                  <p className="poster-num mt-3 text-4xl text-primary-dark">
+                    {req.match.homeScore} – {req.match.awayScore}
+                  </p>
+                )}
+
+                {req.match.canComplete && (
+                  <CompleteMatchPanel
+                    match={req.match}
+                    pending={completeMutation.isPending}
+                    onSubmit={(homeScore, awayScore) => {
+                      if (
+                        !window.confirm(
+                          `Chốt tỉ số ${req.match!.homeTeam.name} ${homeScore} – ${awayScore} ${req.match!.awayTeam.name}? Chốt xong không sửa được.`,
+                        )
+                      )
+                        return;
+                      setActionError(null);
+                      completeMutation.mutate({ homeScore, awayScore });
+                    }}
+                  />
                 )}
 
                 <RatingPanel
@@ -538,6 +573,71 @@ function ChallengeRow({
         </div>
       )}
     </li>
+  );
+}
+
+/**
+ * Kết thúc trận (FR-007.6). Chỉ hiện khi máy chủ nói được chốt — ai được chốt
+ * và từ lúc nào nằm ở `canEndMatch`, giao diện không đoán lại.
+ */
+function CompleteMatchPanel({
+  match,
+  pending,
+  onSubmit,
+}: {
+  match: MatchView;
+  pending: boolean;
+  onSubmit: (homeScore: number, awayScore: number) => void;
+}) {
+  const [home, setHome] = useState('');
+  const [away, setAway] = useState('');
+  const valid = /^\d{1,3}$/.test(home) && /^\d{1,3}$/.test(away);
+
+  return (
+    <form
+      className="mt-5 border-t border-ink/10 pt-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) onSubmit(Number(home), Number(away));
+      }}
+    >
+      <p className="text-xs font-bold tracking-wide text-primary-dark">Kết thúc trận</p>
+      <p className="mt-1 text-xs text-ink-soft">
+        Đội trưởng hoặc đội phó của một trong hai đội chốt tỉ số. Chốt một lần, không sửa lại.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          {match.homeTeam.name}
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={999}
+            required
+            value={home}
+            onChange={(e) => setHome(e.target.value)}
+            className="input w-20 text-center"
+          />
+        </label>
+        <span className="text-ink-soft">–</span>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={999}
+            required
+            value={away}
+            onChange={(e) => setAway(e.target.value)}
+            className="input w-20 text-center"
+          />
+          {match.awayTeam.name}
+        </label>
+      </div>
+      <button type="submit" disabled={!valid || pending} className="btn-primary mt-3 w-full">
+        {pending ? 'Đang chốt...' : 'Chốt tỉ số'}
+      </button>
+    </form>
   );
 }
 

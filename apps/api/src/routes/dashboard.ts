@@ -10,7 +10,7 @@ import type {
 import type { Team } from '@prisma/client';
 import { Router } from 'express';
 import { prisma } from '../lib/db.js';
-import { hasBeenPlayed } from '../lib/match-rules.js';
+import { canEndMatch, hasBeenPlayed } from '../lib/match-rules.js';
 import { requireAuth } from '../middleware/auth.js';
 
 export const dashboardRouter = Router();
@@ -168,6 +168,7 @@ dashboardRouter.get('/', requireAuth, async (req, res, next) => {
         createdAt: matchRow.createdAt.toISOString(),
         viewerTeamId: myTeam.id,
         canRate: hasBeenPlayed(matchRow),
+        canComplete: managedTeamIds.includes(myTeam.id) && canEndMatch(matchRow),
         viewerRating: myRating
           ? {
               score: myRating.score,

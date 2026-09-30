@@ -4,16 +4,19 @@ import {
   TEAM_ROLE_LABELS,
   addMemberSchema,
   type AddMemberInput,
+  type MatchView,
   type TeamDetail,
+  type TeamMatchListResponse,
   type TeamInviteView,
   type TeamRole,
 } from '@sfa/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { LoadMore } from '@/components/LoadMore';
 import { SportIcon } from '@/components/SportIcon';
 import { api } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
@@ -216,6 +219,8 @@ export function TeamDetailPage() {
                     );
                   })}
                 </ul>
+
+                <MatchHistory teamId={team.id} />
               </div>
 
               <aside className="space-y-6 lg:col-span-5">
@@ -297,6 +302,107 @@ export function TeamDetailPage() {
         )}
       </main>
     </div>
+  );
+}
+
+/** Lịch sử trận của đội (FR-007.6), mới nhất trước, tỉ số nhìn từ phía đội này. */
+function MatchHistory({ teamId }: { teamId: string }) {
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ['matches', 'team', teamId],
+      initialPageParam: undefined as string | undefined,
+      queryFn: async ({ pageParam }) => {
+        const qs = pageParam ? `?cursor=${pageParam}` : '';
+        const { data } = await api.get<TeamMatchListResponse>(`/matches/team/${teamId}${qs}`);
+        return data;
+      },
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
+    });
+  const matches = data?.pages.flatMap((p) => p.items) ?? [];
+
+  return (
+    <section className="mt-10">
+      <header className="border-b-2 border-ink pb-3">
+        <h2 className="font-display text-2xl font-black tracking-tight">Lịch sử trận</h2>
+      </header>
+      {isLoading && <p className="mt-4 text-sm text-ink-soft">Đang tải...</p>}
+      {isError && <p className="mt-4 text-sm text-rust">Không tải được lịch sử trận.</p>}
+      {data && matches.length === 0 && (
+        <p className="mt-4 text-sm text-ink-soft">Đội chưa đá trận nào.</p>
+      )}
+      <ul className="mt-2 divide-y divide-ink/10">
+        {matches.map((m) => (
+          <MatchHistoryRow key={m.id} match={m} teamId={teamId} />
+        ))}
+      </ul>
+      {matches.length > 0 && (
+        <LoadMore
+          hasMore={Boolean(hasNextPage)}
+          loading={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+        />
+      )}
+    </section>
+  );
+}
+
+const RESULT_STYLES = {
+  win: { label: 'Thắng', className: 'bg-primary-dark text-paper' },
+  draw: { label: 'Hoà', className: 'bg-ink/10 text-ink' },
+  loss: { label: 'Thua', className: 'bg-rust/10 text-rust' },
+} as const;
+
+function MatchHistoryRow({ match, teamId }: { match: MatchView; teamId: string }) {
+  const isHome = match.homeTeam.id === teamId;
+  const opponent = isHome ? match.awayTeam : match.homeTeam;
+  const ours = isHome ? match.homeScore : match.awayScore;
+  const theirs = isHome ? match.awayScore : match.homeScore;
+  const result =
+    match.status === 'completed' && ours !== null && theirs !== null
+      ? RESULT_STYLES[ours > theirs ? 'win' : ours < theirs ? 'loss' : 'draw']
+      : null;
+
+  const body = (
+    <>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-display text-base font-black tracking-tight">
+          vs {opponent.name}
+        </p>
+        <p className="mt-0.5 text-xs text-ink-soft">
+          {match.scheduledAt
+            ? new Date(match.scheduledAt).toLocaleDateString('vi-VN')
+            : 'Không hẹn giờ'}
+          {match.venueName ? ` · ${match.venueName}` : ''}
+        </p>
+      </div>
+      {result ? (
+        <>
+          <span className="poster-num text-xl">
+            {ours} – {theirs}
+          </span>
+          <span className={`px-2 py-0.5 text-xs font-bold ${result.className}`}>
+            {result.label}
+          </span>
+        </>
+      ) : (
+        <span className="text-xs text-ink-soft">Chưa chốt tỉ số</span>
+      )}
+    </>
+  );
+
+  return (
+    <li>
+      {match.matchRequestId ? (
+        <Link
+          to={`/match-requests/${match.matchRequestId}`}
+          className="flex items-center gap-4 py-4 transition hover:bg-ink/[0.03]"
+        >
+          {body}
+        </Link>
+      ) : (
+        <div className="flex items-center gap-4 py-4">{body}</div>
+      )}
+    </li>
   );
 }
 

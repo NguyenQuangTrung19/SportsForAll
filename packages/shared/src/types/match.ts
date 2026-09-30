@@ -90,7 +90,15 @@ export interface MatchView {
   viewerTeamId: string | null;
   /** Đã qua giờ đá, trận chưa huỷ, và người xem thuộc một trong hai đội. */
   canRate: boolean;
+  /** Người xem là captain/phó của một đội, trận chưa chốt và đã tới giờ đá (FR-007.6). */
+  canComplete: boolean;
   viewerRating: RatingView | null;
+}
+
+/** Lịch sử trận của một đội (FR-007.6) — trận đã đá, mới nhất trước. */
+export interface TeamMatchListResponse {
+  items: MatchView[];
+  nextCursor: string | null;
 }
 
 export interface RatingView {

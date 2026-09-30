@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — FR-001 xong 100%; toàn repo đã chạy Prettier, ép LF qua `.gitattributes`, thêm `pnpm format:check`._
+_Cập nhật lần cuối: 2026-09-30 — FR-007 xong 100% với 7.6 (chốt tỉ số + lịch sử trận theo đội); toàn repo đã chạy Prettier, ép LF qua `.gitattributes`._
 
 ## Tổng quan
 
@@ -17,20 +17,19 @@ _Cập nhật lần cuối: 2026-09-30 — FR-001 xong 100%; toàn repo đã ch�
 | FR-004 Trang chủ            | 9      | 0        | 0     | 9      |
 | FR-005 Tìm đối thủ          | 11     | 0        | 0     | 11     |
 | FR-006 Tìm thành viên       | 9      | 0        | 0     | 9      |
-| FR-007 Quản lý đội          | 7      | 1        | 0     | 8      |
+| FR-007 Quản lý đội          | 8      | 0        | 0     | 8      |
 | FR-008 Quản lý sân bãi      | 9      | 0        | 0     | 9      |
 | FR-009 Thông báo            | 4      | 0        | 2     | 6      |
 | FR-010 Quản trị hệ thống    | 8      | 0        | 0     | 8      |
-| **Tổng**                    | **84** | **1**    | **2** | **87** |
+| **Tổng**                    | **85** | **0**    | **2** | **87** |
 
-**Tám nhóm đã xong 100%: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-008, FR-010.** FR-008 khép lại kéo theo
+**Chín nhóm đã xong 100%: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-010.** FR-008 khép lại kéo theo
 hai mục cuối cùng bị nó chặn: 4.4 (sân đang cần đội trên Trang chủ) và 10.5 (admin quản lý sân).
 
-**FR-007** hết mục `[ ]`, chỉ còn `[~]` 7.6 (lịch sử trận theo từng đội).
+**FR-007** khép lại với 7.6 — captain/phó chốt tỉ số, trang đội có lịch sử trận.
 **FR-002** khép lại với 2.12 (uy tín cá nhân) — xem ghi chú công thức ở mục FR-002.
 
-Ba mục còn lại: **FR-007.6** (lịch sử trận theo đội, `[~]`) và **FR-009** (9.4 nhắc trận —
-cần bộ hẹn giờ chạy nền; 9.6 Web Push). Không còn mục nào bị chặn bởi một FR khác hay bởi
+Hai mục còn lại đều thuộc **FR-009**: 9.4 nhắc trận (cần bộ hẹn giờ chạy nền) và 9.6 Web Push. Không còn mục nào bị chặn bởi một FR khác hay bởi
 dịch vụ ngoài.
 
 ---
@@ -171,8 +170,6 @@ dịch vụ ngoài.
 > **Trần đã biết:** chưa có trọng số theo thời gian — trận 2 năm
 > trước nặng ngang trận tuần trước; thêm khi có người phàn nàn.
 
-> **Chặn:** 2.3 cần chỗ lưu file.
-
 ## FR-003 — Môn thể thao & Multi-theme
 
 - [x] 3.1 Danh sách môn — _5 môn trong `SPORTS`_
@@ -216,9 +213,9 @@ dịch vụ ngoài.
 - [x] 5.11 Báo cáo đội vi phạm — _model `Report`, `POST /reports`, 5 lý do; mỗi người chỉ giữ
       một báo cáo đang chờ cho mỗi đội_
 
-> **Mốc đánh giá:** chưa có luồng "kết thúc trận" nên phần chấm điểm mở ra khi giờ đá đã trôi
-> qua (hoặc trận được đánh dấu `completed`). Trận không hẹn giờ thì chưa chấm được — đây là lý
-> do nên làm FR-007.6 (lịch sử trận theo đội) kèm nút kết thúc trận.
+> **Mốc đánh giá:** phần chấm điểm mở khi trận đã chốt tỉ số (FR-007.6) **hoặc** giờ đá đã
+> trôi qua — giữ nhánh sau để captain quên bấm "kết thúc" không khoá mất phần chấm. Trận không
+> hẹn giờ thì phải chốt tỉ số mới chấm được.
 
 ## FR-006 — Tìm thành viên & Đồng đội
 
@@ -240,7 +237,9 @@ dịch vụ ngoài.
 - [x] 7.3 Thêm / xoá thành viên
 - [x] 7.4 Phân quyền captain / co-captain / member — _có kiểm tra quyền đầy đủ, chuyển captain atomic_
 - [x] 7.5 Xem danh sách thành viên
-- [~] 7.6 Lịch sử trận đấu — _`GET /matches/my` trả theo người dùng, chưa có theo từng đội_
+- [x] 7.6 Lịch sử trận đấu — _`GET /matches/team/:teamId` (trận đã đá, mới nhất trước, phân
+      trang cursor), hiện ở trang đội kèm Thắng/Hoà/Thua. Captain/phó một trong hai đội chốt tỉ
+      số qua `POST /matches/:id/complete` — chỉ sau giờ đá, chốt một lần, không sửa_
 - [x] 7.7 Điểm uy tín đội — _trung bình điểm các trận trong sổ `TeamMatchScore` (mỗi trận =
       trung bình phiếu trận đó), cập nhật ngay khi có người chấm; đối thủ giải tán không mất phiếu_
 - [x] 7.8 Giải tán đội
@@ -288,9 +287,6 @@ dịch vụ ngoài.
 >
 > Ngoài 6 mục trên còn 3 loại `team_invite_*` (từ 6.8) và 4 loại `booking_*` (từ FR-008) —
 > không phải mục SRS riêng nên không tính vào bảng đếm.
->
-> Ngoài 6 mục trên còn 3 loại `team_invite_received` / `_accepted` / `_rejected` sinh ra từ
-> 6.8 — không phải mục SRS riêng nên không tính vào bảng đếm.
 
 ## FR-010 — Quản trị hệ thống
 
@@ -361,28 +357,29 @@ không dựng lại từ đầu.
 
 Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trước sẽ mở khoá nhiều FR cùng lúc.
 
-| Hạ tầng                               | Mở khoá                     | Ghi chú                                                          |
-| ------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| ~~Gửi email~~                         | ~~1.6, 1.7~~                | Xong 2026-09-30 — Resend qua `fetch`, dev in ra terminal         |
-| Lưu file / ảnh                        | 2.3, 8.2                    | Local disk cho đồ án là đủ                                       |
-| ~~Model `Rating`~~                    | ~~5.10, 7.7, 9.5, 2.12~~    | Xong 2026-08-21; 2.12 xong 2026-09-30                            |
-| Bộ hẹn giờ chạy nền                   | 9.4                         | Cũng dùng được để dọn bài hết hạn                                |
-| Luồng "kết thúc trận"                 | 7.6, mốc chấm điểm chặt hơn | Nhỏ — một cột trạng thái + nút cho captain                       |
-| ~~Middleware `requireRole('admin')`~~ | ~~Toàn bộ FR-010~~          | Xong — chỉ còn 10.5 chờ FR-008                                   |
-| ~~Nhóm model sân bãi~~                | ~~FR-008, 4.4, 10.5~~       | Xong 2026-08-22 — `Venue`, `VenueSlot`, `Booking`, `VenueReview` |
+| Hạ tầng                               | Mở khoá                  | Ghi chú                                                          |
+| ------------------------------------- | ------------------------ | ---------------------------------------------------------------- |
+| ~~Gửi email~~                         | ~~1.6, 1.7~~             | Xong 2026-09-30 — Resend qua `fetch`, dev in ra terminal         |
+| ~~Lưu file / ảnh~~                    | ~~2.3, 8.2~~             | Xong — local disk, `lib/uploads.ts`                              |
+| ~~Model `Rating`~~                    | ~~5.10, 7.7, 9.5, 2.12~~ | Xong 2026-08-21; 2.12 xong 2026-09-30                            |
+| Bộ hẹn giờ chạy nền                   | 9.4                      | Cũng dùng được để dọn bài hết hạn                                |
+| ~~Luồng "kết thúc trận"~~             | ~~7.6~~                  | Xong 2026-09-30 — không cần migration, cột đã có sẵn             |
+| ~~Middleware `requireRole('admin')`~~ | ~~Toàn bộ FR-010~~       | Xong — chỉ còn 10.5 chờ FR-008                                   |
+| ~~Nhóm model sân bãi~~                | ~~FR-008, 4.4, 10.5~~    | Xong 2026-08-22 — `Venue`, `VenueSlot`, `Booking`, `VenueReview` |
 
 ## Nợ kỹ thuật (không thuộc FR)
 
 - [x] ~~Web chưa code-split~~ — mỗi trang một chunk qua `React.lazy`, chunk vào cổng còn
       **315 KB / 98,5 KB gzip** (trước: 614 KB một cục). Không thêm dependency nào; Vite tự
       tách vì `import()` động là điểm cắt.
-- [~] Bộ test đầu tiên — **84 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
+- [~] Bộ test đầu tiên — **87 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
   không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
 - [ ] Chưa có test nào chạm CSDL hay HTTP — mọi luồng nhiều bước (đặt sân, duyệt đơn, khoá
       tài khoản) vẫn chỉ kiểm bằng tay theo `TEST_PLAN.md`
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
 - [ ] Rate limit dùng MemoryStore — sai số khi chạy nhiều instance
-- [ ] Repo chưa sạch Prettier toàn bộ
+- [x] ~~Repo chưa sạch Prettier toàn bộ~~ — đã format cả repo, ép LF qua `.gitattributes`,
+      kiểm bằng `pnpm format:check` (chưa gắn vào CI / pre-commit)
 - [ ] Còn 4 bản chép tay của đuôi phân trang cursor và 12 chỗ bóc message lỗi axios inline —
       helper dùng chung đã có (`paginate()`, `apiMessage()`), chỉ còn việc thay thế
 
@@ -390,14 +387,14 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 
 Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì hỏng lặng lẽ.
 
-| Chỗ                               | Vì sao đáng test                                                          |
-| --------------------------------- | ------------------------------------------------------------------------- |
-| `paginate()` / `cursorArgs()`     | 8 endpoint dùng chung; lệch một đơn vị là mất hoặc lặp bản ghi            |
-| `uploadedFileName()`              | Đường path traversal — chỗ duy nhất quyết định file nào bị xoá            |
-| `playerReputation()`              | Công thức uy tín cá nhân; sai là xếp hạng người chơi sai mà không ai thấy |
-| `ttlToMs()`                       | Bộ phân tích; TTL sai cú pháp mà vẫn khởi động được là phiên sai âm thầm  |
-| `hasBeenPlayed()`                 | Mốc mở phần chấm điểm, 5 nhánh                                            |
-| Schema `venue` / `auth` / `admin` | Xác thực ở biên tin cậy: giá, giờ, giới hạn trang, ranh giới vai trò      |
+| Chỗ                                 | Vì sao đáng test                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `paginate()` / `cursorArgs()`       | 8 endpoint dùng chung; lệch một đơn vị là mất hoặc lặp bản ghi            |
+| `uploadedFileName()`                | Đường path traversal — chỗ duy nhất quyết định file nào bị xoá            |
+| `playerReputation()`                | Công thức uy tín cá nhân; sai là xếp hạng người chơi sai mà không ai thấy |
+| `ttlToMs()`                         | Bộ phân tích; TTL sai cú pháp mà vẫn khởi động được là phiên sai âm thầm  |
+| `hasBeenPlayed()` / `canEndMatch()` | Mốc mở phần chấm điểm và mốc được chốt tỉ số                              |
+| Schema `venue` / `auth` / `admin`   | Xác thực ở biên tin cậy: giá, giờ, giới hạn trang, ranh giới vai trò      |
 
 > **Test đầu tiên bắt được một lỗi thật.** `uploadedFileName` cắt đường dẫn bằng
 > `path.posix.basename`, chỉ tách ở dấu `/`. Chuỗi `"/uploads/..\..\windows\system32"` đi
@@ -415,13 +412,11 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 
 ## Thứ tự đề xuất
 
-Tám nhóm đã xong 100%. Ba mục còn lại, xếp theo thứ tự nên làm:
+Chín nhóm đã xong 100%. Hai mục còn lại, xếp theo thứ tự nên làm:
 
-1. **Luồng kết thúc trận + lịch sử theo đội** (7.6) — nhỏ, và làm mốc chấm điểm chặt hơn thay
-   vì chỉ dựa vào "đã qua giờ đá".
-2. **Bộ hẹn giờ chạy nền** (9.4) — dữ liệu điểm danh đã có; cũng dùng lại được để dọn bài
+1. **Bộ hẹn giờ chạy nền** (9.4) — dữ liệu điểm danh đã có; cũng dùng lại được để dọn bài
    tuyển/tìm trận hết hạn **và nhắc chủ sân đơn đặt sắp tới giờ**.
-3. **Web Push** (9.6) — ưu tiên Thấp, để cuối.
+2. **Web Push** (9.6) — ưu tiên Thấp, để cuối.
 
 Hai món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên). Món tiếp theo đáng
 chen vào giữa danh sách trên: **test chạm CSDL cho luồng đặt sân** — đó là chỗ nhiều nhánh

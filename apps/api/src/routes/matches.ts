@@ -1,9 +1,11 @@
 import {
+  completeMatchSchema,
   createMatchRequestSchema,
   matchRequestListQuerySchema,
   sendChallengeSchema,
   setAttendanceSchema,
   submitRatingSchema,
+  teamMatchListQuerySchema,
   updateMatchRequestSchema,
   type ChallengeView,
   type MatchRequestDetail,
@@ -12,6 +14,7 @@ import {
   type MatchView,
   type RatingResult,
   type RecruitmentTeamRef,
+  type TeamMatchListResponse,
   type TimeSlot,
 } from '@sfa/shared';
 import type {
@@ -25,8 +28,9 @@ import type {
 } from '@prisma/client';
 import { Router } from 'express';
 import { prisma } from '../lib/db.js';
-import { hasBeenPlayed } from '../lib/match-rules.js';
+import { canEndMatch, hasBeenPlayed } from '../lib/match-rules.js';
 import { notify } from '../lib/notify.js';
+import { cursorArgs, paginate } from '../lib/paginate.js';
 import { recordMatchScore } from '../lib/reputation.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
@@ -106,6 +110,9 @@ function toMatchView(m: MatchWithContext, viewerId: string): MatchView {
       ? m.awayTeamId
       : null;
   const mine = m.ratings.find((r) => r.raterId === viewerId);
+  const viewerManages = [...m.homeTeam.members, ...m.awayTeam.members].some(
+    (x) => x.userId === viewerId && (x.role === 'captain' || x.role === 'co_captain'),
+  );
   return {
     id: m.id,
     matchRequestId: m.matchRequestId,
@@ -120,6 +127,7 @@ function toMatchView(m: MatchWithContext, viewerId: string): MatchView {
     createdAt: m.createdAt.toISOString(),
     viewerTeamId,
     canRate: viewerTeamId !== null && hasBeenPlayed(m),
+    canComplete: viewerManages && canEndMatch(m),
     viewerRating: mine
       ? { score: mine.score, comment: mine.comment, createdAt: mine.createdAt.toISOString() }
       : null,
@@ -571,6 +579,86 @@ matchesRouter.get('/my', requireAuth, async (req, res, next) => {
       orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
     });
     res.json({ matches: matches.map((m) => toMatchView(m, userId)) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Lịch sử trận của một đội (FR-007.6) — chỉ trận đã đá: đã chốt tỉ số, hoặc
+ * còn `scheduled` nhưng đã qua giờ đá (cùng mốc với `hasBeenPlayed`). Trận huỷ
+ * không tính là lịch sử. Ai đăng nhập cũng xem được, như trang đội.
+ */
+matchesRouter.get('/team/:teamId', requireAuth, async (req, res, next) => {
+  try {
+    const { cursor, limit } = teamMatchListQuerySchema.parse(req.query);
+    const teamId = String(req.params.teamId);
+    const rows = await prisma.match.findMany({
+      where: {
+        OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+        AND: {
+          OR: [{ status: 'completed' }, { status: 'scheduled', scheduledAt: { lte: new Date() } }],
+        },
+      },
+      include: MATCH_INCLUDE,
+      orderBy: [{ scheduledAt: { sort: 'desc', nulls: 'last' } }, { id: 'desc' }],
+      ...cursorArgs(limit, cursor),
+    });
+    const { items, nextCursor } = paginate(rows, limit);
+    const body: TeamMatchListResponse = {
+      items: items.map((m) => toMatchView(m, req.user!.sub)),
+      nextCursor,
+    };
+    res.json(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Kết thúc trận (FR-007.6): captain/phó của một trong hai đội chốt tỉ số.
+ *
+ * Chốt một lần là xong — cho sửa thì hai đội giằng co ghi đè tỉ số của nhau.
+ * Chốt sai thì báo cáo cho admin, như mọi tranh chấp khác.
+ */
+matchesRouter.post('/:id/complete', requireAuth, async (req, res, next) => {
+  try {
+    const { homeScore, awayScore } = completeMatchSchema.parse(req.body);
+    const userId = req.user!.sub;
+    const matchId = String(req.params.id);
+
+    const match = await prisma.match.findUnique({ where: { id: matchId }, include: MATCH_INCLUDE });
+    if (!match) throw new HttpError(404, 'Không tìm thấy trận', 'MATCH_NOT_FOUND');
+
+    const manages = [...match.homeTeam.members, ...match.awayTeam.members].some(
+      (m) => m.userId === userId && (m.role === 'captain' || m.role === 'co_captain'),
+    );
+    if (!manages) {
+      throw new HttpError(403, 'Chỉ đội trưởng hoặc đội phó được chốt tỉ số', 'NOT_TEAM_MANAGER');
+    }
+    if (!canEndMatch(match)) {
+      throw new HttpError(
+        400,
+        match.status === 'scheduled' ? 'Trận chưa tới giờ đá' : 'Trận đã kết thúc hoặc bị huỷ',
+        'MATCH_NOT_ENDABLE',
+      );
+    }
+
+    // Điều kiện `status: 'scheduled'` trong where để hai captain bấm cùng lúc
+    // thì chỉ một người thắng, người kia nhận 409 thay vì ghi đè.
+    const { count } = await prisma.match.updateMany({
+      where: { id: matchId, status: 'scheduled' },
+      data: { status: 'completed', homeScore, awayScore },
+    });
+    if (count === 0) {
+      throw new HttpError(409, 'Đội kia vừa chốt tỉ số trước bạn', 'MATCH_ALREADY_COMPLETED');
+    }
+
+    const updated = await prisma.match.findUniqueOrThrow({
+      where: { id: matchId },
+      include: MATCH_INCLUDE,
+    });
+    res.json(toMatchView(updated, userId));
   } catch (err) {
     next(err);
   }
