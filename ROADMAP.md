@@ -5,14 +5,14 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-08-22 — code-split trang web và bộ test đầu tiên (69 test)._
+_Cập nhật lần cuối: 2026-09-30 — uy tín cá nhân (FR-002.12), FR-002 xong 100%; uy tín đội tính từ sổ điểm trận; viết lại RUNBOOK theo tần suất (một lần / mỗi ngày / khi code đổi)._
 
 ## Tổng quan
 
 | Nhóm                        | Xong   | Một phần | Chưa   | Tổng   |
 | --------------------------- | ------ | -------- | ------ | ------ |
 | FR-001 Đăng ký & Xác thực   | 3      | 1        | 5      | 9      |
-| FR-002 Hồ sơ cá nhân        | 11     | 1        | 0      | 12     |
+| FR-002 Hồ sơ cá nhân        | 12     | 0        | 0      | 12     |
 | FR-003 Môn thể thao & Theme | 6      | 0        | 0      | 6      |
 | FR-004 Trang chủ            | 9      | 0        | 0      | 9      |
 | FR-005 Tìm đối thủ          | 11     | 0        | 0      | 11     |
@@ -21,13 +21,13 @@ _Cập nhật lần cuối: 2026-08-22 — code-split trang web và bộ test đ
 | FR-008 Quản lý sân bãi      | 9      | 0        | 0      | 9      |
 | FR-009 Thông báo            | 4      | 0        | 2      | 6      |
 | FR-010 Quản trị hệ thống    | 8      | 0        | 0      | 8      |
-| **Tổng**                    | **77** | **3**    | **7**  | **87** |
+| **Tổng**                    | **78** | **2**    | **7**  | **87** |
 
-**FR-003, FR-004, FR-005, FR-006, FR-008 và FR-010 đã xong 100%.** FR-008 khép lại kéo theo
+**FR-002, FR-003, FR-004, FR-005, FR-006, FR-008 và FR-010 đã xong 100%.** FR-008 khép lại kéo theo
 hai mục cuối cùng bị nó chặn: 4.4 (sân đang cần đội trên Trang chủ) và 10.5 (admin quản lý sân).
 
 **FR-007** hết mục `[ ]`, chỉ còn `[~]` 7.6 (lịch sử trận theo từng đội).
-**FR-002 chỉ còn 1 mục** (điểm uy tín cá nhân — model `Rating` chấm đội, chưa chấm người).
+**FR-002** khép lại với 2.12 (uy tín cá nhân) — xem ghi chú công thức ở mục FR-002.
 
 Bảy mục còn lại nằm gọn ở hai chỗ: **FR-001** (5 mục — OAuth và gửi email, đều chờ hạ tầng
 ngoài) và **FR-009** (2 mục — bộ hẹn giờ chạy nền, Web Push). Không còn mục nào bị chặn bởi
@@ -62,11 +62,49 @@ một FR khác trong repo.
 - [x] 2.9 Khu vực sinh sống
 - [x] 2.10 Đổi mật khẩu — _thu hồi toàn bộ refresh token đang sống_
 - [x] 2.11 Số điện thoại — _`phone` unique, validate 0xxxxxxxxx / +84xxxxxxxxx_
-- [~] 2.12 Điểm uy tín — _uy tín **đội** đã tính từ `Rating`; uy tín **người** vẫn bằng 0 vì
-  phiếu chấm nhắm vào đội, chưa có quy tắc quy về từng cá nhân_
+- [x] 2.12 Điểm uy tín — _tự tính từ phiếu chấm đội ở các trận mình đã báo "Có đi";
+      `apps/api/src/lib/reputation.ts`, trang hồ sơ hiện kèm "từ N trận"_
 
-> **Chặn:** 2.3 cần chỗ lưu file. 2.12 cần quyết định: uy tín cá nhân lấy trung bình các đội
-> mình thuộc về, hay cần một phiếu chấm riêng cho người chơi.
+> **Công thức uy tín cá nhân (2.12).** Không thêm phiếu chấm riêng — SRS ghi "tự tính từ
+> đánh giá", và bắt mỗi người chấm từng cầu thủ đối thủ thì chẳng ai chấm. Ba quy tắc:
+>
+> 1. **Chỉ tính trận mình báo "Có đi"** (`MatchAttendance.status = going`). Vắng mặt thì
+>    không ăn theo điểm tốt của đội, cũng không gánh điểm xấu. Không báo gì = không tính.
+> 2. **Mỗi trận gộp thành một điểm** = trung bình các phiếu đối thủ chấm đội mình trận đó.
+>    Đối thủ 12 người chấm không nặng ký hơn đối thủ 5 người.
+> 3. **Trung bình Bayes**: `(3×3 + tổng điểm các trận) / (3 + số trận)`. Một phiếu 1★ cay cú
+>    ở trận đầu chỉ kéo về 2.5 chứ không phải 1.0; một phiếu 5★ nhờ vả chỉ lên 3.5. Chơi 30
+>    trận toàn 5★ thì được ~4.8 — càng nhiều trận, điểm càng là của chính mình.
+>
+> Điểm từng trận nằm trong sổ `PlayerMatchScore` (một dòng mỗi người mỗi trận); uy tín tính
+> từ sổ này, không phải từ `Rating`.
+>
+> 0 nghĩa là "chưa có trận nào được chấm" (hiện là "—"), cùng quy ước với `Team.reputation`.
+>
+> **Hai lỗ hổng phải bịt để công thức đứng vững:**
+> - **Khoá điểm danh sau giờ đá** (`MATCH_PLAYED`). Không có dòng này thì ai cũng xem phiếu
+>   chấm xong rồi mới chọn "Có đi" (được 5★) hoặc "Không đi" (bị 1★).
+> - **`MatchAttendance.teamId`** lưu đội mình ra sân cho. Rời đội thì `TeamMember` mất, mà
+>   lịch sử trận vẫn phải biết mình đá cho ai. Migration suy cột này từ thành viên hiện tại;
+>   dòng của người đã rời cả hai đội bị xoá (vốn đã bị `summarizeAttendance` bỏ qua), rồi tính
+>   lại uy tín cho mọi người từ dữ liệu cũ.
+>
+> - **Giải tán đội không xoá được lịch sử.** Giải tán là xoá cứng: `Match`, `Rating`,
+>   `MatchAttendance` đi theo dây chuyền. Nếu uy tín tính thẳng từ `Rating`, thành viên đội
+>   giải tán lẫn đối thủ của họ sẽ mất trận đã đá — và captain giải tán đội là xoá sạch phiếu
+>   1★ cho cả đội. Vì thế `PlayerMatchScore.matchId` **cố ý không có khoá ngoại**: trận mất,
+>   sổ vẫn còn. Chọn cách này thay vì xoá mềm đội vì xoá mềm phải thêm bộ lọc ở ~19 truy vấn.
+>
+> - **Uy tín đội cũng thế** — sổ `TeamMatchScore` (cùng lý do, cùng cách không khoá ngoại tới
+>   trận). Đổi luôn cách tính: trước là trung bình **mọi phiếu**, giờ là trung bình **điểm các
+>   trận**, nên đối thủ đông người không át đối thủ ít người. Migration tính lại cho dữ liệu cũ
+>   — số uy tín đội hiện có sẽ nhích (ví dụ trận A 2 phiếu 5★ + trận B 1 phiếu 2★: 4.0 → 3.5).
+>   Đội **không** dùng Bayes: bộ lọc "từ 3.0 / 4.0 / 4.5 sao" ở FR-005.2 đang dựa vào thang cũ.
+>
+> **Trần đã biết:** chưa có trọng số theo thời gian — trận 2 năm
+> trước nặng ngang trận tuần trước; thêm khi có người phàn nàn.
+
+> **Chặn:** 2.3 cần chỗ lưu file.
 
 ## FR-003 — Môn thể thao & Multi-theme
 
@@ -136,7 +174,8 @@ một FR khác trong repo.
 - [x] 7.4 Phân quyền captain / co-captain / member — _có kiểm tra quyền đầy đủ, chuyển captain atomic_
 - [x] 7.5 Xem danh sách thành viên
 - [~] 7.6 Lịch sử trận đấu — _`GET /matches/my` trả theo người dùng, chưa có theo từng đội_
-- [x] 7.7 Điểm uy tín đội — _trung bình các phiếu `Rating`, cập nhật ngay khi có người chấm_
+- [x] 7.7 Điểm uy tín đội — _trung bình điểm các trận trong sổ `TeamMatchScore` (mỗi trận =
+      trung bình phiếu trận đó), cập nhật ngay khi có người chấm; đối thủ giải tán không mất phiếu_
 - [x] 7.8 Giải tán đội
 
 ## FR-008 — Quản lý sân bãi (Business)
@@ -259,7 +298,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 | --------------------------------- | ------------------------------ | ---------------------------------------------------------- |
 | Gửi email                         | 1.6, 1.7                       | Lúc dev có thể in link ra console, không cần dịch vụ ngoài |
 | Lưu file / ảnh                    | 2.3, 8.2                       | Local disk cho đồ án là đủ                                 |
-| ~~Model `Rating`~~                | ~~5.10, 7.7, 9.5~~             | Xong 2026-08-21 — còn 2.12 chờ quyết định quy tắc          |
+| ~~Model `Rating`~~                | ~~5.10, 7.7, 9.5, 2.12~~       | Xong 2026-08-21; 2.12 xong 2026-09-30                      |
 | Bộ hẹn giờ chạy nền               | 9.4                            | Cũng dùng được để dọn bài hết hạn                          |
 | Luồng "kết thúc trận"             | 7.6, mốc chấm điểm chặt hơn    | Nhỏ — một cột trạng thái + nút cho captain                 |
 | ~~Middleware `requireRole('admin')`~~ | ~~Toàn bộ FR-010~~         | Xong — chỉ còn 10.5 chờ FR-008                             |
@@ -270,7 +309,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 - [x] ~~Web chưa code-split~~ — mỗi trang một chunk qua `React.lazy`, chunk vào cổng còn
       **315 KB / 98,5 KB gzip** (trước: 614 KB một cục). Không thêm dependency nào; Vite tự
       tách vì `import()` động là điểm cắt.
-- [~] Bộ test đầu tiên — **69 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
+- [~] Bộ test đầu tiên — **74 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
       không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
 - [ ] Chưa có test nào chạm CSDL hay HTTP — mọi luồng nhiều bước (đặt sân, duyệt đơn, khoá
       tài khoản) vẫn chỉ kiểm bằng tay theo `TEST_PLAN.md`
@@ -288,6 +327,7 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 | --- | --- |
 | `paginate()` / `cursorArgs()` | 8 endpoint dùng chung; lệch một đơn vị là mất hoặc lặp bản ghi |
 | `uploadedFileName()` | Đường path traversal — chỗ duy nhất quyết định file nào bị xoá |
+| `playerReputation()` | Công thức uy tín cá nhân; sai là xếp hạng người chơi sai mà không ai thấy |
 | `ttlToMs()` | Bộ phân tích; TTL sai cú pháp mà vẫn khởi động được là phiên sai âm thầm |
 | `hasBeenPlayed()` | Mốc mở phần chấm điểm, 5 nhánh |
 | Schema `venue` / `auth` / `admin` | Xác thực ở biên tin cậy: giá, giờ, giới hạn trang, ranh giới vai trò |
@@ -308,7 +348,7 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 
 ## Thứ tự đề xuất
 
-Sáu nhóm đã xong 100%. Bảy mục còn lại, xếp theo thứ tự nên làm:
+Bảy nhóm đã xong 100%. Bảy mục còn lại, xếp theo thứ tự nên làm:
 
 1. **Quên mật khẩu + xác thực email** (1.6, 1.7) — hai mục Cao còn lại, dùng lại hạ tầng token
    đã có. Lúc dev in link ra console là đủ, chưa cần dịch vụ gửi mail ngoài.
@@ -316,10 +356,9 @@ Sáu nhóm đã xong 100%. Bảy mục còn lại, xếp theo thứ tự nên l�
    vì chỉ dựa vào "đã qua giờ đá".
 3. **Bộ hẹn giờ chạy nền** (9.4) — dữ liệu điểm danh đã có; cũng dùng lại được để dọn bài
    tuyển/tìm trận hết hạn **và nhắc chủ sân đơn đặt sắp tới giờ**.
-4. **Uy tín cá nhân** (2.12) — cần chốt quy tắc trước khi code, xem ghi chú ở FR-002.
-5. **OAuth Google/Facebook** (1.1, 1.4, 1.5) và **OTP điện thoại** (1.2) — chờ đăng ký app bên
+4. **OAuth Google/Facebook** (1.1, 1.4, 1.5) và **OTP điện thoại** (1.2) — chờ đăng ký app bên
    thứ ba, không phải việc trong repo.
-6. **Web Push** (9.6) — ưu tiên Thấp, để cuối.
+5. **Web Push** (9.6) — ưu tiên Thấp, để cuối.
 
 Hai món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên). Món tiếp theo đáng
 chen vào giữa danh sách trên: **test chạm CSDL cho luồng đặt sân** — đó là chỗ nhiều nhánh

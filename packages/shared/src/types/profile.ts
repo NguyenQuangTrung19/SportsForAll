@@ -17,6 +17,8 @@ export interface ProfileResponse {
   region: string | null;
   phone: string | null;
   reputation: number;
+  /** Số trận đã được chấm tính vào `reputation` (FR-002.12). */
+  ratedMatches: number;
   emailVerified: boolean;
   onboardedAt: string | null;
   sportPreferences: SportPreference[];

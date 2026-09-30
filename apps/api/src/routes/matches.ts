@@ -27,6 +27,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/db.js';
 import { hasBeenPlayed } from '../lib/match-rules.js';
 import { notify } from '../lib/notify.js';
+import { recordMatchScore } from '../lib/reputation.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
 import { summarizeAttendance } from './dashboard.js';
@@ -599,6 +600,11 @@ matchesRouter.post('/:id/attendance', requireAuth, async (req, res, next) => {
     if (match.status !== 'scheduled') {
       throw new HttpError(400, 'Trận đã kết thúc hoặc bị huỷ', 'MATCH_NOT_SCHEDULED');
     }
+    // Khoá sau giờ đá: điểm danh là đầu vào của uy tín cá nhân, đổi sau khi đã
+    // thấy phiếu chấm là chọn trận để ăn điểm.
+    if (hasBeenPlayed(match)) {
+      throw new HttpError(400, 'Trận đã diễn ra, không đổi điểm danh được nữa', 'MATCH_PLAYED');
+    }
 
     const iAmHome = match.homeTeam.members.some((m) => m.userId === userId);
     const iAmAway = match.awayTeam.members.some((m) => m.userId === userId);
@@ -606,13 +612,13 @@ matchesRouter.post('/:id/attendance', requireAuth, async (req, res, next) => {
       throw new HttpError(403, 'Chỉ thành viên hai đội mới được báo có mặt', 'NOT_TEAM_MEMBER');
     }
 
+    const myTeam = iAmHome ? match.homeTeam : match.awayTeam;
     await prisma.matchAttendance.upsert({
       where: { matchId_userId: { matchId, userId } },
-      create: { matchId, userId, status },
+      create: { matchId, userId, teamId: myTeam.id, status },
       update: { status },
     });
 
-    const myTeam = iAmHome ? match.homeTeam : match.awayTeam;
     // Dòng vừa ghi chưa có trong `match.attendances` (đọc trước khi ghi) nên
     // ghép tay vào thay vì đọc lại cả trận.
     const rows = [...match.attendances.filter((a) => a.userId !== userId), { userId, status }];
@@ -676,12 +682,8 @@ matchesRouter.post('/:id/rating', requireAuth, async (req, res, next) => {
         },
         update: { score, comment: comment ?? null },
       });
-      const agg = await tx.rating.aggregate({
-        where: { ratedTeamId: ratedTeam.id },
-        _avg: { score: true },
-      });
-      const avg = agg._avg.score ?? 0;
-      await tx.team.update({ where: { id: ratedTeam.id }, data: { reputation: avg } });
+      // Ghi sổ điểm trận cho đội (FR-007.7) và người đã ra sân (FR-002.12).
+      const avg = await recordMatchScore(tx, matchId, ratedTeam.id);
 
       // Chỉ báo lần chấm đầu — sửa điểm không đáng làm phiền đối thủ thêm lần nữa.
       if (isFirstTime) {

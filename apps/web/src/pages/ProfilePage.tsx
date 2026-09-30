@@ -211,7 +211,15 @@ export function ProfilePage() {
               </div>
 
               <dl className="mt-6 grid grid-cols-2 gap-5 border-t border-ink/10 pt-5">
-                <Stat label="Uy tín" value={profile.reputation.toFixed(1)} />
+                <Stat
+                  label="Uy tín"
+                  value={profile.ratedMatches ? profile.reputation.toFixed(1) : '—'}
+                  hint={
+                    profile.ratedMatches
+                      ? `Từ ${profile.ratedMatches} trận đã được chấm`
+                      : 'Báo "Có đi" và ra sân để có điểm'
+                  }
+                />
                 <Stat label="Môn" value={String(profile.sportPreferences.length)} />
                 <Stat
                   label="Năm sinh"
@@ -276,11 +284,12 @@ export function ProfilePage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div>
       <dt className="text-xs font-bold tracking-wide text-ink-soft">{label}</dt>
       <dd className="mt-1 poster-num text-3xl text-ink">{value}</dd>
+      {hint && <dd className="mt-1 text-xs text-ink-soft/70">{hint}</dd>}
     </div>
   );
 }

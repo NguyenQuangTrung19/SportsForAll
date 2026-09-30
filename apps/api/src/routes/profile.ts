@@ -34,6 +34,7 @@ function toProfileResponse(u: UserWithPreferences): ProfileResponse {
     region: u.region,
     phone: u.phone,
     reputation: u.reputation,
+    ratedMatches: u.ratedMatches,
     emailVerified: u.emailVerified,
     onboardedAt: u.onboardedAt?.toISOString() ?? null,
     sportPreferences: u.sportPreferences.map(toSportPreference),
