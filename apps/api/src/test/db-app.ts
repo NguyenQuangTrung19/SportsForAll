@@ -27,13 +27,13 @@ export interface DbApp {
 }
 
 /**
- * Hai request đua nhau: đúng một bên thắng, bên thua nhận lỗi phía client. Bên
- * thua đọc trước lúc bên thắng commit thì vấp điều kiện trong giao dịch (409),
+ * Hai request đua nhau: đúng một bên thắng (2xx), bên thua nhận lỗi phía client.
+ * Bên thua đọc trước lúc bên thắng commit thì vấp điều kiện trong giao dịch (409),
  * đọc sau thì vấp bước kiểm tra sớm (400) — cả hai đều đúng, 5xx thì không.
  */
 export function oneWinner(statuses: number[]): boolean {
-  const [win, lose] = [...statuses].sort();
-  return statuses.length === 2 && win === 200 && (lose === 400 || lose === 409);
+  const [win, lose] = [...statuses].sort((x, y) => x - y);
+  return statuses.length === 2 && win! >= 200 && win! < 300 && (lose === 400 || lose === 409);
 }
 
 export async function startDbApp(): Promise<DbApp> {

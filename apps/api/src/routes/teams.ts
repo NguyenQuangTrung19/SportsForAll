@@ -407,6 +407,21 @@ async function loadInviteOrFail(inviteId: string) {
   return invite;
 }
 
+/** Đổi trạng thái lời mời — chỉ khi nó vẫn đang chờ lúc ghi, không phải lúc đọc. */
+async function claimInvite(
+  client: Prisma.TransactionClient,
+  id: string,
+  status: 'accepted' | 'rejected' | 'cancelled',
+): Promise<void> {
+  const { count } = await client.teamInvite.updateMany({
+    where: { id, status: 'pending' },
+    data: { status, decidedAt: new Date() },
+  });
+  if (count === 0) {
+    throw new HttpError(409, 'Lời mời vừa được xử lý', 'INVITE_CONFLICT');
+  }
+}
+
 function managerIdsOf(members: Pick<TeamMember, 'userId' | 'role'>[]): string[] {
   return members.filter((m) => m.role !== 'member').map((m) => m.userId);
 }
@@ -425,19 +440,15 @@ teamsRouter.post('/invites/:inviteId/accept', requireAuth, async (req, res, next
     });
 
     await prisma.$transaction(async (tx) => {
-      await tx.teamInvite.update({
-        where: { id: invite.id },
-        data: { status: 'accepted', decidedAt: new Date() },
-      });
+      // Chốt lời mời bằng điều kiện `pending` ngay trong câu UPDATE: nhận đúng lúc
+      // đội rút lời mời thì chỉ một bên thắng — nếu không người chơi vào đội mà lời
+      // mời lại ghi "đã rút".
+      await claimInvite(tx, invite.id, 'accepted');
       // Có thể người này vừa được thêm thẳng bằng email trong lúc lời mời còn treo.
-      const existing = await tx.teamMember.findUnique({
-        where: { teamId_userId: { teamId: invite.teamId, userId: viewerId } },
+      await tx.teamMember.createMany({
+        data: { teamId: invite.teamId, userId: viewerId, role: 'member' },
+        skipDuplicates: true,
       });
-      if (!existing) {
-        await tx.teamMember.create({
-          data: { teamId: invite.teamId, userId: viewerId, role: 'member' },
-        });
-      }
       await notify(tx, {
         userIds: managerIdsOf(invite.team.members),
         type: 'team_invite_accepted',
@@ -465,10 +476,7 @@ teamsRouter.post('/invites/:inviteId/reject', requireAuth, async (req, res, next
       select: { displayName: true },
     });
 
-    await prisma.teamInvite.update({
-      where: { id: invite.id },
-      data: { status: 'rejected', decidedAt: new Date() },
-    });
+    await claimInvite(prisma, invite.id, 'rejected');
     await notify(prisma, {
       userIds: managerIdsOf(invite.team.members),
       type: 'team_invite_rejected',
@@ -495,10 +503,7 @@ teamsRouter.post('/invites/:inviteId/cancel', requireAuth, async (req, res, next
       );
     }
 
-    await prisma.teamInvite.update({
-      where: { id: invite.id },
-      data: { status: 'cancelled', decidedAt: new Date() },
-    });
+    await claimInvite(prisma, invite.id, 'cancelled');
 
     const refreshed = await loadTeamOrFail(invite.teamId);
     res.json(toDetail(refreshed, viewerId));

@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — test CSDL cho duyệt đơn vào đội bắt 2 lỗi đua (vào đội mà đơn ghi "từ chối"/"đã huỷ"), đã sửa. **87/87 mục SRS xong.**_
+_Cập nhật lần cuối: 2026-09-30 — test CSDL cho lời mời vào đội bắt 3 lỗi đua, rà lại đặt sân bắt thêm 2 (khung kẹt `booked` vĩnh viễn); đã sửa hết. **87/87 mục SRS xong.**_
 
 ## Tổng quan
 
@@ -376,11 +376,15 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       tách vì `import()` động là điểm cắt.
 - [~] Bộ test đầu tiên — **89 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
   không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
-- [~] Test chạm CSDL + HTTP — **15 test, 3 luồng xong**: đặt sân (`venues.db.test.ts`),
+- [~] Test chạm CSDL + HTTP — **22 test, 4 luồng xong**: đặt sân (`venues.db.test.ts`),
   thách đấu → ghép trận → chốt tỉ số → chấm điểm (`matches.db.test.ts`), duyệt đơn vào đội
-  (`recruitment.db.test.ts`). Khung dùng chung ở `src/test/db-app.ts`; cần
-  `TEST_DATABASE_URL`, xem RUNBOOK mục 6. Còn kiểm bằng tay theo `TEST_PLAN.md`: lời mời vào
-  đội, khoá tài khoản
+  (`recruitment.db.test.ts`), lời mời vào đội (`teams.db.test.ts`). Khung dùng chung ở
+  `src/test/db-app.ts`; cần `TEST_DATABASE_URL`, xem RUNBOOK mục 6. Còn kiểm bằng tay theo
+  `TEST_PLAN.md`: khoá tài khoản
+- [ ] **Chưa có CI** — 22 test CSDL chỉ chạy khi ai đó nhớ dựng DB rồi chạy tay; `pnpm lint`,
+      `typecheck`, `format:check` cũng vậy
+- [ ] Hai admin xử lý cùng một báo cáo cùng lúc: bên sau ghi đè trạng thái, nhật ký có hai dòng
+      — cùng dạng lỗi đua như bên dưới, nhưng chỉ admin chạm tới và không làm hỏng dữ liệu người dùng
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
 - [ ] Rate limit dùng MemoryStore — sai số khi chạy nhiều instance
 - [ ] Nhắc trận (9.4) chạy trong process API — Render free ngủ sau 15 phút không có request
@@ -426,6 +430,16 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 > đội** mà đơn ghi `cancelled`/`rejected`. Sửa như hai luồng trên (`claimPending()`), và thêm
 > thành viên bằng `createMany skipDuplicates` thay cho "đọc rồi mới tạo".
 >
+> **Test lời mời vào đội bắt thêm ba lỗi** — cả ba tình huống đua (nhận hai lần, nhận lúc đội
+> rút lời mời, nhận lúc bấm từ chối ở tab khác) đều cho hai bên cùng thành công. Sửa bằng
+> `claimInvite()`, cùng cách.
+>
+> **Rà lại cả repo bắt thêm hai lỗi ở đặt sân** mà test đầu tiên bỏ sót, vì lúc đó chỉ sửa
+> đúng chỗ test chỉ ra: từ chối và huỷ đơn vẫn ghi không điều kiện. Người đặt huỷ đúng lúc chủ
+> sân xác nhận → huỷ đọc lúc đơn còn `pending` nên không mở khung → **khung kẹt `booked`
+> vĩnh viễn**, không ai đặt được (tái hiện 5/5 lần). Bài học: sửa một chỗ thuộc một họ lỗi
+> thì phải grep cả họ, không chỉ chỗ test đang đỏ.
+>
 > **Mã lỗi của bên thua cuộc đua không cố định**: đọc trước lúc bên thắng commit thì vấp điều
 > kiện trong giao dịch (409), đọc sau thì vấp kiểm tra sớm (400). Test kiểm bất biến thật —
 > đúng một bên 200, bên kia 4xx (`oneWinner()`) — chứ không ghim một mã, nếu không sẽ chập chờn.
@@ -446,10 +460,14 @@ Cả mười nhóm đã xong 100% — không còn mục SRS nào.
 Vòng quét của 9.4 (`startMatchReminders`) dùng lại được khi cần dọn bài tuyển/tìm trận hết hạn
 hoặc nhắc chủ sân đơn đặt sắp tới giờ — thêm một hàm vào `tick`, chưa làm vì chưa ai cần.
 
-Các món nợ kỹ thuật lớn đã trả xong (code-split, bộ test đầu tiên, test CSDL cho đặt sân,
-thách đấu, duyệt đơn vào đội). Ba luồng đã test thì cả ba đều dính cùng một kiểu lỗi "đọc
-trạng thái rồi mới ghi". Món tiếp theo nên làm: **test CSDL cho lời mời vào đội** (6.8) — cùng
-hình, gần như chắc cũng dính. Khung `startDbApp()` dựng sẵn, một file test mới là đủ.
+Các món nợ kỹ thuật lớn đã trả xong (code-split, bộ test đầu tiên, test CSDL cho cả bốn
+luồng nhiều bước). Bốn luồng đã test thì cả bốn đều dính cùng một kiểu lỗi "đọc trạng thái
+rồi mới ghi" — tổng cộng 10 lỗi, đã sửa hết. Mọi chỗ đổi trạng thái trong `routes/` giờ đều ghi
+có điều kiện (trừ báo cáo admin, xem nợ kỹ thuật).
+
+Món tiếp theo nên làm: **CI trên GitHub Actions** — lint, typecheck, `format:check`, test,
+kèm một service Postgres để 22 test CSDL chạy trên mỗi lần push. Không có nó thì các test vừa
+viết sẽ âm thầm mục đi.
 
 ## Cách cập nhật file này
 

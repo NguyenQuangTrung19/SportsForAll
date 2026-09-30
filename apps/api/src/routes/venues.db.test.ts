@@ -92,6 +92,38 @@ describe('Luồng đặt sân (CSDL thật)', { skip: !TEST_DB && 'chưa đặt 
     assert.deepEqual(rows.map((x) => x.status).sort(), ['confirmed', 'rejected']);
   });
 
+  /** Khung luôn khớp với đơn: có đơn `confirmed` thì khung `booked`, không thì `open`. */
+  const assertSlotMatchesBookings = async (slotId: string) => {
+    const slot = await app.prisma.venueSlot.findUniqueOrThrow({
+      where: { id: slotId },
+      include: { bookings: true },
+    });
+    const confirmed = slot.bookings.some((x) => x.status === 'confirmed');
+    assert.equal(slot.status, confirmed ? 'booked' : 'open', JSON.stringify(slot));
+  };
+
+  it('chủ sân xác nhận và từ chối cùng một đơn cùng lúc: khung không kẹt', async () => {
+    const slotId = await newSlot();
+    const a = await book('a', slotId);
+    const results = await Promise.all([
+      app.call(tok.owner, 'POST', `/venues/bookings/${a.body.id}/confirm`),
+      app.call(tok.owner, 'POST', `/venues/bookings/${a.body.id}/reject`),
+    ]);
+    assert.ok(oneWinner(results.map((r) => r.status)), JSON.stringify(results));
+    await assertSlotMatchesBookings(slotId);
+  });
+
+  it('người đặt huỷ đúng lúc chủ sân xác nhận: khung không kẹt', async () => {
+    const slotId = await newSlot();
+    const a = await book('a', slotId);
+    const results = await Promise.all([
+      app.call(tok.owner, 'POST', `/venues/bookings/${a.body.id}/confirm`),
+      app.call(tok.a, 'POST', `/venues/bookings/${a.body.id}/cancel`),
+    ]);
+    assert.ok(oneWinner(results.map((r) => r.status)), JSON.stringify(results));
+    await assertSlotMatchesBookings(slotId);
+  });
+
   it('huỷ đơn đã xác nhận: mở khung ra lại, báo chủ sân, người khác đặt được', async () => {
     const slotId = await newSlot();
     const a = await book('a', slotId);

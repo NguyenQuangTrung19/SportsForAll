@@ -290,10 +290,13 @@ venuesRouter.post('/bookings/:id/reject', requireAuth, async (req, res, next) =>
       throw new HttpError(400, 'Đơn không còn ở trạng thái chờ', 'BOOKING_NOT_PENDING');
     }
 
-    await prisma.booking.update({
-      where: { id: booking.id },
+    // Có điều kiện `pending` lúc ghi: từ chối đúng lúc một tab khác vừa xác nhận
+    // thì không được ghi đè — nếu không khung kẹt `booked` mà chẳng có đơn nào.
+    const { count } = await prisma.booking.updateMany({
+      where: { id: booking.id, status: 'pending' },
       data: { status: 'rejected', decidedAt: new Date() },
     });
+    if (count === 0) throw new HttpError(409, 'Đơn vừa được xử lý', 'BOOKING_CONFLICT');
     await notify(prisma, {
       userIds: [booking.userId],
       type: 'booking_rejected',
@@ -327,10 +330,13 @@ venuesRouter.post('/bookings/:id/cancel', requireAuth, async (req, res, next) =>
 
     const wasConfirmed = booking.status === 'confirmed';
     await prisma.$transaction(async (tx) => {
-      await tx.booking.update({
-        where: { id: booking.id },
+      // Ghi với điều kiện đúng trạng thái vừa đọc: chủ sân xác nhận chen vào giữa
+      // thì `wasConfirmed` đã sai, huỷ tiếp sẽ không mở khung ra lại → khung kẹt.
+      const { count } = await tx.booking.updateMany({
+        where: { id: booking.id, status: booking.status },
         data: { status: 'cancelled', decidedAt: new Date() },
       });
+      if (count === 0) throw new HttpError(409, 'Đơn vừa đổi trạng thái', 'BOOKING_CONFLICT');
       if (wasConfirmed) {
         await tx.venueSlot.update({ where: { id: booking.slotId }, data: { status: 'open' } });
         await notify(tx, {
