@@ -152,7 +152,8 @@ nên Vercel tự nhận. Không cần chỉnh gì trong phần Build Settings.
    **Không có dấu `/` ở cuối.** Axios ghép chuỗi thành `${VITE_API_URL}/api`, thừa một dấu
    gạch là mọi request thành `//api/...`.
 
-5. **Deploy.** Xong sẽ có URL dạng `https://sportsforall.vercel.app`.
+5. **Deploy.** Xong Vercel cấp một domain — xem ở tab **Domains** của project. Tên thật
+   thường có hậu tố (`sportsforall-xxxx.vercel.app`), bước 4 cần đúng chuỗi này.
 
 > `vercel.json` có `rewrites` trỏ mọi đường dẫn về `index.html`. Web dùng `BrowserRouter`,
 > thiếu dòng này thì trang chủ vào được nhưng mở thẳng `/teams` hay F5 giữa chừng là **404**.
@@ -164,14 +165,25 @@ nên Vercel tự nhận. Không cần chỉnh gì trong phần Build Settings.
 
 Giờ đã có URL của Web, quay lại Render mở CORS cho nó:
 
-**Render** → service API → **Environment** → sửa `CORS_ORIGINS` thành:
+URL thật của bạn lấy ở **Vercel → project → Domains**, dòng trên cùng. Nó **không** phải
+`sportsforall.vercel.app` — Vercel gắn thêm hậu tố khi tên đã có người lấy, nên tên thật
+thường dạng `sportsforall-xxxx.vercel.app` hoặc kèm tên tài khoản. Cách chắc chắn nhất:
+mở web lên, copy nguyên phần domain trên thanh địa chỉ.
+
+**Render** → service API → **Environment** → sửa `CORS_ORIGINS` thành đúng domain đó:
 
 ```
-https://sportsforall.vercel.app
+https://<domain-vercel-cua-ban>.vercel.app
 ```
 
 Không dấu `/` cuối. `env.ts` cắt chuỗi theo dấu phẩy rồi so khớp **chính xác** với header
 `Origin`, thừa hay thiếu một ký tự là trình duyệt chặn toàn bộ request.
+
+Muốn chạy được cả ở local thì liệt kê cả hai, ngăn bằng dấu phẩy:
+
+```
+https://<domain-vercel-cua-ban>.vercel.app,http://localhost:5173
+```
 
 Lưu lại → Render tự deploy lại (~2 phút).
 
@@ -183,26 +195,108 @@ Lưu lại → Render tự deploy lại (~2 phút).
 ## 5. Nạp dữ liệu mẫu
 
 Một demo trống là demo tệ. Render free không cho mở Shell, nên chạy seed **từ máy bạn** trỏ
-thẳng vào Neon:
+thẳng vào Neon. Seed idempotent — chạy lại nhiều lần không nhân bản dữ liệu.
 
-```bash
-# Windows PowerShell
-$env:DATABASE_URL = "postgresql://...neon.tech/neondb?sslmode=require"
+### 5.1 Điều kiện trước
+
+Bảng phải tồn tại rồi. Render đã chạy `prisma migrate deploy` trong Build Command, nên nếu
+build ở bước 2 xanh thì xong. Không chắc thì kiểm ở 5.3.
+
+### 5.2 Trỏ terminal vào Neon
+
+Chuỗi cần dán là **`DATABASE_URL` của Neon ở [bước 1](#1-tạo-database-trên-neon)** — đúng
+cái đã điền vào Render ở [bước 2.3](#23-điền-biến-môi-trường), không phải chuỗi nào khác.
+Lấy lại nó ở một trong hai chỗ:
+
+- **Neon** → project `sportsforall` → **Connection string** → bật **Connection pooling** →
+  chọn định dạng **Prisma** hoặc **Connection string** (đừng chọn **psql**, nó thêm cả lệnh
+  `psql '...'` vào chuỗi) → **Copy**.
+- **Render** → service API → **Environment** → dòng `DATABASE_URL` → biểu tượng con mắt để
+  hiện giá trị → copy.
+
+Mở PowerShell **ở thư mục gốc repo**, thay cả chuỗi trong nháy đơn bằng giá trị vừa copy:
+
+```powershell
+$env:DATABASE_URL = 'postgresql://user:password@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
+```
+
+`user`, `password`, `ep-xxx` ở trên chỉ là chỗ giữ chỗ — chuỗi thật của bạn có tên tài khoản
+và mật khẩu Neon sinh sẵn, dài hơn nhiều. Giữ nguyên `?sslmode=require` ở cuối, Neon bắt buộc TLS.
+
+> **Nháy đơn, không phải nháy kép.** Mật khẩu Neon hay có ký tự `$`; trong nháy kép
+> PowerShell hiểu `$abc` là tên biến và nuốt mất đoạn đó, chuỗi kết nối sai âm thầm.
+
+Biến này chỉ sống trong cửa sổ terminal đang mở — đóng đi là mất, không ghi vào đâu cả.
+Nó **đè lên** `apps/api/.env` (Postgres localhost), nên seed chạy đúng vào Neon.
+
+Kiểm lại trước khi chạy tiếp:
+
+```powershell
+$env:DATABASE_URL.Substring(0,13)   # phải in: postgresql://
+```
+
+### 5.3 Kiểm tra migration (bỏ qua được nếu build Render đã xanh)
+
+```powershell
+pnpm --filter @sfa/api exec prisma migrate status
+```
+
+`Database schema is up to date!` là ổn. Báo còn migration chưa áp thì chạy:
+
+```powershell
+pnpm --filter @sfa/api exec prisma migrate deploy
+```
+
+> Vướng lỗi advisory lock ở bước này thì tạm dùng chuỗi **direct** của Neon (bản không có
+> `-pooler` trong hostname) — PgBouncer không hợp với migration. Seed thì dùng pooler bình thường.
+
+### 5.4 Chạy seed
+
+```powershell
 pnpm --filter @sfa/api db:seed
 ```
 
-```bash
-# Bash
-DATABASE_URL="postgresql://...neon.tech/neondb?sslmode=require" pnpm --filter @sfa/api db:seed
+Chạy khoảng 5–10 giây (argon2 băm mật khẩu chậm có chủ đích). Xong sẽ in:
+
+```
+Seed xong: 4 người dùng + 1 admin + 1 chủ sân, 2 đội, 1 bài tuyển, 1 kèo, 3 bài tìm đội, 1 sân với 3 khung giờ.
+Đăng nhập thử: an@demo.vn / Demo1234!
 ```
 
-Seed viết theo kiểu idempotent, chạy lại nhiều lần không nhân bản dữ liệu.
+### 5.5 Tài khoản demo
 
-Tài khoản demo sau khi seed — **để luôn vào CV / trang portfolio**, đừng bắt người xem tự đăng ký:
+Tất cả dùng chung mật khẩu `Demo1234!`. **Để luôn vào CV / trang portfolio**, đừng bắt
+người xem tự đăng ký:
 
-| Email         | Mật khẩu    |
-| ------------- | ----------- |
-| `an@demo.vn`  | `Demo1234!` |
+| Email             | Vai trò   | Xem được gì                                      |
+| ----------------- | --------- | ------------------------------------------------ |
+| `an@demo.vn`      | user      | Luồng chính: đội, kèo, tuyển quân, tìm đội        |
+| `binh@demo.vn`    | user      | Góc nhìn người thứ hai (đội khác, bài tìm đội)    |
+| `cuong@demo.vn`   | user      | —                                                 |
+| `dung@demo.vn`    | user      | —                                                 |
+| `admin@demo.vn`   | admin     | Trang quản trị: người dùng, bài viết, sân, báo cáo |
+| `sanbong@demo.vn` | business  | Trang chủ sân: 1 sân + 3 khung giờ đã mở          |
+
+Ba khung giờ của sân được sinh theo **thời điểm chạy seed** (19h ba ngày kế tiếp). Để lâu
+chúng thành quá khứ và biến khỏi trang đặt sân — trước buổi phỏng vấn cứ chạy lại seed một
+lần cho lịch tươi.
+
+### 5.6 Dọn sau khi xong
+
+```powershell
+Remove-Item Env:DATABASE_URL
+```
+
+Hoặc đơn giản là đóng cửa sổ terminal.
+
+**Lỗi hay gặp:**
+
+| Báo lỗi                                    | Nguyên nhân                                              |
+| ------------------------------------------ | -------------------------------------------------------- |
+| `P1001: Can't reach database server`       | Sai host, hoặc thiếu `?sslmode=require`                   |
+| `The table ... does not exist`             | Chưa chạy migration — quay lại 5.3                        |
+| `must start with the protocol postgresql://` | Biến rỗng hoặc dán dư `psql '...'` — xem lại 5.2         |
+| Treo im ở `db:seed`                        | Neon project đang ngủ; chờ ~10 giây rồi chạy lại          |
 
 ---
 
