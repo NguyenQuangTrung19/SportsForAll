@@ -410,6 +410,17 @@ matchesRouter.post('/requests/:id/challenges', requireAuth, async (req, res, nex
   }
 });
 
+/** Từ chối / rút một thách đấu — chỉ khi nó vẫn đang chờ lúc ghi, không phải lúc đọc. */
+async function decidePending(id: string, status: 'rejected' | 'withdrawn'): Promise<void> {
+  const { count } = await prisma.challenge.updateMany({
+    where: { id, status: 'pending' },
+    data: { status, decidedAt: new Date() },
+  });
+  if (count === 0) {
+    throw new HttpError(409, 'Thách đấu vừa đổi trạng thái', 'CHALLENGE_CONFLICT');
+  }
+}
+
 matchesRouter.post('/challenges/:id/accept', requireAuth, async (req, res, next) => {
   try {
     const challenge = await prisma.challenge.findUnique({
@@ -420,6 +431,9 @@ matchesRouter.post('/challenges/:id/accept', requireAuth, async (req, res, next)
     ensureTeamManager(challenge.matchRequest.team, req.user!.sub);
     if (challenge.status !== 'pending') {
       throw new HttpError(400, 'Thách đấu không còn ở trạng thái chờ', 'CHALLENGE_NOT_PENDING');
+    }
+    if (challenge.matchRequest.status !== 'open') {
+      throw new HttpError(400, 'Lời mời không còn mở', 'REQUEST_NOT_OPEN');
     }
 
     const matchReq = challenge.matchRequest;
@@ -442,10 +456,20 @@ matchesRouter.post('/challenges/:id/accept', requireAuth, async (req, res, next)
       .map((m) => m.userId);
 
     await prisma.$transaction(async (tx) => {
-      await tx.challenge.update({
-        where: { id: challenge.id },
+      // Giữ lời mời và thách đấu bằng điều kiện trạng thái ngay trong câu UPDATE:
+      // hai lần nhận song song, hay nhận đúng lúc đội kia rút, thì Postgres khoá
+      // dòng và chỉ một bên thấy trạng thái cũ. Kiểm tra ở trên chỉ để báo lỗi sớm.
+      const { count: requestClaimed } = await tx.matchRequest.updateMany({
+        where: { id: matchReq.id, status: 'open' },
+        data: { status: 'matched' },
+      });
+      const { count: challengeClaimed } = await tx.challenge.updateMany({
+        where: { id: challenge.id, status: 'pending' },
         data: { status: 'accepted', decidedAt: now },
       });
+      if (requestClaimed === 0 || challengeClaimed === 0) {
+        throw new HttpError(409, 'Lời mời hoặc thách đấu vừa đổi trạng thái', 'CHALLENGE_CONFLICT');
+      }
       await tx.challenge.updateMany({
         where: {
           matchRequestId: matchReq.id,
@@ -453,10 +477,6 @@ matchesRouter.post('/challenges/:id/accept', requireAuth, async (req, res, next)
           status: 'pending',
         },
         data: { status: 'rejected', decidedAt: now },
-      });
-      await tx.matchRequest.update({
-        where: { id: matchReq.id },
-        data: { status: 'matched' },
       });
       await tx.match.create({
         data: {
@@ -517,10 +537,7 @@ matchesRouter.post('/challenges/:id/reject', requireAuth, async (req, res, next)
       where: { id: challenge.challengerTeamId },
       include: { members: { select: { userId: true, role: true } } },
     });
-    await prisma.challenge.update({
-      where: { id: challenge.id },
-      data: { status: 'rejected', decidedAt: new Date() },
-    });
+    await decidePending(challenge.id, 'rejected');
     if (challengerTeam) {
       const challengerManagers = challengerTeam.members
         .filter((m) => m.role === 'captain' || m.role === 'co_captain')
@@ -552,10 +569,7 @@ matchesRouter.post('/challenges/:id/withdraw', requireAuth, async (req, res, nex
     if (challenge.status !== 'pending') {
       throw new HttpError(400, 'Thách đấu không còn ở trạng thái chờ', 'CHALLENGE_NOT_PENDING');
     }
-    await prisma.challenge.update({
-      where: { id: challenge.id },
-      data: { status: 'withdrawn', decidedAt: new Date() },
-    });
+    await decidePending(challenge.id, 'withdrawn');
     const refreshed = await loadRequest(challenge.matchRequestId);
     res.json(toDetail(refreshed, req.user!.sub));
   } catch (err) {

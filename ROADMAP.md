@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — test CSDL đầu tiên (luồng đặt sân) bắt được lỗi bán một khung cho hai người, đã sửa. **87/87 mục SRS xong.**_
+_Cập nhật lần cuối: 2026-09-30 — test CSDL cho thách đấu bắt thêm 3 lỗi đua/trạng thái, đã sửa; trước đó đặt sân bắt lỗi bán một khung hai lần. **87/87 mục SRS xong.**_
 
 ## Tổng quan
 
@@ -376,11 +376,10 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       tách vì `import()` động là điểm cắt.
 - [~] Bộ test đầu tiên — **89 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
   không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
-- [~] Test chạm CSDL + HTTP — **luồng đặt sân xong** (`venues.db.test.ts`, 4 test, cần
-  `TEST_DATABASE_URL`, xem RUNBOOK mục 6). Còn lại vẫn kiểm bằng tay theo `TEST_PLAN.md`:
-  thách đấu → ghép trận, duyệt đơn vào đội, khoá tài khoản
-- [ ] Nhận hai lời thách đấu cùng lúc: CSDL chặn được (`Match.matchRequestId` unique) nhưng
-      người bấm sau nhận 500 thay vì 409 — cùng dạng lỗi vừa sửa ở đặt sân
+- [~] Test chạm CSDL + HTTP — **10 test, 2 luồng xong**: đặt sân (`venues.db.test.ts`) và
+  thách đấu → ghép trận → chốt tỉ số → chấm điểm (`matches.db.test.ts`). Khung dùng chung ở
+  `src/test/db-app.ts`; cần `TEST_DATABASE_URL`, xem RUNBOOK mục 6. Còn kiểm bằng tay theo
+  `TEST_PLAN.md`: duyệt đơn vào đội, lời mời vào đội, khoá tài khoản
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
 - [ ] Rate limit dùng MemoryStore — sai số khi chạy nhiều instance
 - [ ] Nhắc trận (9.4) chạy trong process API — Render free ngủ sau 15 phút không có request
@@ -415,6 +414,16 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 > `updateMany where status: 'open'` ngay trong giao dịch — Postgres khoá dòng, chỉ một bên thắng,
 > bên kia nhận 409.
 >
+> **Test thách đấu bắt thêm ba lỗi cùng họ:** (1) nhận thách đấu trên lời mời **đã huỷ** vẫn
+> tạo trận — route không xem trạng thái lời mời; (2) đội nhà nhận đúng lúc đội khách rút —
+> cả hai cùng 200, trạng thái cuối tuỳ ai ghi sau; (3) nhận hai thách đấu cùng lúc — bên sau
+> vỡ ràng buộc unique, trả 500. Sửa cùng một cách: `updateMany` có điều kiện trạng thái trong
+> giao dịch cho nhận, từ chối, rút.
+>
+> **Mã lỗi của bên thua cuộc đua không cố định**: đọc trước lúc bên thắng commit thì vấp điều
+> kiện trong giao dịch (409), đọc sau thì vấp kiểm tra sớm (400). Test kiểm bất biến thật —
+> đúng một bên 200, bên kia 4xx (`oneWinner()`) — chứ không ghim một mã, nếu không sẽ chập chờn.
+>
 > **Hai chỗ phải tách ra mới test được**, cả hai đều đáng tách vì lý do riêng: `ttlToMs` rời
 > `jwt.ts` (file đó nạp `config/env.ts`, mà file đó `process.exit(1)` khi thiếu `.env` — một
 > hàm phân tích chuỗi không nên đòi cả file cấu hình mới chạy), và `uploadedFileName` rời
@@ -431,9 +440,10 @@ Cả mười nhóm đã xong 100% — không còn mục SRS nào.
 Vòng quét của 9.4 (`startMatchReminders`) dùng lại được khi cần dọn bài tuyển/tìm trận hết hạn
 hoặc nhắc chủ sân đơn đặt sắp tới giờ — thêm một hàm vào `tick`, chưa làm vì chưa ai cần.
 
-Ba món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên, test CSDL cho đặt
-sân). Món tiếp theo nên làm: **test CSDL cho thách đấu → ghép trận**, kèm sửa 500 → 409 khi
-nhận hai lời thách đấu cùng lúc — dựng sẵn khung trong `venues.db.test.ts` rồi, chép theo.
+Các món nợ kỹ thuật lớn đã trả xong (code-split, bộ test đầu tiên, test CSDL cho đặt sân và
+thách đấu). Món tiếp theo nên làm: **test CSDL cho duyệt đơn vào đội và lời mời vào đội** —
+cùng hình "đọc trạng thái rồi mới ghi" như hai luồng vừa bắt được lỗi, nên nhiều khả năng
+cũng dính. Khung `startDbApp()` dựng sẵn, một file test mới là đủ.
 
 ## Cách cập nhật file này
 

@@ -274,7 +274,8 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 `pnpm test` dùng `node --test` sẵn có trong Node, **không cần CSDL**. Chạy riêng một
 gói: `pnpm --filter @sfa/api test`.
 
-Test chạm CSDL (`*.db.test.ts`) tự bỏ qua khi thiếu `TEST_DATABASE_URL`. Muốn chạy thì
+Test chạm CSDL (`*.db.test.ts`, khung chung ở `apps/api/src/test/db-app.ts`) tự bỏ qua khi
+thiếu `TEST_DATABASE_URL`. Muốn chạy thì
 dùng **một database riêng** — test tự dọn dữ liệu nó tạo, nhưng đừng trỏ vào DB đang dùng:
 
 ```bash
