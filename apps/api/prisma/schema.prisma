@@ -188,24 +188,25 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  refreshTokens    RefreshToken[]
-  authTokens       AuthToken[]
-  oauthAccounts    OAuthAccount[]
-  sportPreferences SportPreference[]
-  teamMemberships  TeamMember[]
-  joinRequests     JoinRequest[]
-  invitesReceived  TeamInvite[]         @relation("InviteTarget")
-  invitesSent      TeamInvite[]         @relation("InviteSender")
-  venues           Venue[]
-  bookings         Booking[]
-  venueReviews     VenueReview[]
-  notifications    Notification[]
-  lookingForPosts  LookingForTeamPost[]
-  landingImages    LandingImage[]
-  attendances      MatchAttendance[]
-  matchScores      PlayerMatchScore[]
-  ratingsGiven     Rating[]
-  reportsFiled     Report[]
+  refreshTokens     RefreshToken[]
+  authTokens        AuthToken[]
+  oauthAccounts     OAuthAccount[]
+  sportPreferences  SportPreference[]
+  teamMemberships   TeamMember[]
+  joinRequests      JoinRequest[]
+  invitesReceived   TeamInvite[]         @relation("InviteTarget")
+  invitesSent       TeamInvite[]         @relation("InviteSender")
+  venues            Venue[]
+  bookings          Booking[]
+  venueReviews      VenueReview[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+  lookingForPosts   LookingForTeamPost[]
+  landingImages     LandingImage[]
+  attendances       MatchAttendance[]
+  matchScores       PlayerMatchScore[]
+  ratingsGiven      Rating[]
+  reportsFiled      Report[]
 
   @@index([region])
   @@index([disabledAt])
@@ -375,6 +376,22 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+/// Mot trinh duyet da bat Web Push (FR-009.6). `endpoint` la URL bi mat do
+/// trinh duyet cap, nen dung no lam khoa: dang nhap tai khoan khac tren cung may
+/// thi dong nay chuyen chu thay vi sinh dong moi.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Match {

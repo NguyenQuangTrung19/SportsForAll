@@ -90,5 +90,14 @@ export default tseslint.config(
     },
   },
 
+  // Service worker: plain JS served as-is from public/, runs in the SW global scope.
+  {
+    files: ['apps/web/public/sw.js'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      globals: globals.serviceworker,
+    },
+  },
+
   prettier,
 );

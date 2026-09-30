@@ -1,8 +1,14 @@
-import type { NotificationListResponse, NotificationView } from '@sfa/shared';
+import {
+  pushSubscribeSchema,
+  pushUnsubscribeSchema,
+  type NotificationListResponse,
+  type NotificationView,
+} from '@sfa/shared';
 import type { Notification } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/db.js';
+import { pushPublicKey } from '../lib/push.js';
 import { requireAuth } from '../middleware/auth.js';
 
 export const notificationsRouter = Router();
@@ -72,6 +78,45 @@ notificationsRouter.post('/mark-read', requireAuth, async (req, res, next) => {
       data: { readAt: new Date() },
     });
     res.json({ updated: result.count });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Khoá công khai VAPID cho trình duyệt đăng ký Web Push (FR-009.6); null = chưa bật. */
+notificationsRouter.get('/push/key', (_req, res) => {
+  res.json({ publicKey: pushPublicKey });
+});
+
+/**
+ * Lưu đăng ký của trình duyệt này. Upsert theo `endpoint`: người khác đăng nhập
+ * trên cùng máy thì đăng ký chuyển sang họ, người trước thôi nhận.
+ */
+notificationsRouter.post('/push/subscribe', requireAuth, async (req, res, next) => {
+  try {
+    const { endpoint, keys } = pushSubscribeSchema.parse(req.body);
+    const userId = req.user!.sub;
+    await prisma.pushSubscription.upsert({
+      where: { endpoint },
+      create: { userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
+      update: { userId, p256dh: keys.p256dh, auth: keys.auth },
+    });
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Gỡ đăng ký — gọi lúc tắt đẩy và lúc đăng xuất. Không cần đăng nhập: access
+ * token có thể đã hết hạn lúc đăng xuất, còn `endpoint` là URL bí mật trình
+ * duyệt cấp, biết nó mới gỡ được.
+ */
+notificationsRouter.post('/push/unsubscribe', async (req, res, next) => {
+  try {
+    const { endpoint } = pushUnsubscribeSchema.parse(req.body);
+    await prisma.pushSubscription.deleteMany({ where: { endpoint } });
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

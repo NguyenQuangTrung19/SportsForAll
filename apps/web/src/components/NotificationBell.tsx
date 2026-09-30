@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { disablePush, enablePush, isPushOn, pushSupported } from '@/lib/push';
 
 export function NotificationBell() {
   const queryClient = useQueryClient();
@@ -98,8 +99,55 @@ export function NotificationBell() {
               </ul>
             )}
           </div>
+          <PushToggle />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Bật/tắt Web Push cho trình duyệt này (FR-009.6). Ẩn hẳn khi trình duyệt không
+ * hỗ trợ hoặc máy chủ chưa cấu hình VAPID — không bày nút bấm vào là lỗi.
+ */
+function PushToggle() {
+  const queryClient = useQueryClient();
+  const keyQuery = useQuery({
+    enabled: pushSupported,
+    queryKey: ['push', 'key'],
+    queryFn: async () => {
+      const { data } = await api.get<{ publicKey: string | null }>('/notifications/push/key');
+      return data.publicKey;
+    },
+    staleTime: Infinity,
+  });
+  const onQuery = useQuery({ enabled: pushSupported, queryKey: ['push', 'on'], queryFn: isPushOn });
+  const toggle = useMutation({
+    mutationFn: async (on: boolean) => {
+      if (on) await enablePush(keyQuery.data!);
+      else await disablePush();
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ['push', 'on'] }),
+  });
+
+  if (!pushSupported || !keyQuery.data || onQuery.data === undefined) return null;
+  const on = onQuery.data;
+
+  return (
+    <div className="border-t border-ink/10 px-4 py-3">
+      <button
+        type="button"
+        onClick={() => toggle.mutate(!on)}
+        disabled={toggle.isPending}
+        className="text-xs font-semibold text-ink-soft transition hover:text-ink disabled:opacity-50"
+      >
+        {toggle.isPending
+          ? 'Đang xử lý...'
+          : on
+            ? 'Tắt thông báo đẩy trên thiết bị này'
+            : 'Bật thông báo đẩy trên thiết bị này'}
+      </button>
+      {toggle.error && <p className="mt-1 text-xs text-rust">{toggle.error.message}</p>}
     </div>
   );
 }

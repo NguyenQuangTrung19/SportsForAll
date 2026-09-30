@@ -31,6 +31,12 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   FACEBOOK_APP_ID: z.string().optional(),
   FACEBOOK_APP_SECRET: z.string().optional(),
+  // Web Push (FR-009.6). Sinh một lần: `pnpm --filter @sfa/api exec web-push generate-vapid-keys`.
+  // Thiếu thì tắt đẩy, thông báo trong web vẫn chạy bình thường.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  // mailto: hoặc https: để nhà cung cấp push liên hệ khi có sự cố; mặc định là WEB_URL.
+  VAPID_SUBJECT: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

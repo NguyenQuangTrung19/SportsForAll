@@ -401,6 +401,12 @@ Nghĩa là sửa biến này trên Vercel **không có tác dụng gì** cho t�
 | `GOOGLE_CLIENT_SECRET` |          |                           |                                            |
 | `FACEBOOK_APP_ID`      |          |                           | Thêm Redirect URI production (dưới đây)    |
 | `FACEBOOK_APP_SECRET`  |          |                           |                                            |
+| `VAPID_PUBLIC_KEY`     |          | từ `generate-vapid-keys`  | Cả hai khoá VAPID mới bật Web Push         |
+| `VAPID_PRIVATE_KEY`    |          | từ `generate-vapid-keys`  | Đổi cặp khoá là mọi đăng ký đẩy cũ chết    |
+| `VAPID_SUBJECT`        |          | `mailto:ban@email.com`    | Mặc định `WEB_URL`                         |
+
+Cặp khoá VAPID sinh một lần ở máy rồi dán vào Render:
+`pnpm --filter @sfa/api exec web-push generate-vapid-keys`.
 
 Bật Google/Facebook trên production thì thêm Redirect URI thứ hai (giữ dòng `localhost` để
 vẫn chạy được ở máy), thay đúng URL Render của bạn:

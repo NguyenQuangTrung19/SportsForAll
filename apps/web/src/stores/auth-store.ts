@@ -25,12 +25,18 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       hydrated: false,
-      setSession: (data) =>
+      setSession: (data) => {
+        const previousUserId = get().user?.id;
         set({
           user: data.user,
           accessToken: data.tokens.accessToken,
           refreshToken: data.tokens.refreshToken,
-        }),
+        });
+        // Nạp động: lib/push dùng api, mà api lại đọc store này.
+        if (previousUserId !== data.user.id) {
+          void import('@/lib/push').then((m) => m.claimPush()).catch(() => {});
+        }
+      },
       updateUser: (patch) => {
         const current = get().user;
         if (!current) return;
@@ -52,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         const refreshToken = get().refreshToken;
         try {
+          await import('@/lib/push').then((m) => m.disablePush()).catch(() => {});
           if (refreshToken) {
             await axios.post(
               `${baseURL}/api/auth/logout`,

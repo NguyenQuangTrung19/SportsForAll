@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — 9.4 nhắc trận sắp diễn ra (hẹn giờ trong process, nhắc trước 24 giờ); FR-007 xong 100% với 7.6._
+_Cập nhật lần cuối: 2026-09-30 — **87/87 mục SRS xong.** 9.6 Web Push (bật trong chuông thông báo, cần khoá VAPID); 9.4 nhắc trận; 7.6 lịch sử trận._
 
 ## Tổng quan
 
@@ -19,18 +19,17 @@ _Cập nhật lần cuối: 2026-09-30 — 9.4 nhắc trận sắp diễn ra (h�
 | FR-006 Tìm thành viên       | 9      | 0        | 0     | 9      |
 | FR-007 Quản lý đội          | 8      | 0        | 0     | 8      |
 | FR-008 Quản lý sân bãi      | 9      | 0        | 0     | 9      |
-| FR-009 Thông báo            | 5      | 0        | 1     | 6      |
+| FR-009 Thông báo            | 6      | 0        | 0     | 6      |
 | FR-010 Quản trị hệ thống    | 8      | 0        | 0     | 8      |
-| **Tổng**                    | **86** | **0**    | **1** | **87** |
+| **Tổng**                    | **87** | **0**    | **0** | **87** |
 
-**Chín nhóm đã xong 100%: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-010.** FR-008 khép lại kéo theo
+**Cả mười nhóm đã xong 100%.** FR-008 khép lại kéo theo
 hai mục cuối cùng bị nó chặn: 4.4 (sân đang cần đội trên Trang chủ) và 10.5 (admin quản lý sân).
 
 **FR-007** khép lại với 7.6 — captain/phó chốt tỉ số, trang đội có lịch sử trận.
 **FR-002** khép lại với 2.12 (uy tín cá nhân) — xem ghi chú công thức ở mục FR-002.
 
-Chỉ còn một mục: **FR-009.6** Web Push (ưu tiên Thấp). Không còn mục nào bị chặn bởi một FR khác hay bởi
-dịch vụ ngoài.
+Không còn mục SRS nào. Việc còn lại nằm ở mục **Nợ kỹ thuật**.
 
 ---
 
@@ -283,9 +282,13 @@ dịch vụ ngoài.
       `Match.reminderSentAt` giữ mỗi trận chỉ nhắc một lần kể cả nhiều instance_
 - [x] 9.5 Thông báo khi được đánh giá — _`rating_received`, chỉ báo lần chấm đầu để sửa điểm
       không làm phiền lại_
-- [ ] 9.6 Web Push — _ưu tiên Thấp_
+- [x] 9.6 Web Push — _`web-push` + service worker `public/sw.js`; bật/tắt theo từng trình duyệt
+      ở cuối chuông thông báo. Mọi `notify()` tự đẩy luôn. Endpoint chỉ nhận dịch vụ push của
+      Chrome/Firefox/Safari/Edge (chặn SSRF). Đăng xuất thì gỡ đăng ký; người khác đăng nhập
+      cùng máy thì đăng ký chuyển sang họ. Thiếu khoá VAPID thì nút tự ẩn_
 
-> Hiện thông báo lấy bằng polling 30 giây. Socket.IO đã gỡ vì không dùng tới.
+> Trong web, thông báo lấy bằng polling 30 giây; ngoài web đi qua Web Push. Socket.IO đã gỡ vì
+> không dùng tới.
 >
 > Ngoài 6 mục trên còn 3 loại `team_invite_*` (từ 6.8) và 4 loại `booking_*` (từ FR-008) —
 > không phải mục SRS riêng nên không tính vào bảng đếm.
@@ -371,7 +374,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 - [x] ~~Web chưa code-split~~ — mỗi trang một chunk qua `React.lazy`, chunk vào cổng còn
       **315 KB / 98,5 KB gzip** (trước: 614 KB một cục). Không thêm dependency nào; Vite tự
       tách vì `import()` động là điểm cắt.
-- [~] Bộ test đầu tiên — **87 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
+- [~] Bộ test đầu tiên — **89 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
   không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
 - [ ] Chưa có test nào chạm CSDL hay HTTP — mọi luồng nhiều bước (đặt sân, duyệt đơn, khoá
       tài khoản) vẫn chỉ kiểm bằng tay theo `TEST_PLAN.md`
@@ -414,13 +417,13 @@ Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì h�
 
 ## Thứ tự đề xuất
 
-Chín nhóm đã xong 100%, chỉ còn **Web Push** (9.6, ưu tiên Thấp).
+Cả mười nhóm đã xong 100% — không còn mục SRS nào.
 
 Vòng quét của 9.4 (`startMatchReminders`) dùng lại được khi cần dọn bài tuyển/tìm trận hết hạn
 hoặc nhắc chủ sân đơn đặt sắp tới giờ — thêm một hàm vào `tick`, chưa làm vì chưa ai cần.
 
-Hai món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên). Món tiếp theo đáng
-chen vào giữa danh sách trên: **test chạm CSDL cho luồng đặt sân** — đó là chỗ nhiều nhánh
+Hai món nợ kỹ thuật lớn nhất đã trả xong (code-split, bộ test đầu tiên). Món tiếp theo nên
+làm: **test chạm CSDL cho luồng đặt sân** — đó là chỗ nhiều nhánh
 trạng thái nhất trong repo (open → pending → confirmed, kèm nhánh tự động từ chối các đơn còn
 lại và nhánh huỷ mở khung ra lại), và hiện chỉ được kiểm bằng tay.
 
