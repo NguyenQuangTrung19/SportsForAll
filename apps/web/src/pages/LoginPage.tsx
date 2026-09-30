@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@sfa/shared';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AltSignIn } from '@/components/AuthLayout';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiMessage } from '@/lib/api';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -27,11 +27,7 @@ export function LoginPage() {
       await login(values);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const message =
-        err instanceof AxiosError
-          ? (err.response?.data as { error?: { message?: string } })?.error?.message
-          : null;
-      setServerError(message ?? 'Đăng nhập thất bại, thử lại sau');
+      setServerError(apiMessage(err, 'Đăng nhập thất bại, thử lại sau'));
     }
   };
 

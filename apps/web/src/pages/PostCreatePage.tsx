@@ -8,11 +8,10 @@ import {
 } from '@sfa/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 
 export function PostCreatePage() {
@@ -47,11 +46,7 @@ export function PostCreatePage() {
     },
     onSuccess: (post) => navigate(`/posts/${post.id}`, { replace: true }),
     onError: (err) => {
-      const m =
-        err instanceof AxiosError
-          ? (err.response?.data as { error?: { message?: string } })?.error?.message
-          : null;
-      setServerError(m ?? 'Không tạo được bài đăng');
+      setServerError(apiMessage(err, 'Không tạo được bài đăng'));
     },
   });
 

@@ -12,23 +12,14 @@ import {
 } from '@sfa/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LoadMore } from '@/components/LoadMore';
 import { SportIcon } from '@/components/SportIcon';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
-
-function extractMessage(err: unknown, fallback: string): string {
-  if (err instanceof AxiosError) {
-    const m = (err.response?.data as { error?: { message?: string } })?.error?.message;
-    if (m) return m;
-  }
-  return fallback;
-}
 
 export function TeamDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -58,7 +49,7 @@ export function TeamDetailPage() {
       return data;
     },
     onSuccess: setTeam,
-    onError: (err) => setActionError(extractMessage(err, 'Không thêm được thành viên')),
+    onError: (err) => setActionError(apiMessage(err, 'Không thêm được thành viên')),
   });
 
   const updateRoleMutation = useMutation({
@@ -67,7 +58,7 @@ export function TeamDetailPage() {
       return data;
     },
     onSuccess: setTeam,
-    onError: (err) => setActionError(extractMessage(err, 'Không đổi được vai trò')),
+    onError: (err) => setActionError(apiMessage(err, 'Không đổi được vai trò')),
   });
 
   const removeMutation = useMutation({
@@ -80,7 +71,7 @@ export function TeamDetailPage() {
       if (isSelf) navigate('/teams', { replace: true });
       else void queryClient.invalidateQueries({ queryKey: ['teams', id] });
     },
-    onError: (err) => setActionError(extractMessage(err, 'Không xoá được thành viên')),
+    onError: (err) => setActionError(apiMessage(err, 'Không xoá được thành viên')),
   });
 
   const cancelInviteMutation = useMutation({
@@ -89,7 +80,7 @@ export function TeamDetailPage() {
       return data;
     },
     onSuccess: setTeam,
-    onError: (err) => setActionError(extractMessage(err, 'Không rút được lời mời')),
+    onError: (err) => setActionError(apiMessage(err, 'Không rút được lời mời')),
   });
 
   const disbandMutation = useMutation({
@@ -100,7 +91,7 @@ export function TeamDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ['teams', 'me'] });
       navigate('/teams', { replace: true });
     },
-    onError: (err) => setActionError(extractMessage(err, 'Không giải tán được đội')),
+    onError: (err) => setActionError(apiMessage(err, 'Không giải tán được đội')),
   });
 
   const team = teamQuery.data;

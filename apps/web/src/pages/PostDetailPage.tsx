@@ -5,21 +5,12 @@ import {
   type RecruitmentPostDetail,
 } from '@sfa/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SportIcon } from '@/components/SportIcon';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
-
-function extractMessage(err: unknown, fallback: string): string {
-  if (err instanceof AxiosError) {
-    const m = (err.response?.data as { error?: { message?: string } })?.error?.message;
-    if (m) return m;
-  }
-  return fallback;
-}
 
 export function PostDetailPage() {
   const { sportOf } = useSports();
@@ -54,7 +45,7 @@ export function PostDetailPage() {
       setPost(data);
       setApplyMessage('');
     },
-    onError: (err) => setActionError(extractMessage(err, 'Không gửi được đơn')),
+    onError: (err) => setActionError(apiMessage(err, 'Không gửi được đơn')),
   });
 
   const acceptMutation = useMutation({
@@ -65,7 +56,7 @@ export function PostDetailPage() {
       return data;
     },
     onSuccess: setPost,
-    onError: (err) => setActionError(extractMessage(err, 'Không chấp nhận được')),
+    onError: (err) => setActionError(apiMessage(err, 'Không chấp nhận được')),
   });
 
   const rejectMutation = useMutation({
@@ -76,7 +67,7 @@ export function PostDetailPage() {
       return data;
     },
     onSuccess: setPost,
-    onError: (err) => setActionError(extractMessage(err, 'Không từ chối được')),
+    onError: (err) => setActionError(apiMessage(err, 'Không từ chối được')),
   });
 
   const cancelMutation = useMutation({
@@ -87,7 +78,7 @@ export function PostDetailPage() {
       return data;
     },
     onSuccess: setPost,
-    onError: (err) => setActionError(extractMessage(err, 'Không huỷ được')),
+    onError: (err) => setActionError(apiMessage(err, 'Không huỷ được')),
   });
 
   const closeMutation = useMutation({
@@ -98,7 +89,7 @@ export function PostDetailPage() {
       return data;
     },
     onSuccess: setPost,
-    onError: (err) => setActionError(extractMessage(err, 'Không đóng được bài')),
+    onError: (err) => setActionError(apiMessage(err, 'Không đóng được bài')),
   });
 
   const post = postQuery.data;

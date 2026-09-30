@@ -9,7 +9,6 @@ import {
   type UpdateProfileInput,
 } from '@sfa/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AvatarUploader } from '@/components/AvatarUploader';
@@ -17,7 +16,7 @@ import { ChangePasswordCard } from '@/components/ChangePasswordCard';
 import { LinkedAccountsCard } from '@/components/LinkedAccountsCard';
 import { SportIcon } from '@/components/SportIcon';
 import { VerifyEmailBanner } from '@/components/VerifyEmailBanner';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -80,11 +79,7 @@ export function ProfilePage() {
       if (data.displayName) updateAuthUser({ displayName: data.displayName });
     },
     onError: (err: unknown) => {
-      const message =
-        err instanceof AxiosError
-          ? (err.response?.data as { error?: { message?: string } })?.error?.message
-          : null;
-      setServerError(message ?? 'Không lưu được, thử lại sau');
+      setServerError(apiMessage(err, 'Không lưu được, thử lại sau'));
     },
   });
 

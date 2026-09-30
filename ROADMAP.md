@@ -5,7 +5,7 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — CI trên GitHub Actions: format, lint, typecheck, 64 test API (kể cả 22 test CSDL trên Postgres thật), build — mỗi lần push/PR vào `main`. **87/87 mục SRS xong.**_
+_Cập nhật lần cuối: 2026-09-30 — báo cáo admin ghi có điều kiện; bỏ hết bản chép tay phân trang (API) và bóc lỗi axios (web), −100 dòng. **87/87 mục SRS xong.**_
 
 ## Tổng quan
 
@@ -376,16 +376,19 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       tách vì `import()` động là điểm cắt.
 - [~] Bộ test đầu tiên — **89 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
   không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
-- [~] Test chạm CSDL + HTTP — **22 test, 4 luồng xong**: đặt sân (`venues.db.test.ts`),
+- [~] Test chạm CSDL + HTTP — **25 test, 5 luồng xong**: đặt sân (`venues.db.test.ts`),
   thách đấu → ghép trận → chốt tỉ số → chấm điểm (`matches.db.test.ts`), duyệt đơn vào đội
-  (`recruitment.db.test.ts`), lời mời vào đội (`teams.db.test.ts`). Khung dùng chung ở
+  (`recruitment.db.test.ts`), lời mời vào đội (`teams.db.test.ts`), xử lý báo cáo
+  (`admin.db.test.ts`). Khung dùng chung ở
   `src/test/db-app.ts`; cần `TEST_DATABASE_URL`, xem RUNBOOK mục 6. Còn kiểm bằng tay theo
   `TEST_PLAN.md`: khoá tài khoản
 - [x] ~~Chưa có CI~~ — `.github/workflows/ci.yml`: `format:check` → lint → typecheck →
-      `migrate deploy` → test (kèm service Postgres 17 nên 22 test CSDL chạy thật) → build.
+      `migrate deploy` → test (kèm service Postgres 17 nên test CSDL chạy thật) → build.
       Đã chạy thử đúng chuỗi bước trên một bản clone sạch không có `.env`
-- [ ] Hai admin xử lý cùng một báo cáo cùng lúc: bên sau ghi đè trạng thái, nhật ký có hai dòng
-      — cùng dạng lỗi đua như bên dưới, nhưng chỉ admin chạm tới và không làm hỏng dữ liệu người dùng
+- [x] ~~Hai admin xử lý cùng một báo cáo cùng lúc ghi đè nhau~~ — giờ ghi có điều kiện
+      `pending`, bên sau nhận 409. **Khác bốn luồng kia: test không tái hiện được lỗi** trên
+      code cũ (khoảng hở đọc→ghi chỉ một câu query), nên đây là sửa theo cấu trúc, test chỉ
+      giữ không cho hồi quy. Giờ mọi chỗ đổi trạng thái trong `routes/` đều ghi có điều kiện
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
 - [ ] Rate limit dùng MemoryStore — sai số khi chạy nhiều instance
 - [ ] Nhắc trận (9.4) chạy trong process API — Render free ngủ sau 15 phút không có request
@@ -393,8 +396,10 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       `/api/health` mỗi 10 phút
 - [x] ~~Repo chưa sạch Prettier toàn bộ~~ — đã format cả repo, ép LF qua `.gitattributes`,
       kiểm bằng `pnpm format:check`, chạy trong CI
-- [ ] Còn 4 bản chép tay của đuôi phân trang cursor và 12 chỗ bóc message lỗi axios inline —
-      helper dùng chung đã có (`paginate()`, `apiMessage()`), chỉ còn việc thay thế
+- [x] ~~Bản chép tay phân trang và bóc lỗi axios~~ — 4 route API dùng `cursorArgs()` /
+      `paginate()`, 15 file web dùng `apiMessage()` (thực tế có 16 chỗ, không phải 12).
+      Tiện sửa luôn: danh sách thông báo sắp xếp thiếu `id` chốt cuối, nên các thông báo tạo
+      cùng mili-giây có thể bị cursor bỏ sót hoặc lặp
 
 ### Bộ test hiện phủ gì
 
@@ -466,9 +471,15 @@ luồng nhiều bước). Bốn luồng đã test thì cả bốn đều dính c
 rồi mới ghi" — tổng cộng 10 lỗi, đã sửa hết. Mọi chỗ đổi trạng thái trong `routes/` giờ đều ghi
 có điều kiện (trừ báo cáo admin, xem nợ kỹ thuật).
 
-CI chạy mọi kiểm tra trên mỗi lần push, nên các test trên sẽ không âm thầm mục đi. Nợ còn lại
-đều nhỏ; rẻ nhất trước: **báo cáo admin ghi có điều kiện** (vài dòng, cùng cách với bốn luồng
-kia), rồi **thay 4 bản chép tay phân trang + 12 chỗ bóc lỗi axios** bằng helper đã có.
+CI chạy mọi kiểm tra trên mỗi lần push, nên các test trên sẽ không âm thầm mục đi. Nợ còn lại:
+
+1. **Render free ngủ làm nhắc trận (9.4) trễ/mất** — không cần code: tạo một job trên
+   cron-job.org gọi `/api/health` mỗi 10 phút. Rẻ nhất, người dùng thấy ngay.
+2. **Refresh token trong `localStorage`, sống 30 ngày** — một lỗi XSS là mất phiên cả tháng.
+   Chuyển sang cookie `httpOnly` cần cân nhắc: web (Vercel) và API (Render) khác site nên cookie
+   phải `SameSite=None; Secure`, và Safari chặn cookie bên thứ ba — muốn gọn phải cho API chạy
+   chung tên miền với web (proxy `/api` qua Vercel). Là quyết định kiến trúc, không phải sửa nhỏ.
+3. Rate limit `MemoryStore` — chỉ sai khi chạy nhiều instance; Render free chạy một, để sau.
 
 ## Cách cập nhật file này
 

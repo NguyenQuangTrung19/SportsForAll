@@ -545,9 +545,17 @@ adminRouter.post('/reports/:id/resolve', async (req, res, next) => {
       throw new HttpError(400, 'Báo cáo này đã được xử lý', 'REPORT_NOT_PENDING');
     }
 
-    const updated = await prisma.report.update({
-      where: { id },
+    // Điều kiện `pending` lúc ghi: hai admin xử lý cùng lúc thì chỉ một người
+    // thắng — không ai ghi đè kết luận của người kia, nhật ký không có hai dòng.
+    const { count } = await prisma.report.updateMany({
+      where: { id, status: 'pending' },
       data: { status: input.status, resolvedAt: new Date() },
+    });
+    if (count === 0) {
+      throw new HttpError(409, 'Báo cáo vừa được admin khác xử lý', 'REPORT_CONFLICT');
+    }
+    const updated = await prisma.report.findUniqueOrThrow({
+      where: { id },
       include: REPORT_INCLUDE,
     });
 

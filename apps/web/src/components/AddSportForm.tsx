@@ -1,10 +1,9 @@
 import { createSportSchema, type SportCatalogItem } from '@sfa/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useRef, useState, type MutableRefObject } from 'react';
 import { SportFields } from '@/components/SportFields';
 import { parsePositions, type SportFieldValues } from '@/lib/sport-form';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { LANDING_IMAGES_KEY } from '@/lib/use-landing-images';
 import { SPORTS_KEY } from '@/lib/use-sports';
 
@@ -96,12 +95,7 @@ export function AddSportForm({ onDone }: { onDone: () => void }) {
     },
     onError: (err: unknown) => {
       setStep('idle');
-      setError(
-        err instanceof AxiosError
-          ? ((err.response?.data as { error?: { message?: string } })?.error?.message ??
-              'Không thêm được môn')
-          : 'Không thêm được môn',
-      );
+      setError(apiMessage(err, 'Không thêm được môn'));
     },
   });
 

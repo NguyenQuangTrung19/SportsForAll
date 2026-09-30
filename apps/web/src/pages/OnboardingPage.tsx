@@ -6,11 +6,10 @@ import {
   type SkillLevel,
   type SportSlug,
 } from '@sfa/shared';
-import { AxiosError } from 'axios';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SportIcon } from '@/components/SportIcon';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 import { useAuthStore } from '@/stores/auth-store';
 import { applySportTheme, useSportStore } from '@/stores/sport-store';
@@ -126,11 +125,7 @@ export function OnboardingPage() {
       }
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const message =
-        err instanceof AxiosError
-          ? (err.response?.data as { error?: { message?: string } })?.error?.message
-          : null;
-      setServerError(message ?? 'Không lưu được, thử lại sau');
+      setServerError(apiMessage(err, 'Không lưu được, thử lại sau'));
     } finally {
       setSubmitting(false);
     }

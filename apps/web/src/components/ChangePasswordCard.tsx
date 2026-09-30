@@ -1,8 +1,7 @@
 import { changePasswordSchema, setPasswordSchema, type AuthResponse } from '@sfa/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 
 /**
@@ -49,12 +48,7 @@ export function ChangePasswordCard({ hasPassword }: { hasPassword: boolean }) {
       setDone(true);
     },
     onError: (err: unknown) => {
-      setError(
-        err instanceof AxiosError
-          ? ((err.response?.data as { error?: { message?: string } })?.error?.message ??
-              'Không đổi được mật khẩu')
-          : 'Không đổi được mật khẩu',
-      );
+      setError(apiMessage(err, 'Không đổi được mật khẩu'));
     },
   });
 

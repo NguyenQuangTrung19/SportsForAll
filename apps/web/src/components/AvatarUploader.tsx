@@ -1,15 +1,8 @@
 import type { ProfileResponse } from '@sfa/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useRef, useState } from 'react';
 import { Avatar } from '@/components/Avatar';
-import { api } from '@/lib/api';
-
-function messageOf(err: unknown, fallback: string): string {
-  return err instanceof AxiosError
-    ? ((err.response?.data as { error?: { message?: string } })?.error?.message ?? fallback)
-    : fallback;
-}
+import { api, apiMessage } from '@/lib/api';
 
 /** Đổi / gỡ ảnh đại diện (FR-002.3). */
 export function AvatarUploader({ profile }: { profile: ProfileResponse }) {
@@ -30,7 +23,7 @@ export function AvatarUploader({ profile }: { profile: ProfileResponse }) {
       return data;
     },
     onSuccess: onDone,
-    onError: (err) => setError(messageOf(err, 'Không tải được ảnh lên')),
+    onError: (err) => setError(apiMessage(err, 'Không tải được ảnh lên')),
   });
 
   const remove = useMutation({
@@ -39,7 +32,7 @@ export function AvatarUploader({ profile }: { profile: ProfileResponse }) {
       return data;
     },
     onSuccess: onDone,
-    onError: (err) => setError(messageOf(err, 'Không gỡ được ảnh')),
+    onError: (err) => setError(apiMessage(err, 'Không gỡ được ảnh')),
   });
 
   const busy = upload.isPending || remove.isPending;

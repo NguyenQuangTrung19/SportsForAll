@@ -5,12 +5,12 @@ import {
   registerSchema,
   type RegisterInput,
 } from '@sfa/shared';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { AltSignIn } from '@/components/AuthLayout';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiMessage } from '@/lib/api';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -36,11 +36,7 @@ export function RegisterPage() {
       await registerUser(values);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const message =
-        err instanceof AxiosError
-          ? (err.response?.data as { error?: { message?: string } })?.error?.message
-          : null;
-      setServerError(message ?? 'Đăng ký thất bại, thử lại sau');
+      setServerError(apiMessage(err, 'Đăng ký thất bại, thử lại sau'));
     }
   };
 

@@ -7,12 +7,11 @@ import {
 } from '@sfa/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { SportIcon } from '@/components/SportIcon';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 
 export function TeamCreatePage() {
@@ -37,11 +36,7 @@ export function TeamCreatePage() {
     },
     onSuccess: (team) => navigate(`/teams/${team.id}`, { replace: true }),
     onError: (err) => {
-      const message =
-        err instanceof AxiosError
-          ? (err.response?.data as { error?: { message?: string } })?.error?.message
-          : null;
-      setServerError(message ?? 'Không tạo được đội, thử lại sau');
+      setServerError(apiMessage(err, 'Không tạo được đội, thử lại sau'));
     },
   });
 

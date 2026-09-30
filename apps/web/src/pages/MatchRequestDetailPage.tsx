@@ -14,20 +14,11 @@ import {
   type TeamSummary,
 } from '@sfa/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SportIcon } from '@/components/SportIcon';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
-
-function extractMessage(err: unknown, fallback: string): string {
-  if (err instanceof AxiosError) {
-    const m = (err.response?.data as { error?: { message?: string } })?.error?.message;
-    if (m) return m;
-  }
-  return fallback;
-}
 
 export function MatchRequestDetailPage() {
   const { sportOf } = useSports();
@@ -72,7 +63,7 @@ export function MatchRequestDetailPage() {
       setRequest(data);
       setChallengeMessage('');
     },
-    onError: (err) => setActionError(extractMessage(err, 'Không gửi được thách đấu')),
+    onError: (err) => setActionError(apiMessage(err, 'Không gửi được thách đấu')),
   });
 
   const acceptMutation = useMutation({
@@ -83,7 +74,7 @@ export function MatchRequestDetailPage() {
       return data;
     },
     onSuccess: setRequest,
-    onError: (err) => setActionError(extractMessage(err, 'Không chấp nhận được')),
+    onError: (err) => setActionError(apiMessage(err, 'Không chấp nhận được')),
   });
 
   const rejectMutation = useMutation({
@@ -94,7 +85,7 @@ export function MatchRequestDetailPage() {
       return data;
     },
     onSuccess: setRequest,
-    onError: (err) => setActionError(extractMessage(err, 'Không từ chối được')),
+    onError: (err) => setActionError(apiMessage(err, 'Không từ chối được')),
   });
 
   const withdrawMutation = useMutation({
@@ -105,7 +96,7 @@ export function MatchRequestDetailPage() {
       return data;
     },
     onSuccess: setRequest,
-    onError: (err) => setActionError(extractMessage(err, 'Không rút được thách đấu')),
+    onError: (err) => setActionError(apiMessage(err, 'Không rút được thách đấu')),
   });
 
   const completeMutation = useMutation({
@@ -118,7 +109,7 @@ export function MatchRequestDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ['matches', 'request', id] });
       void queryClient.invalidateQueries({ queryKey: ['matches', 'team'] });
     },
-    onError: (err) => setActionError(extractMessage(err, 'Không chốt được tỉ số')),
+    onError: (err) => setActionError(apiMessage(err, 'Không chốt được tỉ số')),
   });
 
   const rateMutation = useMutation({
@@ -136,7 +127,7 @@ export function MatchRequestDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ['matches', 'request', id] });
       void queryClient.invalidateQueries({ queryKey: ['matches', 'requests'] });
     },
-    onError: (err) => setActionError(extractMessage(err, 'Không gửi được đánh giá')),
+    onError: (err) => setActionError(apiMessage(err, 'Không gửi được đánh giá')),
   });
 
   const reportMutation = useMutation({
@@ -149,7 +140,7 @@ export function MatchRequestDetailPage() {
       });
       return data;
     },
-    onError: (err) => setActionError(extractMessage(err, 'Không gửi được báo cáo')),
+    onError: (err) => setActionError(apiMessage(err, 'Không gửi được báo cáo')),
   });
 
   const cancelMutation = useMutation({
@@ -160,7 +151,7 @@ export function MatchRequestDetailPage() {
       return data;
     },
     onSuccess: setRequest,
-    onError: (err) => setActionError(extractMessage(err, 'Không huỷ được')),
+    onError: (err) => setActionError(apiMessage(err, 'Không huỷ được')),
   });
 
   const req = reqQuery.data;

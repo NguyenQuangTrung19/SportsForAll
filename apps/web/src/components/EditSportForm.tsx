@@ -1,17 +1,10 @@
 import type { SportCatalogItem } from '@sfa/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useRef, useState } from 'react';
 import { SportFields } from '@/components/SportFields';
 import { parsePositions, type SportFieldValues } from '@/lib/sport-form';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { SPORTS_KEY } from '@/lib/use-sports';
-
-function messageOf(err: unknown, fallback: string): string {
-  return err instanceof AxiosError
-    ? ((err.response?.data as { error?: { message?: string } })?.error?.message ?? fallback)
-    : fallback;
-}
 
 /** Sửa một môn có sẵn: tên, màu, vị trí chơi, thứ tự, bật/tắt, icon. */
 export function EditSportForm({ item, onDone }: { item: SportCatalogItem; onDone: () => void }) {
@@ -45,7 +38,7 @@ export function EditSportForm({ item, onDone }: { item: SportCatalogItem; onDone
       refresh();
       onDone();
     },
-    onError: (err) => setError(messageOf(err, 'Không lưu được')),
+    onError: (err) => setError(apiMessage(err, 'Không lưu được')),
   });
 
   /** Tách riêng khỏi nút Lưu: bật/tắt là thao tác một chạm, không nên bắt lưu cả form. */
@@ -54,7 +47,7 @@ export function EditSportForm({ item, onDone }: { item: SportCatalogItem; onDone
       await api.patch(`/sports/${item.slug}`, { active: !item.active });
     },
     onSuccess: refresh,
-    onError: (err) => setError(messageOf(err, 'Không đổi được trạng thái')),
+    onError: (err) => setError(apiMessage(err, 'Không đổi được trạng thái')),
   });
 
   const uploadIcon = useMutation({
@@ -64,7 +57,7 @@ export function EditSportForm({ item, onDone }: { item: SportCatalogItem; onDone
       await api.post(`/sports/${item.slug}/icon`, form);
     },
     onSuccess: refresh,
-    onError: (err) => setError(messageOf(err, 'Không tải được icon')),
+    onError: (err) => setError(apiMessage(err, 'Không tải được icon')),
   });
 
   const busy = save.isPending || toggleActive.isPending || uploadIcon.isPending;

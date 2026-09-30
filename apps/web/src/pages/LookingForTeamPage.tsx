@@ -10,14 +10,13 @@ import {
   type TeamSummary,
 } from '@sfa/shared';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/Avatar';
 import { LoadMore } from '@/components/LoadMore';
 import { SortSelect } from '@/components/SortSelect';
 import { SportIcon } from '@/components/SportIcon';
-import { api } from '@/lib/api';
+import { api, apiMessage } from '@/lib/api';
 import { useSports } from '@/lib/use-sports';
 import { useSportStore } from '@/stores/sport-store';
 
@@ -272,12 +271,7 @@ function ComposeForm({
     },
     onSuccess: onCreated,
     onError: (err: unknown) => {
-      setError(
-        err instanceof AxiosError
-          ? ((err.response?.data as { error?: { message?: string } })?.error?.message ??
-              'Không đăng được bài')
-          : 'Không đăng được bài',
-      );
+      setError(apiMessage(err, 'Không đăng được bài'));
     },
   });
 
@@ -478,12 +472,7 @@ function InviteControl({ post, teams }: { post: LookingForTeamPostSummary; teams
     },
     onSuccess: () => setOpen(false),
     onError: (err: unknown) => {
-      setError(
-        err instanceof AxiosError
-          ? ((err.response?.data as { error?: { message?: string } })?.error?.message ??
-              'Không gửi được lời mời')
-          : 'Không gửi được lời mời',
-      );
+      setError(apiMessage(err, 'Không gửi được lời mời'));
     },
   });
 

@@ -264,16 +264,13 @@ matchesRouter.get('/requests', requireAuth, async (req, res, next) => {
       where,
       include: REQUEST_INCLUDE,
       orderBy,
-      take: q.limit + 1,
-      ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
+      ...cursorArgs(q.limit, q.cursor),
     });
 
-    const hasMore = items.length > q.limit;
-    const sliced = hasMore ? items.slice(0, q.limit) : items;
-    const last = sliced[sliced.length - 1];
+    const { items: page, nextCursor } = paginate(items, q.limit);
     const body: MatchRequestListResponse = {
-      items: sliced.map((r) => toSummary(r, userId)),
-      nextCursor: hasMore && last ? last.id : null,
+      items: page.map((r) => toSummary(r, userId)),
+      nextCursor,
     };
     res.json(body);
   } catch (err) {

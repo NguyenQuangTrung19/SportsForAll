@@ -8,6 +8,7 @@ import type { Notification } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/db.js';
+import { cursorArgs, paginate } from '../lib/paginate.js';
 import { pushPublicKey } from '../lib/push.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -42,20 +43,15 @@ notificationsRouter.get('/', requireAuth, async (req, res, next) => {
     const [items, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
-        take: q.limit + 1,
-        ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
+        // id chốt cuối: một lần `notify` ghi nhiều dòng cùng mili-giây, thiếu nó
+        // thì cursor có thể bỏ sót hoặc lặp thông báo.
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        ...cursorArgs(q.limit, q.cursor),
       }),
       prisma.notification.count({ where: { userId, readAt: null } }),
     ]);
-    const hasMore = items.length > q.limit;
-    const sliced = hasMore ? items.slice(0, q.limit) : items;
-    const last = sliced[sliced.length - 1];
-    const body: NotificationListResponse = {
-      items: sliced.map(toView),
-      unreadCount,
-      nextCursor: hasMore && last ? last.id : null,
-    };
+    const { items: page, nextCursor } = paginate(items, q.limit);
+    const body: NotificationListResponse = { items: page.map(toView), unreadCount, nextCursor };
     res.json(body);
   } catch (err) {
     next(err);
