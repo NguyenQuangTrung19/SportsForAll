@@ -128,11 +128,12 @@ export function MyBookingsPage() {
                       </Link>
                     </p>
                     <p className="mt-0.5 text-xs text-ink-soft">
-                      {formatSlotRange(b.slot.startsAt, b.slot.endsAt)} ·{' '}
-                      {formatVnd(b.slot.price)}
+                      {formatSlotRange(b.slot.startsAt, b.slot.endsAt)} · {formatVnd(b.slot.price)}
                       {b.teamName && ` · ${b.teamName}`}
                     </p>
-                    <p className="mt-0.5 truncate text-[11px] text-ink-soft/70">{b.venue.address}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-ink-soft/70">
+                      {b.venue.address}
+                    </p>
                   </div>
 
                   <span

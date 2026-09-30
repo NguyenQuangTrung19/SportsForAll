@@ -39,13 +39,7 @@ export function AdminReportsPage() {
   const items = data?.pages.flatMap((p) => p.items) ?? [];
 
   const resolve = useMutation({
-    mutationFn: async ({
-      id,
-      decision,
-    }: {
-      id: string;
-      decision: 'reviewed' | 'dismissed';
-    }) => {
+    mutationFn: async ({ id, decision }: { id: string; decision: 'reviewed' | 'dismissed' }) => {
       await api.post(`/admin/reports/${id}/resolve`, {
         status: decision,
         note: note[id]?.trim() || undefined,

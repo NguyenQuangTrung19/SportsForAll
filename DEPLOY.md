@@ -6,11 +6,11 @@ Chạy thử ở local: xem [RUNBOOK.md](./RUNBOOK.md).
 
 ## 0. Chọn chỗ đặt
 
-| Phần        | Dịch vụ         | Vì sao chọn                                                          |
-| ----------- | --------------- | -------------------------------------------------------------------- |
-| PostgreSQL  | **Neon**        | Free tier không hết hạn. Postgres free của Render tự xoá sau 30 ngày. |
-| API         | **Render**      | Web Service free, deploy thẳng từ GitHub, tự chạy lại khi push.       |
-| Web         | **Vercel**      | Tối ưu cho Vite SPA, build từ monorepo được, CDN sẵn.                 |
+| Phần       | Dịch vụ    | Vì sao chọn                                                           |
+| ---------- | ---------- | --------------------------------------------------------------------- |
+| PostgreSQL | **Neon**   | Free tier không hết hạn. Postgres free của Render tự xoá sau 30 ngày. |
+| API        | **Render** | Web Service free, deploy thẳng từ GitHub, tự chạy lại khi push.       |
+| Web        | **Vercel** | Tối ưu cho Vite SPA, build từ monorepo được, CDN sẵn.                 |
 
 Tổng chi phí: **0đ**. Đổi lại hai giới hạn phải biết trước — xem [mục 7](#7-ba-cạm-bẫy-của-repo-này).
 
@@ -51,15 +51,15 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 [render.com](https://render.com) → **New** → **Web Service** → chọn repo `SportsForAll`.
 
-| Ô                  | Điền                                                                                                                                     |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Language**       | `Node`                                                                                                                                     |
-| **Region**         | `Singapore`                                                                                                                                |
-| **Branch**         | `main`                                                                                                                                     |
-| **Root Directory** | _(để trống — build cần cả monorepo)_                                                                                                       |
+| Ô                  | Điền                                                                                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Language**       | `Node`                                                                                                                                                                            |
+| **Region**         | `Singapore`                                                                                                                                                                       |
+| **Branch**         | `main`                                                                                                                                                                            |
+| **Root Directory** | _(để trống — build cần cả monorepo)_                                                                                                                                              |
 | **Build Command**  | `corepack enable && pnpm install && pnpm build:shared && pnpm --filter @sfa/api db:generate && pnpm --filter @sfa/api build && pnpm --filter @sfa/api exec prisma migrate deploy` |
-| **Start Command**  | `pnpm --filter @sfa/api start`                                                                                                             |
-| **Instance Type**  | `Free`                                                                                                                                     |
+| **Start Command**  | `pnpm --filter @sfa/api start`                                                                                                                                                    |
+| **Instance Type**  | `Free`                                                                                                                                                                            |
 
 Ba chi tiết trong Build Command dễ bỏ sót:
 
@@ -76,20 +76,20 @@ vào thư mục khác.
 
 Mục **Environment** → **Add Environment Variable**:
 
-| Key                  | Value                                                     |
-| -------------------- | --------------------------------------------------------- |
-| `NODE_VERSION`       | `20`                                                      |
-| `NODE_ENV`           | `production`                                              |
-| `DATABASE_URL`       | _(chuỗi Neon ở bước 1)_                                   |
-| `JWT_ACCESS_SECRET`  | _(chuỗi random thứ nhất)_                                 |
-| `JWT_REFRESH_SECRET` | _(chuỗi random thứ hai)_                                  |
-| `JWT_ACCESS_TTL`     | `15m`                                                     |
-| `JWT_REFRESH_TTL`    | `30d`                                                     |
-| `TRUST_PROXY`        | `1`                                                       |
-| `LOG_LEVEL`          | `info`                                                    |
-| `CORS_ORIGINS`       | `http://localhost:5173` _(tạm, sửa ở bước 4)_             |
+| Key                  | Value                                                      |
+| -------------------- | ---------------------------------------------------------- |
+| `NODE_VERSION`       | `20`                                                       |
+| `NODE_ENV`           | `production`                                               |
+| `DATABASE_URL`       | _(chuỗi Neon ở bước 1)_                                    |
+| `JWT_ACCESS_SECRET`  | _(chuỗi random thứ nhất)_                                  |
+| `JWT_REFRESH_SECRET` | _(chuỗi random thứ hai)_                                   |
+| `JWT_ACCESS_TTL`     | `15m`                                                      |
+| `JWT_REFRESH_TTL`    | `30d`                                                      |
+| `TRUST_PROXY`        | `1`                                                        |
+| `LOG_LEVEL`          | `info`                                                     |
+| `CORS_ORIGINS`       | `http://localhost:5173` _(tạm, sửa ở bước 4)_              |
 | `API_URL`            | URL Render của chính service này _(điền sau khi tạo xong)_ |
-| `WEB_URL`            | URL Vercel _(điền ở bước 4)_                              |
+| `WEB_URL`            | URL Vercel _(điền ở bước 4)_                               |
 
 > **`API_URL` và `WEB_URL` phải đúng** nếu dùng email hay Google/Facebook: link trong email
 > trỏ về `WEB_URL`, còn Google/Facebook trả người dùng về `API_URL`. Để mặc định thì link
@@ -155,9 +155,9 @@ nên Vercel tự nhận. Không cần chỉnh gì trong phần Build Settings.
    và khai báo trong file thắng cấu hình dashboard, nên chỉ cần deploy lại là xong.
 4. Mở **Environment Variables**, thêm:
 
-   | Key            | Value                                     |
-   | -------------- | ----------------------------------------- |
-   | `VITE_API_URL` | `https://<api-cua-ban>.onrender.com`      |
+   | Key            | Value                                |
+   | -------------- | ------------------------------------ |
+   | `VITE_API_URL` | `https://<api-cua-ban>.onrender.com` |
 
    **Không có dấu `/` ở cuối.** Axios ghép chuỗi thành `${VITE_API_URL}/api`, thừa một dấu
    gạch là mọi request thành `//api/...`.
@@ -279,14 +279,14 @@ Seed xong: 4 người dùng + 1 admin + 1 chủ sân, 2 đội, 1 bài tuyển, 
 Tất cả dùng chung mật khẩu `Demo1234!`. **Để luôn vào CV / trang portfolio**, đừng bắt
 người xem tự đăng ký:
 
-| Email             | Vai trò   | Xem được gì                                      |
-| ----------------- | --------- | ------------------------------------------------ |
-| `an@demo.vn`      | user      | Luồng chính: đội, kèo, tuyển quân, tìm đội        |
-| `binh@demo.vn`    | user      | Góc nhìn người thứ hai (đội khác, bài tìm đội)    |
-| `cuong@demo.vn`   | user      | —                                                 |
-| `dung@demo.vn`    | user      | —                                                 |
-| `admin@demo.vn`   | admin     | Trang quản trị: người dùng, bài viết, sân, báo cáo |
-| `sanbong@demo.vn` | business  | Trang chủ sân: 1 sân + 3 khung giờ đã mở          |
+| Email             | Vai trò  | Xem được gì                                        |
+| ----------------- | -------- | -------------------------------------------------- |
+| `an@demo.vn`      | user     | Luồng chính: đội, kèo, tuyển quân, tìm đội         |
+| `binh@demo.vn`    | user     | Góc nhìn người thứ hai (đội khác, bài tìm đội)     |
+| `cuong@demo.vn`   | user     | —                                                  |
+| `dung@demo.vn`    | user     | —                                                  |
+| `admin@demo.vn`   | admin    | Trang quản trị: người dùng, bài viết, sân, báo cáo |
+| `sanbong@demo.vn` | business | Trang chủ sân: 1 sân + 3 khung giờ đã mở           |
 
 Ba khung giờ của sân được sinh theo **thời điểm chạy seed** (19h ba ngày kế tiếp). Để lâu
 chúng thành quá khứ và biến khỏi trang đặt sân — trước buổi phỏng vấn cứ chạy lại seed một
@@ -302,12 +302,12 @@ Hoặc đơn giản là đóng cửa sổ terminal.
 
 **Lỗi hay gặp:**
 
-| Báo lỗi                                    | Nguyên nhân                                              |
-| ------------------------------------------ | -------------------------------------------------------- |
-| `P1001: Can't reach database server`       | Sai host, hoặc thiếu `?sslmode=require`                   |
-| `The table ... does not exist`             | Chưa chạy migration — quay lại 5.3                        |
-| `must start with the protocol postgresql://` | Biến rỗng hoặc dán dư `psql '...'` — xem lại 5.2         |
-| Treo im ở `db:seed`                        | Neon project đang ngủ; chờ ~10 giây rồi chạy lại          |
+| Báo lỗi                                      | Nguyên nhân                                      |
+| -------------------------------------------- | ------------------------------------------------ |
+| `P1001: Can't reach database server`         | Sai host, hoặc thiếu `?sslmode=require`          |
+| `The table ... does not exist`               | Chưa chạy migration — quay lại 5.3               |
+| `must start with the protocol postgresql://` | Biến rỗng hoặc dán dư `psql '...'` — xem lại 5.2 |
+| Treo im ở `db:seed`                          | Neon project đang ngủ; chờ ~10 giây rồi chạy lại |
 
 ---
 
@@ -323,13 +323,13 @@ Mở URL Vercel và đi hết chuỗi này:
 
 Lỗi hay gặp:
 
-| Triệu chứng                          | Nguyên nhân                                                      |
-| ------------------------------------ | ---------------------------------------------------------------- |
-| `CORS policy` trong Console          | `CORS_ORIGINS` sai hoặc thừa dấu `/` cuối — xem bước 4            |
-| Trang con F5 ra 404                  | Thiếu `vercel.json`, hoặc Vercel chưa nhận — deploy lại           |
-| Mọi request `500`                    | `DATABASE_URL` sai, hoặc chưa chạy `migrate deploy`               |
-| Đăng nhập báo `429` dù mới thử 1 lần | `TRUST_PROXY` chưa đặt `1`                                        |
-| Lần đầu vào chờ ~50 giây             | Bình thường với Render free — xem mục 7                           |
+| Triệu chứng                          | Nguyên nhân                                             |
+| ------------------------------------ | ------------------------------------------------------- |
+| `CORS policy` trong Console          | `CORS_ORIGINS` sai hoặc thừa dấu `/` cuối — xem bước 4  |
+| Trang con F5 ra 404                  | Thiếu `vercel.json`, hoặc Vercel chưa nhận — deploy lại |
+| Mọi request `500`                    | `DATABASE_URL` sai, hoặc chưa chạy `migrate deploy`     |
+| Đăng nhập báo `429` dù mới thử 1 lần | `TRUST_PROXY` chưa đặt `1`                              |
+| Lần đầu vào chờ ~50 giây             | Bình thường với Render free — xem mục 7                 |
 
 ---
 
@@ -347,11 +347,11 @@ trong database thì vẫn trỏ vào file không còn tồn tại.
 
 Ba đường xử lý:
 
-| Cách                            | Công    | Kết quả                                       |
-| ------------------------------- | ------- | --------------------------------------------- |
-| Chấp nhận, coi là demo          | 0       | Ảnh mất sau vài giờ. Đủ để xem thử.           |
-| Render **Persistent Disk**      | 5 phút  | Giải quyết triệt để, nhưng **mất phí**.       |
-| Đổi sang **Cloudinary** (free)  | ~2 giờ  | Đúng cách làm production. Sửa `lib/uploads.ts`. |
+| Cách                           | Công   | Kết quả                                         |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Chấp nhận, coi là demo         | 0      | Ảnh mất sau vài giờ. Đủ để xem thử.             |
+| Render **Persistent Disk**     | 5 phút | Giải quyết triệt để, nhưng **mất phí**.         |
+| Đổi sang **Cloudinary** (free) | ~2 giờ | Đúng cách làm production. Sửa `lib/uploads.ts`. |
 
 Chính comment trong `uploads.ts` đã ghi _"đủ cho quy mô đồ án; lên production nên đổi sang
 object storage"_ — nên nếu người phỏng vấn hỏi, câu trả lời có sẵn: bạn biết giới hạn đó
@@ -377,30 +377,30 @@ Nghĩa là sửa biến này trên Vercel **không có tác dụng gì** cho t�
 
 ### API (Render)
 
-| Biến                 | Bắt buộc | Giá trị production        | Ghi chú                                  |
-| -------------------- | :------: | ------------------------- | ---------------------------------------- |
-| `NODE_VERSION`       |    ✓     | `20`                      | Repo yêu cầu `>= 20`                     |
-| `NODE_ENV`           |    ✓     | `production`              |                                          |
-| `PORT`               |          | _(Render tự đặt)_         | Đừng khai báo tay                        |
-| `DATABASE_URL`       |    ✓     | chuỗi Neon **có pooling** |                                          |
-| `JWT_ACCESS_SECRET`  |    ✓     | random ≥ 16 ký tự         | Khác `REFRESH`                           |
-| `JWT_REFRESH_SECRET` |    ✓     | random ≥ 16 ký tự         | Khác `ACCESS`                            |
-| `JWT_ACCESS_TTL`     |          | `15m`                     |                                          |
-| `JWT_REFRESH_TTL`    |          | `30d`                     |                                          |
-| `CORS_ORIGINS`       |    ✓     | URL Vercel, **không** `/` | Nhiều URL cách nhau bằng dấu phẩy        |
-| `TRUST_PROXY`        |    ✓     | `1`                       | Sai là rate limit tính nhầm IP           |
-| `LOG_LEVEL`          |          | `info`                    |                                          |
-| `API_URL`            |   (✓)    | URL Render, **không** `/` | Bắt buộc nếu bật Google/Facebook         |
-| `WEB_URL`            |   (✓)    | URL Vercel, **không** `/` | Bắt buộc nếu bật email hay Google/Facebook |
-| `RESEND_API_KEY`     |          | `re_...`                  | Bật quên mật khẩu + xác thực email       |
-| `MAIL_FROM`          |          | `Tên <no-reply@miền>`     | Miền phải đã xác minh trên Resend        |
-| `TWILIO_ACCOUNT_SID` |          |                           | Ba biến Twilio đủ cả mới bật SMS         |
-| `TWILIO_AUTH_TOKEN`  |          |                           |                                          |
-| `TWILIO_FROM`        |          | `+1...`                   |                                          |
-| `GOOGLE_CLIENT_ID`   |          |                           | Thêm Redirect URI production (dưới đây)  |
-| `GOOGLE_CLIENT_SECRET` |        |                           |                                          |
-| `FACEBOOK_APP_ID`    |          |                           | Thêm Redirect URI production (dưới đây)  |
-| `FACEBOOK_APP_SECRET` |         |                           |                                          |
+| Biến                   | Bắt buộc | Giá trị production        | Ghi chú                                    |
+| ---------------------- | :------: | ------------------------- | ------------------------------------------ |
+| `NODE_VERSION`         |    ✓     | `20`                      | Repo yêu cầu `>= 20`                       |
+| `NODE_ENV`             |    ✓     | `production`              |                                            |
+| `PORT`                 |          | _(Render tự đặt)_         | Đừng khai báo tay                          |
+| `DATABASE_URL`         |    ✓     | chuỗi Neon **có pooling** |                                            |
+| `JWT_ACCESS_SECRET`    |    ✓     | random ≥ 16 ký tự         | Khác `REFRESH`                             |
+| `JWT_REFRESH_SECRET`   |    ✓     | random ≥ 16 ký tự         | Khác `ACCESS`                              |
+| `JWT_ACCESS_TTL`       |          | `15m`                     |                                            |
+| `JWT_REFRESH_TTL`      |          | `30d`                     |                                            |
+| `CORS_ORIGINS`         |    ✓     | URL Vercel, **không** `/` | Nhiều URL cách nhau bằng dấu phẩy          |
+| `TRUST_PROXY`          |    ✓     | `1`                       | Sai là rate limit tính nhầm IP             |
+| `LOG_LEVEL`            |          | `info`                    |                                            |
+| `API_URL`              |   (✓)    | URL Render, **không** `/` | Bắt buộc nếu bật Google/Facebook           |
+| `WEB_URL`              |   (✓)    | URL Vercel, **không** `/` | Bắt buộc nếu bật email hay Google/Facebook |
+| `RESEND_API_KEY`       |          | `re_...`                  | Bật quên mật khẩu + xác thực email         |
+| `MAIL_FROM`            |          | `Tên <no-reply@miền>`     | Miền phải đã xác minh trên Resend          |
+| `TWILIO_ACCOUNT_SID`   |          |                           | Ba biến Twilio đủ cả mới bật SMS           |
+| `TWILIO_AUTH_TOKEN`    |          |                           |                                            |
+| `TWILIO_FROM`          |          | `+1...`                   |                                            |
+| `GOOGLE_CLIENT_ID`     |          |                           | Thêm Redirect URI production (dưới đây)    |
+| `GOOGLE_CLIENT_SECRET` |          |                           |                                            |
+| `FACEBOOK_APP_ID`      |          |                           | Thêm Redirect URI production (dưới đây)    |
+| `FACEBOOK_APP_SECRET`  |          |                           |                                            |
 
 Bật Google/Facebook trên production thì thêm Redirect URI thứ hai (giữ dòng `localhost` để
 vẫn chạy được ở máy), thay đúng URL Render của bạn:
@@ -412,9 +412,9 @@ https://<ten-service>.onrender.com/api/auth/oauth/facebook/callback
 
 ### Web (Vercel)
 
-| Biến           | Bắt buộc | Giá trị production          | Ghi chú                          |
-| -------------- | :------: | --------------------------- | -------------------------------- |
-| `VITE_API_URL` |    ✓     | URL Render, **không** `/`   | Đổi thì phải Redeploy (mục 7.3)  |
+| Biến           | Bắt buộc | Giá trị production        | Ghi chú                         |
+| -------------- | :------: | ------------------------- | ------------------------------- |
+| `VITE_API_URL` |    ✓     | URL Render, **không** `/` | Đổi thì phải Redeploy (mục 7.3) |
 
 ---
 

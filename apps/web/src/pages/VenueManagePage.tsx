@@ -87,7 +87,14 @@ export function VenueManagePage() {
   });
 
   const updateSlot = useMutation({
-    mutationFn: async ({ slotId, ...patch }: { slotId: string; openForTeams?: boolean; status?: 'open' | 'blocked' }) => {
+    mutationFn: async ({
+      slotId,
+      ...patch
+    }: {
+      slotId: string;
+      openForTeams?: boolean;
+      status?: 'open' | 'blocked';
+    }) => {
       await api.patch(`/venues/slots/${slotId}`, patch);
     },
     onSuccess: refresh,
@@ -103,7 +110,13 @@ export function VenueManagePage() {
   });
 
   const decideBooking = useMutation({
-    mutationFn: async ({ bookingId, decision }: { bookingId: string; decision: 'confirm' | 'reject' }) => {
+    mutationFn: async ({
+      bookingId,
+      decision,
+    }: {
+      bookingId: string;
+      decision: 'confirm' | 'reject';
+    }) => {
       await api.post(`/venues/bookings/${bookingId}/${decision}`);
     },
     onSuccess: refresh,
@@ -126,7 +139,12 @@ export function VenueManagePage() {
 
   if (venueQuery.isError) {
     return (
-      <PageShell eyebrow="Sân bãi" title="Không mở được sân" backTo="/venues" backLabel="← Danh sách sân">
+      <PageShell
+        eyebrow="Sân bãi"
+        title="Không mở được sân"
+        backTo="/venues"
+        backLabel="← Danh sách sân"
+      >
         <p className="border border-rust bg-rust/5 px-3 py-2 text-sm font-medium text-rust">
           Không tải được sân, hoặc bạn không phải chủ sân này.
         </p>
@@ -164,7 +182,11 @@ export function VenueManagePage() {
               </h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Stat n={stats.slotsOpen} label="Khung còn trống" />
-                <Stat n={stats.bookingsPending} label="Đơn chờ duyệt" accent={stats.bookingsPending > 0} />
+                <Stat
+                  n={stats.bookingsPending}
+                  label="Đơn chờ duyệt"
+                  accent={stats.bookingsPending > 0}
+                />
                 <Stat n={stats.bookingsConfirmed} label="Đơn đã xác nhận" />
                 <article className="border border-ink/12 bg-white p-5">
                   <p className="poster-num text-2xl text-primary-dark">
@@ -404,8 +426,8 @@ function PriceCard({
       </h3>
       <p className="mt-2 text-sm text-ink-soft">
         Đổi giá niêm yết <strong className="font-bold text-ink">không</strong> đổi giá các khung đã
-        mở. Khung đã đăng là một lời chào giá — sửa ngược lại sau lưng người đang xem là chuyện
-        khác hẳn. Muốn đổi giá một khung cụ thể thì xoá khung đó rồi mở lại.
+        mở. Khung đã đăng là một lời chào giá — sửa ngược lại sau lưng người đang xem là chuyện khác
+        hẳn. Muốn đổi giá một khung cụ thể thì xoá khung đó rồi mở lại.
       </p>
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="block">

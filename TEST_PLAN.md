@@ -6,9 +6,10 @@ Tài liệu kiểm thử thủ công (manual QA) end-to-end cho toàn bộ flow 
 - **Kết quả mong đợi** (✅) và **dấu hiệu lỗi** (❌)
 
 Quy ước thư mục:
+
 - `ROOT/` = `C:\Users\ACER\Documents\Workspace\Projects\SportsForAll`
-- `API/`  = `ROOT/apps/api`
-- `WEB/`  = `ROOT/apps/web`
+- `API/` = `ROOT/apps/api`
+- `WEB/` = `ROOT/apps/web`
 
 Shell mặc định: **PowerShell**. Mở 3 terminal song song (PostgreSQL, API, Web) để chạy phần 3-4.
 
@@ -16,16 +17,17 @@ Shell mặc định: **PowerShell**. Mở 3 terminal song song (PostgreSQL, API,
 
 ## 0. Yêu cầu trước khi test
 
-| Thành phần | Phiên bản | Kiểm tra |
-|---|---|---|
-| Node.js | ≥ 20 | `node -v` |
-| pnpm    | ≥ 10 | `pnpm -v` |
-| PostgreSQL | ≥ 14 chạy ở `localhost:5432` | `docker exec sfa-pg psql -U postgres -c "SELECT 1"` (nếu dùng Docker) hoặc `psql -U postgres -c "SELECT 1"` (nếu cài local) |
-| Trình duyệt | Chrome/Edge mới nhất, có DevTools | — |
+| Thành phần  | Phiên bản                         | Kiểm tra                                                                                                                    |
+| ----------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Node.js     | ≥ 20                              | `node -v`                                                                                                                   |
+| pnpm        | ≥ 10                              | `pnpm -v`                                                                                                                   |
+| PostgreSQL  | ≥ 14 chạy ở `localhost:5432`      | `docker exec sfa-pg psql -U postgres -c "SELECT 1"` (nếu dùng Docker) hoặc `psql -U postgres -c "SELECT 1"` (nếu cài local) |
+| Trình duyệt | Chrome/Edge mới nhất, có DevTools | —                                                                                                                           |
 
 Nếu chưa có PostgreSQL local, có thể dùng Docker:
 
 **Terminal 1 — chạy ở bất kỳ thư mục nào**
+
 ```powershell
 docker run -d --name sfa-pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:16
 ```
@@ -37,6 +39,7 @@ docker run -d --name sfa-pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:
 ### 1.1 Cài deps cho toàn monorepo
 
 **Thư mục: `ROOT/`**
+
 ```powershell
 pnpm install
 ```
@@ -47,11 +50,13 @@ pnpm install
 ### 1.2 Tạo file env cho API
 
 **Thư mục: `API/`**
+
 ```powershell
 Copy-Item .env.example .env
 ```
 
 Sau đó mở `API/.env`, đảm bảo:
+
 - `DATABASE_URL` trỏ đến Postgres của bạn
 - `JWT_ACCESS_SECRET` và `JWT_REFRESH_SECRET` đổi sang chuỗi ngẫu nhiên (≥ 32 ký tự)
 - `CORS_ORIGINS=http://localhost:5173`
@@ -59,6 +64,7 @@ Sau đó mở `API/.env`, đảm bảo:
 ### 1.3 Tạo file env cho Web
 
 **Thư mục: `WEB/`**
+
 ```powershell
 Copy-Item .env.example .env
 ```
@@ -74,11 +80,13 @@ Mặc định `VITE_API_URL=http://localhost:4000` là đúng.
 **Thư mục: bất kỳ**
 
 Nếu Postgres chạy trong Docker (container `sfa-pg`):
+
 ```powershell
 docker exec sfa-pg psql -U postgres -c "CREATE DATABASE sportsforall;"
 ```
 
 Nếu cài Postgres local (có `psql` trong PATH):
+
 ```powershell
 psql -U postgres -c "CREATE DATABASE sportsforall;"
 ```
@@ -90,6 +98,7 @@ psql -U postgres -c "CREATE DATABASE sportsforall;"
 ### 2.2 Chạy Prisma migrate
 
 **Thư mục: `API/`**
+
 ```powershell
 pnpm db:migrate
 ```
@@ -101,6 +110,7 @@ pnpm db:migrate
 ### 2.3 Xác nhận schema bằng Prisma Studio (tùy chọn)
 
 **Thư mục: `API/`**
+
 ```powershell
 pnpm db:studio
 ```
@@ -118,12 +128,14 @@ Mở **2 terminal mới** (giữ terminal cài deps để theo dõi log).
 ### 3.1 Chạy API
 
 **Terminal 2 — thư mục: `ROOT/`**
+
 ```powershell
 pnpm dev:api
 ```
 
 ✅ Log hiển thị `API listening on http://localhost:4000` (hoặc tương tự).
 ❌ Lỗi `EADDRINUSE :4000` → kill process đang chiếm cổng:
+
 ```powershell
 Get-NetTCPConnection -LocalPort 4000 | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }
 ```
@@ -131,6 +143,7 @@ Get-NetTCPConnection -LocalPort 4000 | Select-Object -ExpandProperty OwningProce
 ### 3.2 Chạy Web
 
 **Terminal 3 — thư mục: `ROOT/`**
+
 ```powershell
 pnpm dev:web
 ```
@@ -140,6 +153,7 @@ pnpm dev:web
 ### 3.3 Smoke test cơ bản
 
 **Terminal 4 (mới) — thư mục: bất kỳ**
+
 ```powershell
 curl http://localhost:4000/api/health
 curl http://localhost:4000/api/health/db
@@ -174,17 +188,20 @@ Tất cả thao tác sau ở **trình duyệt** `http://localhost:5173`. Mở De
 ### 4.2 Onboarding 3 bước
 
 **Bước 1 — Thông tin cá nhân:**
+
 - Tuổi: `25`
 - Giới tính: chọn bất kỳ
 - Khu vực: `Hà Nội`
 - Click **Tiếp tục**.
 
 **Bước 2 — Chọn môn:**
+
 - Chọn ít nhất 1 môn (ví dụ Bóng đá).
 - Đặt trình độ: `Intermediate`.
 - Click **Tiếp tục**.
 
 **Bước 3 — Vai trò + xác nhận:**
+
 - Chọn vai trò Player.
 - Click **Hoàn tất**.
 
@@ -416,6 +433,7 @@ Cần user thứ 2. Mở **trình duyệt khác** (hoặc chế độ Ẩn danh 
 ### 9.1 Tạo user Bob ở browser 2
 
 Trong browser ẩn danh, vào `http://localhost:5173`:
+
 1. Đăng ký:
    - Email: `bob@test.local`
    - Mật khẩu: `Password123!`
@@ -435,6 +453,7 @@ Trong browser ẩn danh, vào `http://localhost:5173`:
 ### 9.3 Alice nhận thông báo + duyệt
 
 Quay lại browser 1 (Alice):
+
 1. Quan sát **chuông thông báo** ở header (góc phải gần avatar).
 
 ✅ Trong vòng 30 giây (poll interval), chuông hiện badge số `1`.
@@ -467,6 +486,7 @@ Cần một user chưa ở trong FC Test Xanh — dùng Carol (tạo ở 10.1) h
 ### 9A.1 Dave đăng bài "Tìm đội"
 
 Browser 3 (Dave, đã onboard môn Bóng đá):
+
 1. Vào `/looking-for-team`.
 2. Click **Đăng bài tìm đội** → môn Bóng đá, khu vực `Hà Nội`, giới thiệu ≥ 10 ký tự.
 3. Click **Đăng bài**.
@@ -476,6 +496,7 @@ Browser 3 (Dave, đã onboard môn Bóng đá):
 ### 9A.2 Alice mời Dave
 
 Browser 1 (Alice, captain FC Test Xanh):
+
 1. Vào `/looking-for-team` → tìm thẻ của Dave.
 2. Click **Mời vào đội →** ở chân thẻ.
 
@@ -501,6 +522,7 @@ Browser 1: vào `/teams/:id` của FC Test Xanh.
 ### 9A.4 Dave nhận lời mời và đồng ý
 
 Browser 3 (Dave):
+
 1. Chuông thông báo → `FC Test Xanh mời bạn gia nhập`.
 2. Vào `/dashboard`.
 
@@ -546,6 +568,7 @@ Cần đội thứ 2 (của Bob hoặc tạo user thứ 3). Mình dùng user th�
 ### 10.1 Tạo user Carol ở browser thứ 3
 
 Mở thêm một cửa sổ ẩn danh khác (hoặc xóa cookies browser 2):
+
 - Email: `carol@test.local` / `Password123!` / Tên: `Carol Captain`
 - Onboarding: Bóng đá, Intermediate, Hà Nội.
 - Tạo đội: `FC Test Vàng` (cô là Captain).
@@ -563,6 +586,7 @@ Mở thêm một cửa sổ ẩn danh khác (hoặc xóa cookies browser 2):
 ### 10.3 Alice chấp nhận
 
 Quay lại browser 1 (Alice):
+
 1. Chuông → thông báo Carol thách đấu → click.
 2. Trên trang `/match-requests/:id`, thấy challenge của FC Test Vàng.
 3. Click **Chấp nhận**.
@@ -589,6 +613,7 @@ Nếu trước đó có challenge khác đến cùng request → tất cả tự
 ### 11.1 Đa thông báo
 
 Trên browser 1 (Alice):
+
 1. Đóng tin tuyển (button **Đóng tin**).
 2. Quay lại Bob → đăng ký gia nhập tin khác (nếu có) hoặc tạo recruitment post mới ở đội khác.
 
@@ -700,7 +725,7 @@ Tab **Nhật ký**:
 
 ✅ Bảng có đủ mọi thao tác vừa làm ở 11A.2 → 11A.5, mới nhất trên cùng.
 ✅ Cột "Quản trị viên" ghi tên admin; cột "Chi tiết" ghi `user → business`, email, hoặc ghi
-   chú kết luận báo cáo.
+chú kết luận báo cáo.
 ✅ Chỉ ghi thao tác làm đổi dữ liệu — mở trang, lọc, tìm kiếm KHÔNG sinh dòng nào.
 
 ### 11A.7 Môn & ảnh nền (FR-010.4)
@@ -808,7 +833,7 @@ Browser người chơi → `/bookings` (hoặc nút **Sân tôi đã đặt** �
 
 ✅ `POST /api/venues/bookings/:id/cancel` → 200.
 ✅ Khung quay lại `Còn trống` — người khác đặt được. Đây là điểm dễ sai nhất: không mở lại
-   khung thì nó kẹt `booked` vĩnh viễn.
+khung thì nó kẹt `booked` vĩnh viễn.
 ✅ Chủ sân nhận thông báo `... đã huỷ đơn đặt ...`.
 ✅ Huỷ đơn của người khác → 403 `FORBIDDEN`.
 
@@ -826,9 +851,11 @@ Browser người chơi → `/bookings` (hoặc nút **Sân tôi đã đặt** �
 Cần một đơn đã xác nhận và khung giờ **đã trôi qua**. Nhanh nhất là sửa thẳng CSDL:
 
 **Thư mục: `API/`**
+
 ```powershell
 pnpm exec prisma studio
 ```
+
 Mở bảng `VenueSlot`, lùi `startsAt`/`endsAt` của khung đã đặt về hôm qua.
 
 ✅ Trang sân hiện khối **Bạn đã thuê sân này** với 5 nút sao.
@@ -843,7 +870,7 @@ Mở bảng `VenueSlot`, lùi `startsAt`/`endsAt` của khung đã đặt về h
 
 ✅ Bốn ô: Khung còn trống · Đơn chờ duyệt · Đơn đã xác nhận · Doanh thu dự kiến.
 ✅ "Doanh thu dự kiến" = tổng giá các khung có đơn đã xác nhận — là số dự kiến, không phải
-   tiền đã thu (hệ thống chưa có thanh toán).
+tiền đã thu (hệ thống chưa có thanh toán).
 ✅ Người không phải chủ sân gọi `GET /api/venues/:id/stats` → 403 `NOT_VENUE_OWNER`.
 
 ### 11B.10 Admin quản lý sân (FR-010.5)
@@ -904,6 +931,7 @@ Trên `/teams/new`, để trống tên team → Submit:
 Không cần CSDL, không cần API/Web đang chạy — bộ test hiện chỉ phủ logic thuần.
 
 **Thư mục: `ROOT/`**
+
 ```powershell
 pnpm test
 ```
@@ -930,6 +958,7 @@ khoá tài khoản) vẫn phải chạy tay theo tài liệu này.
 ### 13.1 Typecheck toàn monorepo
 
 **Thư mục: `ROOT/`**
+
 ```powershell
 pnpm typecheck
 ```
@@ -939,6 +968,7 @@ pnpm typecheck
 ### 13.2 Build production
 
 **Thư mục: `ROOT/`**
+
 ```powershell
 pnpm build
 ```
@@ -951,6 +981,7 @@ pnpm build
 Dừng `pnpm dev:api` ở Terminal 2.
 
 **Terminal 2 — thư mục: `API/`**
+
 ```powershell
 pnpm start
 ```
@@ -962,6 +993,7 @@ pnpm start
 Dừng `pnpm dev:web` ở Terminal 3.
 
 **Terminal 3 — thư mục: `WEB/`**
+
 ```powershell
 pnpm preview
 ```
@@ -975,6 +1007,7 @@ pnpm preview
 ### 14.1 Reset database (xóa toàn bộ test data)
 
 **Thư mục: `API/`**
+
 ```powershell
 pnpm db:reset
 ```
@@ -991,6 +1024,7 @@ pnpm db:reset
 ### 14.3 (Tùy chọn) Xóa node_modules
 
 **Thư mục: `ROOT/`**
+
 ```powershell
 Remove-Item -Recurse -Force node_modules, apps\api\node_modules, apps\web\node_modules, packages\shared\node_modules
 ```
@@ -999,27 +1033,27 @@ Remove-Item -Recurse -Force node_modules, apps\api\node_modules, apps\web\node_m
 
 ## Checklist tổng kết
 
-| Phần | Mô tả | ✅ Pass |
-|---|---|---|
-| 0 | Yêu cầu môi trường | ☐ |
-| 1 | Cài deps + env | ☐ |
-| 2 | DB migrate | ☐ |
-| 3 | API + Web up + smoke | ☐ |
-| 4 | Đăng ký + onboarding Alice | ☐ |
-| 5 | Logout / login / refresh token | ☐ |
-| 6 | Teams CRUD | ☐ |
-| 7 | Recruitment post tạo + list | ☐ |
-| 8 | Match request tạo + list | ☐ |
-| 9 | 2-user recruitment apply/accept + notif | ☐ |
-| 9A | 2-user đội mời người chơi (accept/reject/cancel) | ☐ |
-| 10 | 2-user match challenge accept + Match record | ☐ |
-| 11 | Notifications poll + mark-read | ☐ |
-| 11A | Admin panel: stats, users, khoá, bài đăng, báo cáo, nhật ký | ☐ |
-| 11B | Sân bãi: đăng sân, lịch, đặt sân, duyệt, ghép đội, đánh giá, thống kê | ☐ |
-| 12 | Edge cases & validation | ☐ |
-| 12A | `pnpm test` — 69 test tự động pass | ☐ |
-| 13 | Build production smoke | ☐ |
-| 14 | Cleanup | ☐ |
+| Phần | Mô tả                                                                 | ✅ Pass |
+| ---- | --------------------------------------------------------------------- | ------- |
+| 0    | Yêu cầu môi trường                                                    | ☐       |
+| 1    | Cài deps + env                                                        | ☐       |
+| 2    | DB migrate                                                            | ☐       |
+| 3    | API + Web up + smoke                                                  | ☐       |
+| 4    | Đăng ký + onboarding Alice                                            | ☐       |
+| 5    | Logout / login / refresh token                                        | ☐       |
+| 6    | Teams CRUD                                                            | ☐       |
+| 7    | Recruitment post tạo + list                                           | ☐       |
+| 8    | Match request tạo + list                                              | ☐       |
+| 9    | 2-user recruitment apply/accept + notif                               | ☐       |
+| 9A   | 2-user đội mời người chơi (accept/reject/cancel)                      | ☐       |
+| 10   | 2-user match challenge accept + Match record                          | ☐       |
+| 11   | Notifications poll + mark-read                                        | ☐       |
+| 11A  | Admin panel: stats, users, khoá, bài đăng, báo cáo, nhật ký           | ☐       |
+| 11B  | Sân bãi: đăng sân, lịch, đặt sân, duyệt, ghép đội, đánh giá, thống kê | ☐       |
+| 12   | Edge cases & validation                                               | ☐       |
+| 12A  | `pnpm test` — 69 test tự động pass                                    | ☐       |
+| 13   | Build production smoke                                                | ☐       |
+| 14   | Cleanup                                                               | ☐       |
 
 ---
 
@@ -1027,110 +1061,112 @@ Remove-Item -Recurse -Force node_modules, apps\api\node_modules, apps\web\node_m
 
 Hữu ích khi test thủ công bằng curl/Postman. **Tất cả endpoint dưới prefix `/api`** (mounted ở `app.ts: app.use('/api', apiRouter)`). Base URL = `http://localhost:4000/api`.
 
-| Method | URL | Auth | Mô tả |
-|---|---|---|---|
-| GET    | `/api/health`                                  | — | Liveness |
-| GET    | `/api/health/db`                               | — | DB readiness |
-| POST   | `/api/auth/register`                           | — | Đăng ký |
-| POST   | `/api/auth/login`                              | — | Đăng nhập |
-| POST   | `/api/auth/refresh`                            | — | Refresh access token |
-| POST   | `/api/auth/logout`                             | ✓ | Đăng xuất |
-| GET    | `/api/auth/me`                                 | ✓ | User hiện tại |
-| GET    | `/api/auth/providers`                          | — | Cách đăng nhập nào đang bật |
-| POST   | `/api/auth/verify-email`                       | — | Xác thực email bằng mã trong link |
-| POST   | `/api/auth/resend-verification`                | ✓ | Gửi lại link xác thực |
-| POST   | `/api/auth/forgot-password`                    | — | Xin link đặt lại mật khẩu (luôn 204) |
-| POST   | `/api/auth/reset-password`                     | — | Đặt mật khẩu mới bằng mã trong link |
-| POST   | `/api/auth/phone/start`                        | — | Gửi OTP |
-| POST   | `/api/auth/phone/verify`                       | — | Nhập OTP → đăng nhập / tạo tài khoản |
-| GET    | `/api/auth/oauth/:provider/start`              | — | Chuyển sang Google/Facebook |
-| GET    | `/api/auth/oauth/:provider/callback`           | — | Google/Facebook chuyển về |
-| POST   | `/api/auth/oauth/exchange`                     | — | Đổi mã một lần lấy phiên |
-| POST   | `/api/auth/set-password`                       | ✓ | Đặt mật khẩu lần đầu |
-| POST   | `/api/auth/oauth/:provider/link`               | ✓ | Xin mã liên kết Google/Facebook |
-| POST   | `/api/auth/oauth/:provider/start`              | — | Form POST kèm mã liên kết → sang nhà cung cấp |
-| DELETE | `/api/auth/oauth/:provider`                    | ✓ | Gỡ liên kết (chặn nếu là đường vào cuối) |
-| GET    | `/api/profile/me`                              | ✓ | Hồ sơ + sport prefs |
-| PUT    | `/api/profile/me`                              | ✓ | Sửa hồ sơ |
-| POST   | `/api/profile/me/onboarding`                   | ✓ | Hoàn tất onboarding |
-| POST   | `/api/teams`                                   | ✓ | Tạo đội |
-| GET    | `/api/teams/me`                                | ✓ | Đội của tôi |
-| GET    | `/api/teams/:id`                               | ✓ | Detail đội |
-| PUT    | `/api/teams/:id`                               | ✓ | Sửa đội (captain) |
-| DELETE | `/api/teams/:id`                               | ✓ | Xóa đội (captain) |
-| POST   | `/api/teams/:id/members`                       | ✓ | Thêm thành viên |
-| PATCH  | `/api/teams/:id/members/:userId`               | ✓ | Đổi role / chuyển captain |
-| DELETE | `/api/teams/:id/members/:userId`               | ✓ | Xóa thành viên |
-| POST   | `/api/teams/:id/invites`                       | ✓ | Đội mời người chơi (captain/phó) |
-| POST   | `/api/teams/invites/:inviteId/accept`          | ✓ | Người được mời đồng ý |
-| POST   | `/api/teams/invites/:inviteId/reject`          | ✓ | Người được mời từ chối |
-| POST   | `/api/teams/invites/:inviteId/cancel`          | ✓ | Đội rút lại lời mời |
-| POST   | `/api/recruitment/posts`                       | ✓ | Đăng tin tuyển |
-| GET    | `/api/recruitment/posts`                       | ✓ | List tin |
-| GET    | `/api/recruitment/posts/:id`                   | ✓ | Detail tin |
-| PATCH  | `/api/recruitment/posts/:id`                   | ✓ | Sửa tin |
-| DELETE | `/api/recruitment/posts/:id`                   | ✓ | Xóa tin |
-| POST   | `/api/recruitment/posts/:id/requests`          | ✓ | Gửi đơn xin gia nhập |
-| POST   | `/api/recruitment/requests/:requestId/accept`  | ✓ | Captain duyệt |
-| POST   | `/api/recruitment/requests/:requestId/reject`  | ✓ | Captain từ chối |
-| POST   | `/api/recruitment/requests/:requestId/cancel`  | ✓ | Applicant tự hủy |
-| POST   | `/api/matches/requests`                        | ✓ | Tạo yêu cầu trận |
-| GET    | `/api/matches/requests`                        | ✓ | List yêu cầu |
-| GET    | `/api/matches/requests/:id`                    | ✓ | Detail |
-| PATCH  | `/api/matches/requests/:id`                    | ✓ | Sửa |
-| DELETE | `/api/matches/requests/:id`                    | ✓ | Xóa |
-| POST   | `/api/matches/requests/:id/challenges`         | ✓ | Gửi thách đấu |
-| POST   | `/api/matches/challenges/:id/accept`           | ✓ | Chấp nhận thách đấu (atomic) |
-| POST   | `/api/matches/challenges/:id/reject`           | ✓ | Từ chối |
-| POST   | `/api/matches/challenges/:id/withdraw`         | ✓ | Đội thách đấu rút |
-| GET    | `/api/matches/my`                              | ✓ | Trận đã ghép của tôi |
-| GET    | `/api/notifications`                           | ✓ | List + unreadCount |
-| POST   | `/api/notifications/mark-read`                 | ✓ | Đánh dấu đã đọc |
-| GET    | `/api/admin/stats`                             | admin | Thống kê tổng quan (10.1) |
-| GET    | `/api/admin/users`                             | admin | Danh sách người dùng (10.2) |
-| PATCH  | `/api/admin/users/:id`                         | admin | Đổi vai trò / tên (10.2) |
-| DELETE | `/api/admin/users/:id`                         | admin | Xoá tài khoản (10.2) |
-| POST   | `/api/admin/users/:id/disable`                 | admin | Khoá tài khoản (10.7) |
-| POST   | `/api/admin/users/:id/enable`                  | admin | Mở khoá tài khoản (10.7) |
-| GET    | `/api/admin/posts`                             | admin | Danh sách bài đăng 3 loại (10.3) |
-| POST   | `/api/admin/posts/:kind/:id/close`             | admin | Gỡ bài (10.3) |
-| POST   | `/api/admin/posts/:kind/:id/reopen`            | admin | Khôi phục bài (10.3) |
-| GET    | `/api/admin/reports`                           | admin | Danh sách báo cáo (10.6) |
-| POST   | `/api/admin/reports/:id/resolve`               | admin | Kết luận báo cáo (10.6) |
-| GET    | `/api/admin/logs`                              | admin | Nhật ký quản trị (10.8) |
-| GET    | `/api/admin/venues`                            | admin | Danh sách sân (10.5) |
-| POST   | `/api/admin/venues/:id/suspend`                | admin | Đình chỉ sân (10.5) |
-| POST   | `/api/admin/venues/:id/activate`               | admin | Mở lại sân (10.5) |
-| GET    | `/api/venues`                                  | ✓ | Danh sách sân + lọc (8.2) |
-| POST   | `/api/venues`                                  | business | Đăng sân (8.2) |
-| GET    | `/api/venues/me`                               | ✓ | Sân của tôi |
-| GET    | `/api/venues/:id`                              | ✓ | Chi tiết + lịch + đánh giá |
-| PATCH  | `/api/venues/:id`                              | chủ sân | Sửa thông tin / giá (8.4) |
-| DELETE | `/api/venues/:id`                              | chủ sân | Xoá sân |
-| POST   | `/api/venues/:id/photo`                        | chủ sân | Ảnh bìa (8.2) |
-| POST   | `/api/venues/:id/slots`                        | chủ sân | Mở khung giờ (8.3) |
-| PATCH  | `/api/venues/slots/:slotId`                    | chủ sân | Giá / đóng khung / ghép đội (8.4, 8.7) |
-| DELETE | `/api/venues/slots/:slotId`                    | chủ sân | Xoá khung (8.3) |
-| GET    | `/api/venues/slots/open`                       | ✓ | Khung cần ghép đội (8.7, 4.4) |
-| POST   | `/api/venues/slots/:slotId/bookings`           | ✓ | Xin đặt sân (8.5) |
-| GET    | `/api/venues/:id/bookings`                     | chủ sân | Hộp thư đơn (8.5) |
-| GET    | `/api/venues/bookings/me`                      | ✓ | Đơn của tôi |
-| POST   | `/api/venues/bookings/:id/confirm`             | chủ sân | Xác nhận (8.6) |
-| POST   | `/api/venues/bookings/:id/reject`              | chủ sân | Từ chối (8.6) |
-| POST   | `/api/venues/bookings/:id/cancel`              | người đặt | Tự huỷ |
-| GET    | `/api/venues/:id/stats`                        | chủ sân | Thống kê (8.9) |
-| POST   | `/api/venues/:id/reviews`                      | ✓ | Đánh giá sân (8.8) |
+| Method | URL                                           | Auth      | Mô tả                                         |
+| ------ | --------------------------------------------- | --------- | --------------------------------------------- |
+| GET    | `/api/health`                                 | —         | Liveness                                      |
+| GET    | `/api/health/db`                              | —         | DB readiness                                  |
+| POST   | `/api/auth/register`                          | —         | Đăng ký                                       |
+| POST   | `/api/auth/login`                             | —         | Đăng nhập                                     |
+| POST   | `/api/auth/refresh`                           | —         | Refresh access token                          |
+| POST   | `/api/auth/logout`                            | ✓         | Đăng xuất                                     |
+| GET    | `/api/auth/me`                                | ✓         | User hiện tại                                 |
+| GET    | `/api/auth/providers`                         | —         | Cách đăng nhập nào đang bật                   |
+| POST   | `/api/auth/verify-email`                      | —         | Xác thực email bằng mã trong link             |
+| POST   | `/api/auth/resend-verification`               | ✓         | Gửi lại link xác thực                         |
+| POST   | `/api/auth/forgot-password`                   | —         | Xin link đặt lại mật khẩu (luôn 204)          |
+| POST   | `/api/auth/reset-password`                    | —         | Đặt mật khẩu mới bằng mã trong link           |
+| POST   | `/api/auth/phone/start`                       | —         | Gửi OTP                                       |
+| POST   | `/api/auth/phone/verify`                      | —         | Nhập OTP → đăng nhập / tạo tài khoản          |
+| GET    | `/api/auth/oauth/:provider/start`             | —         | Chuyển sang Google/Facebook                   |
+| GET    | `/api/auth/oauth/:provider/callback`          | —         | Google/Facebook chuyển về                     |
+| POST   | `/api/auth/oauth/exchange`                    | —         | Đổi mã một lần lấy phiên                      |
+| POST   | `/api/auth/set-password`                      | ✓         | Đặt mật khẩu lần đầu                          |
+| POST   | `/api/auth/oauth/:provider/link`              | ✓         | Xin mã liên kết Google/Facebook               |
+| POST   | `/api/auth/oauth/:provider/start`             | —         | Form POST kèm mã liên kết → sang nhà cung cấp |
+| DELETE | `/api/auth/oauth/:provider`                   | ✓         | Gỡ liên kết (chặn nếu là đường vào cuối)      |
+| GET    | `/api/profile/me`                             | ✓         | Hồ sơ + sport prefs                           |
+| PUT    | `/api/profile/me`                             | ✓         | Sửa hồ sơ                                     |
+| POST   | `/api/profile/me/onboarding`                  | ✓         | Hoàn tất onboarding                           |
+| POST   | `/api/teams`                                  | ✓         | Tạo đội                                       |
+| GET    | `/api/teams/me`                               | ✓         | Đội của tôi                                   |
+| GET    | `/api/teams/:id`                              | ✓         | Detail đội                                    |
+| PUT    | `/api/teams/:id`                              | ✓         | Sửa đội (captain)                             |
+| DELETE | `/api/teams/:id`                              | ✓         | Xóa đội (captain)                             |
+| POST   | `/api/teams/:id/members`                      | ✓         | Thêm thành viên                               |
+| PATCH  | `/api/teams/:id/members/:userId`              | ✓         | Đổi role / chuyển captain                     |
+| DELETE | `/api/teams/:id/members/:userId`              | ✓         | Xóa thành viên                                |
+| POST   | `/api/teams/:id/invites`                      | ✓         | Đội mời người chơi (captain/phó)              |
+| POST   | `/api/teams/invites/:inviteId/accept`         | ✓         | Người được mời đồng ý                         |
+| POST   | `/api/teams/invites/:inviteId/reject`         | ✓         | Người được mời từ chối                        |
+| POST   | `/api/teams/invites/:inviteId/cancel`         | ✓         | Đội rút lại lời mời                           |
+| POST   | `/api/recruitment/posts`                      | ✓         | Đăng tin tuyển                                |
+| GET    | `/api/recruitment/posts`                      | ✓         | List tin                                      |
+| GET    | `/api/recruitment/posts/:id`                  | ✓         | Detail tin                                    |
+| PATCH  | `/api/recruitment/posts/:id`                  | ✓         | Sửa tin                                       |
+| DELETE | `/api/recruitment/posts/:id`                  | ✓         | Xóa tin                                       |
+| POST   | `/api/recruitment/posts/:id/requests`         | ✓         | Gửi đơn xin gia nhập                          |
+| POST   | `/api/recruitment/requests/:requestId/accept` | ✓         | Captain duyệt                                 |
+| POST   | `/api/recruitment/requests/:requestId/reject` | ✓         | Captain từ chối                               |
+| POST   | `/api/recruitment/requests/:requestId/cancel` | ✓         | Applicant tự hủy                              |
+| POST   | `/api/matches/requests`                       | ✓         | Tạo yêu cầu trận                              |
+| GET    | `/api/matches/requests`                       | ✓         | List yêu cầu                                  |
+| GET    | `/api/matches/requests/:id`                   | ✓         | Detail                                        |
+| PATCH  | `/api/matches/requests/:id`                   | ✓         | Sửa                                           |
+| DELETE | `/api/matches/requests/:id`                   | ✓         | Xóa                                           |
+| POST   | `/api/matches/requests/:id/challenges`        | ✓         | Gửi thách đấu                                 |
+| POST   | `/api/matches/challenges/:id/accept`          | ✓         | Chấp nhận thách đấu (atomic)                  |
+| POST   | `/api/matches/challenges/:id/reject`          | ✓         | Từ chối                                       |
+| POST   | `/api/matches/challenges/:id/withdraw`        | ✓         | Đội thách đấu rút                             |
+| GET    | `/api/matches/my`                             | ✓         | Trận đã ghép của tôi                          |
+| GET    | `/api/notifications`                          | ✓         | List + unreadCount                            |
+| POST   | `/api/notifications/mark-read`                | ✓         | Đánh dấu đã đọc                               |
+| GET    | `/api/admin/stats`                            | admin     | Thống kê tổng quan (10.1)                     |
+| GET    | `/api/admin/users`                            | admin     | Danh sách người dùng (10.2)                   |
+| PATCH  | `/api/admin/users/:id`                        | admin     | Đổi vai trò / tên (10.2)                      |
+| DELETE | `/api/admin/users/:id`                        | admin     | Xoá tài khoản (10.2)                          |
+| POST   | `/api/admin/users/:id/disable`                | admin     | Khoá tài khoản (10.7)                         |
+| POST   | `/api/admin/users/:id/enable`                 | admin     | Mở khoá tài khoản (10.7)                      |
+| GET    | `/api/admin/posts`                            | admin     | Danh sách bài đăng 3 loại (10.3)              |
+| POST   | `/api/admin/posts/:kind/:id/close`            | admin     | Gỡ bài (10.3)                                 |
+| POST   | `/api/admin/posts/:kind/:id/reopen`           | admin     | Khôi phục bài (10.3)                          |
+| GET    | `/api/admin/reports`                          | admin     | Danh sách báo cáo (10.6)                      |
+| POST   | `/api/admin/reports/:id/resolve`              | admin     | Kết luận báo cáo (10.6)                       |
+| GET    | `/api/admin/logs`                             | admin     | Nhật ký quản trị (10.8)                       |
+| GET    | `/api/admin/venues`                           | admin     | Danh sách sân (10.5)                          |
+| POST   | `/api/admin/venues/:id/suspend`               | admin     | Đình chỉ sân (10.5)                           |
+| POST   | `/api/admin/venues/:id/activate`              | admin     | Mở lại sân (10.5)                             |
+| GET    | `/api/venues`                                 | ✓         | Danh sách sân + lọc (8.2)                     |
+| POST   | `/api/venues`                                 | business  | Đăng sân (8.2)                                |
+| GET    | `/api/venues/me`                              | ✓         | Sân của tôi                                   |
+| GET    | `/api/venues/:id`                             | ✓         | Chi tiết + lịch + đánh giá                    |
+| PATCH  | `/api/venues/:id`                             | chủ sân   | Sửa thông tin / giá (8.4)                     |
+| DELETE | `/api/venues/:id`                             | chủ sân   | Xoá sân                                       |
+| POST   | `/api/venues/:id/photo`                       | chủ sân   | Ảnh bìa (8.2)                                 |
+| POST   | `/api/venues/:id/slots`                       | chủ sân   | Mở khung giờ (8.3)                            |
+| PATCH  | `/api/venues/slots/:slotId`                   | chủ sân   | Giá / đóng khung / ghép đội (8.4, 8.7)        |
+| DELETE | `/api/venues/slots/:slotId`                   | chủ sân   | Xoá khung (8.3)                               |
+| GET    | `/api/venues/slots/open`                      | ✓         | Khung cần ghép đội (8.7, 4.4)                 |
+| POST   | `/api/venues/slots/:slotId/bookings`          | ✓         | Xin đặt sân (8.5)                             |
+| GET    | `/api/venues/:id/bookings`                    | chủ sân   | Hộp thư đơn (8.5)                             |
+| GET    | `/api/venues/bookings/me`                     | ✓         | Đơn của tôi                                   |
+| POST   | `/api/venues/bookings/:id/confirm`            | chủ sân   | Xác nhận (8.6)                                |
+| POST   | `/api/venues/bookings/:id/reject`             | chủ sân   | Từ chối (8.6)                                 |
+| POST   | `/api/venues/bookings/:id/cancel`             | người đặt | Tự huỷ                                        |
+| GET    | `/api/venues/:id/stats`                       | chủ sân   | Thống kê (8.9)                                |
+| POST   | `/api/venues/:id/reviews`                     | ✓         | Đánh giá sân (8.8)                            |
 
 ---
 
 ## Gotcha trên Windows
 
 Nếu chạy `pnpm db:migrate` mà dev server đang chạy, có thể gặp lỗi file lock:
+
 ```
 Error: EBUSY: resource busy or locked, rename ... query_engine-windows.dll.node
 ```
 
 Khắc phục:
+
 ```powershell
 Get-Process node | Where-Object { $_.Modules.FileName -like '*query_engine-windows*' } | Stop-Process -Force
 ```

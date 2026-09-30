@@ -269,7 +269,13 @@ adminRouter.post('/users/:id/disable', async (req, res, next) => {
       }),
     ]);
 
-    await logAdmin(me, 'user.disable', 'user', target.id, input.reason ?? target.email ?? target.phone ?? target.id);
+    await logAdmin(
+      me,
+      'user.disable',
+      'user',
+      target.id,
+      input.reason ?? target.email ?? target.phone ?? target.id,
+    );
     res.json(toUserItem(updated));
   } catch (err) {
     next(err);
@@ -655,7 +661,10 @@ adminRouter.post('/venues/:id/suspend', async (req, res, next) => {
     const me = await actor(req.user!.sub);
     const id = String(req.params.id);
 
-    const venue = await prisma.venue.findUnique({ where: { id }, select: { status: true, name: true } });
+    const venue = await prisma.venue.findUnique({
+      where: { id },
+      select: { status: true, name: true },
+    });
     if (!venue) throw new HttpError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
     if (venue.status === 'suspended') {
       throw new HttpError(400, 'Sân này đã bị đình chỉ', 'ALREADY_SUSPENDED');
@@ -674,7 +683,10 @@ adminRouter.post('/venues/:id/activate', async (req, res, next) => {
     const me = await actor(req.user!.sub);
     const id = String(req.params.id);
 
-    const venue = await prisma.venue.findUnique({ where: { id }, select: { status: true, name: true } });
+    const venue = await prisma.venue.findUnique({
+      where: { id },
+      select: { status: true, name: true },
+    });
     if (!venue) throw new HttpError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
     if (venue.status === 'active') {
       throw new HttpError(400, 'Sân này đang hoạt động', 'ALREADY_ACTIVE');

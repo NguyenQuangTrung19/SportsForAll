@@ -344,10 +344,10 @@ xem cái nào đã bật (`true`).
 
 ### 7.5 Lỗi hay gặp
 
-| Hiện tượng | Nguyên nhân |
-| --- | --- |
-| Google báo `redirect_uri_mismatch` | Redirect URI ở bước 7.3 lệch một ký tự với `API_URL` + `/api/auth/oauth/google/callback` |
-| Facebook báo "URL blocked" | Tương tự, ở bước 7.4 |
-| Bấm Google xong quay về trang đăng nhập, báo "Email này đã có tài khoản" | Google chưa xác nhận email đó — đăng nhập bằng mật khẩu |
-| Không nhận được email | Xem giới hạn ở 7.1; kiểm tra cả Spam |
-| Log API có dòng `send verification email failed` | `RESEND_API_KEY` sai hoặc `MAIL_FROM` dùng tên miền chưa xác minh |
+| Hiện tượng                                                               | Nguyên nhân                                                                              |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Google báo `redirect_uri_mismatch`                                       | Redirect URI ở bước 7.3 lệch một ký tự với `API_URL` + `/api/auth/oauth/google/callback` |
+| Facebook báo "URL blocked"                                               | Tương tự, ở bước 7.4                                                                     |
+| Bấm Google xong quay về trang đăng nhập, báo "Email này đã có tài khoản" | Google chưa xác nhận email đó — đăng nhập bằng mật khẩu                                  |
+| Không nhận được email                                                    | Xem giới hạn ở 7.1; kiểm tra cả Spam                                                     |
+| Log API có dòng `send verification email failed`                         | `RESEND_API_KEY` sai hoặc `MAIL_FROM` dùng tên miền chưa xác minh                        |

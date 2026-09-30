@@ -37,7 +37,9 @@ const TEAM_INCLUDE = {
 type TeamMemberWithUser = TeamMember & { user: Pick<User, 'id' | 'displayName' | 'avatarUrl'> };
 type TeamWithMembers = Prisma.TeamGetPayload<{ include: typeof TEAM_INCLUDE }>;
 
-function toInviteView(i: TeamInvite & { user: Pick<User, 'displayName' | 'avatarUrl'> }): TeamInviteView {
+function toInviteView(
+  i: TeamInvite & { user: Pick<User, 'displayName' | 'avatarUrl'> },
+): TeamInviteView {
   return {
     id: i.id,
     userId: i.userId,
@@ -486,7 +488,11 @@ teamsRouter.post('/invites/:inviteId/cancel', requireAuth, async (req, res, next
     const invite = await loadInviteOrFail(String(req.params.inviteId));
     const viewerId = req.user!.sub;
     if (!managerIdsOf(invite.team.members).includes(viewerId)) {
-      throw new HttpError(403, 'Chỉ captain/phó đội mới rút được lời mời', 'INSUFFICIENT_TEAM_ROLE');
+      throw new HttpError(
+        403,
+        'Chỉ captain/phó đội mới rút được lời mời',
+        'INSUFFICIENT_TEAM_ROLE',
+      );
     }
 
     await prisma.teamInvite.update({

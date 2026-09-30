@@ -45,7 +45,15 @@ export function VenueDetailPage() {
   };
 
   const book = useMutation({
-    mutationFn: async ({ slotId, teamId, note }: { slotId: string; teamId?: string; note?: string }) => {
+    mutationFn: async ({
+      slotId,
+      teamId,
+      note,
+    }: {
+      slotId: string;
+      teamId?: string;
+      note?: string;
+    }) => {
       await api.post(`/venues/slots/${slotId}/bookings`, { teamId, note });
     },
     onSuccess: refresh,
@@ -225,7 +233,9 @@ function SlotRow({
           <div className="flex items-center gap-3">
             <span
               className={`border px-2 py-1 text-[11px] font-bold tracking-wide ${
-                mine === 'confirmed' ? 'border-ink bg-ink text-paper' : 'border-ink/25 text-ink-soft'
+                mine === 'confirmed'
+                  ? 'border-ink bg-ink text-paper'
+                  : 'border-ink/25 text-ink-soft'
               }`}
             >
               {mine === 'confirmed' ? 'ĐÃ XÁC NHẬN' : 'CHỜ DUYỆT'}
@@ -318,7 +328,10 @@ function ReviewSection({
 
   const submit = useMutation({
     mutationFn: async () => {
-      await api.post(`/venues/${venue.id}/reviews`, { score, comment: comment.trim() || undefined });
+      await api.post(`/venues/${venue.id}/reviews`, {
+        score,
+        comment: comment.trim() || undefined,
+      });
     },
     onSuccess: onDone,
     onError: (err) => onError(apiMessage(err, 'Không gửi được đánh giá')),

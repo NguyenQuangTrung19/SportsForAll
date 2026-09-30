@@ -22,7 +22,10 @@ describe('createSlotSchema — khung giờ', () => {
   });
 
   it('giờ kết thúc phải sau giờ bắt đầu', () => {
-    assert.equal(createSlotSchema.safeParse(slot({ endsAt: '2099-01-01T09:00:00.000Z' })).success, false);
+    assert.equal(
+      createSlotSchema.safeParse(slot({ endsAt: '2099-01-01T09:00:00.000Z' })).success,
+      false,
+    );
   });
 
   it('bằng nhau cũng không hợp lệ — khung dài 0 phút là khung không tồn tại', () => {

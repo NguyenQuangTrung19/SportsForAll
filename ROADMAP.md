@@ -5,23 +5,23 @@ Trạng thái được xác định bằng cách tra route, schema và model —
 
 **Ký hiệu:** `[x]` xong · `[~]` một phần · `[ ]` chưa làm
 
-_Cập nhật lần cuối: 2026-09-30 — FR-001 xong 100%, thêm đặt mật khẩu lần đầu, đăng nhập bằng SĐT + mật khẩu, liên kết / gỡ Google & Facebook ở trang hồ sơ._
+_Cập nhật lần cuối: 2026-09-30 — FR-001 xong 100%; toàn repo đã chạy Prettier, ép LF qua `.gitattributes`, thêm `pnpm format:check`._
 
 ## Tổng quan
 
-| Nhóm                        | Xong   | Một phần | Chưa   | Tổng   |
-| --------------------------- | ------ | -------- | ------ | ------ |
-| FR-001 Đăng ký & Xác thực   | 9      | 0        | 0      | 9      |
-| FR-002 Hồ sơ cá nhân        | 12     | 0        | 0      | 12     |
-| FR-003 Môn thể thao & Theme | 6      | 0        | 0      | 6      |
-| FR-004 Trang chủ            | 9      | 0        | 0      | 9      |
-| FR-005 Tìm đối thủ          | 11     | 0        | 0      | 11     |
-| FR-006 Tìm thành viên       | 9      | 0        | 0      | 9      |
-| FR-007 Quản lý đội          | 7      | 1        | 0      | 8      |
-| FR-008 Quản lý sân bãi      | 9      | 0        | 0      | 9      |
-| FR-009 Thông báo            | 4      | 0        | 2      | 6      |
-| FR-010 Quản trị hệ thống    | 8      | 0        | 0      | 8      |
-| **Tổng**                    | **84** | **1**    | **2**  | **87** |
+| Nhóm                        | Xong   | Một phần | Chưa  | Tổng   |
+| --------------------------- | ------ | -------- | ----- | ------ |
+| FR-001 Đăng ký & Xác thực   | 9      | 0        | 0     | 9      |
+| FR-002 Hồ sơ cá nhân        | 12     | 0        | 0     | 12     |
+| FR-003 Môn thể thao & Theme | 6      | 0        | 0     | 6      |
+| FR-004 Trang chủ            | 9      | 0        | 0     | 9      |
+| FR-005 Tìm đối thủ          | 11     | 0        | 0     | 11     |
+| FR-006 Tìm thành viên       | 9      | 0        | 0     | 9      |
+| FR-007 Quản lý đội          | 7      | 1        | 0     | 8      |
+| FR-008 Quản lý sân bãi      | 9      | 0        | 0     | 9      |
+| FR-009 Thông báo            | 4      | 0        | 2     | 6      |
+| FR-010 Quản trị hệ thống    | 8      | 0        | 0     | 8      |
+| **Tổng**                    | **84** | **1**    | **2** | **87** |
 
 **Tám nhóm đã xong 100%: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-008, FR-010.** FR-008 khép lại kéo theo
 hai mục cuối cùng bị nó chặn: 4.4 (sân đang cần đội trên Trang chủ) và 10.5 (admin quản lý sân).
@@ -65,6 +65,7 @@ dịch vụ ngoài.
 > `+84912...` và `0912...` không thành hai tài khoản.
 >
 > **Các quyết định bảo mật:**
+>
 > - **Quên mật khẩu luôn trả 204**, có tài khoản hay không, và không chờ gửi mail xong mới
 >   trả — trả lời khác nhau hay chậm khác nhau đều là cách dò email nào đã đăng ký.
 > - **Số tự gõ vào hồ sơ không đăng nhập được bằng OTP.** Ai cũng gõ được số người khác vào
@@ -90,6 +91,7 @@ dịch vụ ngoài.
 > nằm ở TEST_PLAN mục 5A.
 >
 > **Mọi tài khoản đều quản lý được cách đăng nhập của mình** (trang Hồ sơ):
+>
 > - **Đặt mật khẩu lần đầu** (`POST /auth/set-password`) cho tài khoản tạo bằng
 >   Google/Facebook/OTP — thẻ Mật khẩu tự đổi thành "Đặt mật khẩu", không hỏi mật khẩu cũ.
 >   Từ chối nếu tài khoản không có email hay số đã xác thực: mật khẩu không có gì đi kèm để
@@ -148,19 +150,18 @@ dịch vụ ngoài.
 > 0 nghĩa là "chưa có trận nào được chấm" (hiện là "—"), cùng quy ước với `Team.reputation`.
 >
 > **Hai lỗ hổng phải bịt để công thức đứng vững:**
+>
 > - **Khoá điểm danh sau giờ đá** (`MATCH_PLAYED`). Không có dòng này thì ai cũng xem phiếu
 >   chấm xong rồi mới chọn "Có đi" (được 5★) hoặc "Không đi" (bị 1★).
 > - **`MatchAttendance.teamId`** lưu đội mình ra sân cho. Rời đội thì `TeamMember` mất, mà
 >   lịch sử trận vẫn phải biết mình đá cho ai. Migration suy cột này từ thành viên hiện tại;
 >   dòng của người đã rời cả hai đội bị xoá (vốn đã bị `summarizeAttendance` bỏ qua), rồi tính
 >   lại uy tín cho mọi người từ dữ liệu cũ.
->
 > - **Giải tán đội không xoá được lịch sử.** Giải tán là xoá cứng: `Match`, `Rating`,
 >   `MatchAttendance` đi theo dây chuyền. Nếu uy tín tính thẳng từ `Rating`, thành viên đội
 >   giải tán lẫn đối thủ của họ sẽ mất trận đã đá — và captain giải tán đội là xoá sạch phiếu
 >   1★ cho cả đội. Vì thế `PlayerMatchScore.matchId` **cố ý không có khoá ngoại**: trận mất,
 >   sổ vẫn còn. Chọn cách này thay vì xoá mềm đội vì xoá mềm phải thêm bộ lọc ở ~19 truy vấn.
->
 > - **Uy tín đội cũng thế** — sổ `TeamMatchScore` (cùng lý do, cùng cách không khoá ngoại tới
 >   trận). Đổi luôn cách tính: trước là trung bình **mọi phiếu**, giờ là trung bình **điểm các
 >   trận**, nên đối thủ đông người không át đối thủ ít người. Migration tính lại cho dữ liệu cũ
@@ -360,15 +361,15 @@ không dựng lại từ đầu.
 
 Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trước sẽ mở khoá nhiều FR cùng lúc.
 
-| Hạ tầng                           | Mở khoá                        | Ghi chú                                                    |
-| --------------------------------- | ------------------------------ | ---------------------------------------------------------- |
-| ~~Gửi email~~                     | ~~1.6, 1.7~~                   | Xong 2026-09-30 — Resend qua `fetch`, dev in ra terminal   |
-| Lưu file / ảnh                    | 2.3, 8.2                       | Local disk cho đồ án là đủ                                 |
-| ~~Model `Rating`~~                | ~~5.10, 7.7, 9.5, 2.12~~       | Xong 2026-08-21; 2.12 xong 2026-09-30                      |
-| Bộ hẹn giờ chạy nền               | 9.4                            | Cũng dùng được để dọn bài hết hạn                          |
-| Luồng "kết thúc trận"             | 7.6, mốc chấm điểm chặt hơn    | Nhỏ — một cột trạng thái + nút cho captain                 |
-| ~~Middleware `requireRole('admin')`~~ | ~~Toàn bộ FR-010~~         | Xong — chỉ còn 10.5 chờ FR-008                             |
-| ~~Nhóm model sân bãi~~            | ~~FR-008, 4.4, 10.5~~          | Xong 2026-08-22 — `Venue`, `VenueSlot`, `Booking`, `VenueReview` |
+| Hạ tầng                               | Mở khoá                     | Ghi chú                                                          |
+| ------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| ~~Gửi email~~                         | ~~1.6, 1.7~~                | Xong 2026-09-30 — Resend qua `fetch`, dev in ra terminal         |
+| Lưu file / ảnh                        | 2.3, 8.2                    | Local disk cho đồ án là đủ                                       |
+| ~~Model `Rating`~~                    | ~~5.10, 7.7, 9.5, 2.12~~    | Xong 2026-08-21; 2.12 xong 2026-09-30                            |
+| Bộ hẹn giờ chạy nền                   | 9.4                         | Cũng dùng được để dọn bài hết hạn                                |
+| Luồng "kết thúc trận"                 | 7.6, mốc chấm điểm chặt hơn | Nhỏ — một cột trạng thái + nút cho captain                       |
+| ~~Middleware `requireRole('admin')`~~ | ~~Toàn bộ FR-010~~          | Xong — chỉ còn 10.5 chờ FR-008                                   |
+| ~~Nhóm model sân bãi~~                | ~~FR-008, 4.4, 10.5~~       | Xong 2026-08-22 — `Venue`, `VenueSlot`, `Booking`, `VenueReview` |
 
 ## Nợ kỹ thuật (không thuộc FR)
 
@@ -376,7 +377,7 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
       **315 KB / 98,5 KB gzip** (trước: 614 KB một cục). Không thêm dependency nào; Vite tự
       tách vì `import()` động là điểm cắt.
 - [~] Bộ test đầu tiên — **84 test** chạy bằng `node --test` sẵn có trong Node, `pnpm test`,
-      không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
+  không cần CSDL. Xem mục "Bộ test hiện phủ gì" bên dưới.
 - [ ] Chưa có test nào chạm CSDL hay HTTP — mọi luồng nhiều bước (đặt sân, duyệt đơn, khoá
       tài khoản) vẫn chỉ kiểm bằng tay theo `TEST_PLAN.md`
 - [ ] Refresh token lưu `localStorage`, TTL 30 ngày
@@ -389,14 +390,14 @@ Nhiều mục trên bị chặn bởi cùng một thứ. Làm hạ tầng trư�
 
 Chọn theo một tiêu chí: logic thuần, không cần CSDL, mà sai thì hỏng lặng lẽ.
 
-| Chỗ | Vì sao đáng test |
-| --- | --- |
-| `paginate()` / `cursorArgs()` | 8 endpoint dùng chung; lệch một đơn vị là mất hoặc lặp bản ghi |
-| `uploadedFileName()` | Đường path traversal — chỗ duy nhất quyết định file nào bị xoá |
-| `playerReputation()` | Công thức uy tín cá nhân; sai là xếp hạng người chơi sai mà không ai thấy |
-| `ttlToMs()` | Bộ phân tích; TTL sai cú pháp mà vẫn khởi động được là phiên sai âm thầm |
-| `hasBeenPlayed()` | Mốc mở phần chấm điểm, 5 nhánh |
-| Schema `venue` / `auth` / `admin` | Xác thực ở biên tin cậy: giá, giờ, giới hạn trang, ranh giới vai trò |
+| Chỗ                               | Vì sao đáng test                                                          |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `paginate()` / `cursorArgs()`     | 8 endpoint dùng chung; lệch một đơn vị là mất hoặc lặp bản ghi            |
+| `uploadedFileName()`              | Đường path traversal — chỗ duy nhất quyết định file nào bị xoá            |
+| `playerReputation()`              | Công thức uy tín cá nhân; sai là xếp hạng người chơi sai mà không ai thấy |
+| `ttlToMs()`                       | Bộ phân tích; TTL sai cú pháp mà vẫn khởi động được là phiên sai âm thầm  |
+| `hasBeenPlayed()`                 | Mốc mở phần chấm điểm, 5 nhánh                                            |
+| Schema `venue` / `auth` / `admin` | Xác thực ở biên tin cậy: giá, giờ, giới hạn trang, ranh giới vai trò      |
 
 > **Test đầu tiên bắt được một lỗi thật.** `uploadedFileName` cắt đường dẫn bằng
 > `path.posix.basename`, chỉ tách ở dấu `/`. Chuỗi `"/uploads/..\..\windows\system32"` đi

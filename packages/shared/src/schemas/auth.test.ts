@@ -99,8 +99,7 @@ describe('resetPasswordSchema (FR-001.6)', () => {
 });
 
 describe('loginSchema — email hoặc số điện thoại', () => {
-  const ok = (identifier: string) =>
-    loginSchema.safeParse({ identifier, password: 'x' }).success;
+  const ok = (identifier: string) => loginSchema.safeParse({ identifier, password: 'x' }).success;
 
   it('nhận email', () => assert.equal(ok('a@b.vn'), true));
   it('nhận số 0x và +84', () => {
